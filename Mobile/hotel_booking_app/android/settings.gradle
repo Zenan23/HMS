@@ -1,19 +1,44 @@
 pluginManagement {
-    def flutterSdkPath = {
-        def properties = new Properties()
-        file("local.properties").withInputStream { properties.load(it) }
-        def flutterSdkPath = properties.getProperty("flutter.sdk")
-        assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
-        return flutterSdkPath
-    }()
+	def readLocalFlutterSdk = {
+		def propsFile = file("local.properties")
+		if (!propsFile.exists()) return null
+		def props = new Properties()
+		propsFile.withInputStream { props.load(it) }
+		return props.getProperty("flutter.sdk")
+	}
 
-    includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+	def detectFlutterSdkFromEnvOrPath = {
+		def env = System.getenv("FLUTTER_HOME") ?: System.getenv("FLUTTER_SDK") ?: System.getenv("FLUTTER_ROOT")
+		if (env) return env
 
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
+		def fvmDir = new File(rootDir, ".fvm/flutter_sdk")
+		if (fvmDir.exists()) return fvmDir.getAbsolutePath()
+
+		try {
+			def isWindows = System.getProperty("os.name").toLowerCase().contains("windows")
+			def cmd = isWindows ? ["cmd","/c","where","flutter"] : ["bash","-lc","which flutter"]
+			def proc = cmd.execute(); proc.waitFor()
+			if (proc.exitValue() == 0) {
+				def flutterExe = proc.in.text.readLines().find { it?.trim() }
+				if (flutterExe) {
+					def binDir = new File(flutterExe).getParentFile()
+					return binDir?.getParentFile()?.getAbsolutePath()
+				}
+			}
+		} catch (ignored) {}
+		return null
+	}
+
+	def flutterSdkPath = readLocalFlutterSdk() ?: detectFlutterSdkFromEnvOrPath()
+	assert flutterSdkPath != null : "Flutter SDK nije pronađen. Postavite FLUTTER_HOME/FLUTTER_ROOT, koristite FVM (.fvm/flutter_sdk) ili dodajte 'flutter' u PATH."
+
+	includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+
+	repositories {
+		google()
+		mavenCentral()
+		gradlePluginPortal()
+	}
 }
 
 plugins {
