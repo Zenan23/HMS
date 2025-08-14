@@ -72,7 +72,7 @@ namespace API.Data
                     ivan.PasswordHash = passwordService.HashPassword("Ivan123!");
                     leo.PasswordHash = passwordService.HashPassword("Leo123!");
                 }
-                context.Users.AddRange(admin, demo, ana, marko, ivan);
+                context.Users.AddRange(admin, demo, ana, marko, ivan, leo);
                 await context.SaveChangesAsync();
 
                 var hotelsAll = await context.Hotels.ToListAsync();
