@@ -1,0 +1,29 @@
+# VCS
+.git
+.gitignore
+
+# OS/IDE
+**/.DS_Store
+**/Thumbs.db
+.vscode/
+.idea/
+
+# Node/Flutter build artifacts
+build/
+**/build/
+**/.dart_tool/
+**/.packages
+**/pubspec.lock
+
+# Dotnet
+**/bin/
+**/obj/
+
+# Docker
+**/.dockerignore
+
+# Logs
+**/*.log
+
+# Artifacts
+artifacts/

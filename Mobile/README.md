@@ -1,0 +1,15 @@
+## Glavne funkcionalnosti
+- Autentikacija (login/registracija) sa JWT
+- Pregled hotela sa paginacijom i filtriranjem (po gradu, po ratingu)
+- Prosječni rating iz recenzija (zvjezdice sa pola zvjezdice + broj)
+- Detalji hotela i dostupne sobe
+- Rezervacije:
+  - Provjera dostupnosti i cijene
+  - Kreiranje rezervacije i nastavak na plaćanje
+  - Plaćene rezervacije (lista)
+  - Neplaćene rezervacije (ako je omogućeno na API) i odlazak na plaćanje
+- Plaćanja: kartica, PayPal, bankovni transfer (mock); status poruke
+- Recenzije: prikaz i dodavanje recenzije za hotel (rating + komentar)
+- Notifikacije: dohvat sa backenda, označavanje pročitanih
+- Preporuke: “Preporučeno za vas” (collaborative filtering) ili fallback
+- Profil: read-only prikaz, opcionalno uređivanje i čuvanje izmjena

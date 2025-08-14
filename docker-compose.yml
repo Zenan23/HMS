@@ -1,0 +1,65 @@
+services:
+  db:
+    build:
+      context: .
+      dockerfile: db/Dockerfile
+    container_name: ebooking-sql
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_PID=Developer
+      - SA_PASSWORD=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!}
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: ebooking-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASS:-guest}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/eBooking/API/Dockerfile
+    container_name: ebooking-api
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=db;Database=eBookingDb_v2;User ID=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!};Encrypt=true;TrustServerCertificate=true;MultipleActiveResultSets=true
+      - JWT__SecretKey=${JWT_SECRET:-ChangeThisToAStrongSecretKey_AtLeast32Chars}
+      - JWT__Issuer=eBooking
+      - JWT__Audience=eBookingUsers
+      - Rabbit__Host=rabbitmq
+      - Rabbit__User=${RABBIT_USER:-guest}
+      - Rabbit__Pass=${RABBIT_PASS:-guest}
+    ports:
+      - "8080:8080"
+
+volumes:
+  mssql_data:
+    driver: local
+  rabbitmq_data:
+    driver: local

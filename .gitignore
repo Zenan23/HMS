@@ -1,0 +1,55 @@
+# OS/IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# Git
+*.orig
+
+# Docker
+.env
+artifacts/
+*.tar
+
+# .NET
+bin/
+obj/
+.vs/
+*.user
+*.suo
+
+# ASP.NET konfiguracije (lokalne)
+appsettings.*.local.json
+
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.melos_tool/
+
+# Android
+android/.gradle/
+android/.idea/
+android/local.properties
+android/key.properties
+android/app/*.keystore
+android/app/*.jks
+
+# iOS/macOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+macos/Pods/
+**/DerivedData/
+
+# Logs
+*.log
+
+# Generated artifacts (ako postoji)
+Mobile/hotel_booking_app/build/
+Desktop/hotel_system_desktop/build/
