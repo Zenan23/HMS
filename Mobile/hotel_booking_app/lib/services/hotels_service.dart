@@ -61,7 +61,7 @@ class HotelsService extends ChangeNotifier {
 
   Future<void> fetchRecommended(int userId) async {
     try {
-      final response = await ApiService.get('/Recommendations/user/$userId/hotels');
+      final response = await ApiService.get('/Hotels/user/$userId/hotels');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final items = data['data'] ?? [];

@@ -2,6 +2,7 @@
 using API.DTOs;
 using API.Enums;
 using API.Interfaces;
+using API.Services;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -120,6 +121,31 @@ namespace API.Controllers
         public override async Task<ActionResult<ApiResponse<bool>>> Delete([FromRoute] int id)
         {
             return await base.Delete(id);
+        }
+
+        /// <summary>
+        /// Get user-based hotel recommendations (collaborative filtering)
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <returns>List of recommended hotels</returns>
+        [HttpGet("user/{userId}/hotels")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<HotelDto>>>> GetUserBasedHotelRecommendations([FromRoute] int userId)
+        {
+            try
+            {
+                if (userId <= 0)
+                {
+                    return BadRequest(ApiResponse<IEnumerable<HotelDto>>.ErrorResult("Invalid user ID."));
+                }
+
+                var hotels = await _hotelService.GetUserBasedHotelRecommendationsAsync(userId);
+                return Ok(ApiResponse<IEnumerable<HotelDto>>.SuccessResult(hotels, "Recommended hotels retrieved successfully."));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving recommended hotels for user ID: {UserId}", userId);
+                return StatusCode(500, ApiResponse<IEnumerable<HotelDto>>.ErrorResult("An error occurred while retrieving recommended hotels."));
+            }
         }
     }
 }

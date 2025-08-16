@@ -189,30 +189,6 @@ namespace API.Data
                     .OnDelete(DeleteBehavior.SetNull);
             });
 
-            // Recommendation configuration
-            //modelBuilder.Entity<Recommendation>(entity =>
-            //{
-            //    entity.HasKey(r => r.Id);
-            //    entity.Property(r => r.Title).IsRequired().HasMaxLength(200);
-            //    entity.Property(r => r.Type).IsRequired().HasMaxLength(50);
-            //    entity.Property(r => r.Price).HasColumnType("decimal(18,2)");
-
-            //    entity.HasOne(r => r.User)
-            //        .WithMany()
-            //        .HasForeignKey(r => r.UserId)
-            //        .OnDelete(DeleteBehavior.NoAction);
-
-            //    entity.HasOne(r => r.Hotel)
-            //        .WithMany()
-            //        .HasForeignKey(r => r.HotelId)
-            //        .OnDelete(DeleteBehavior.NoAction);
-
-            //    entity.HasOne(r => r.Service)
-            //        .WithMany()
-            //        .HasForeignKey(r => r.ServiceId)
-            //        .OnDelete(DeleteBehavior.NoAction);
-            //});
-
             // Payment configuration
             modelBuilder.Entity<Payment>(entity =>
             {
@@ -263,10 +239,8 @@ namespace API.Data
             modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
             modelBuilder.Entity<Service>().HasQueryFilter(s => !s.IsDeleted);
             modelBuilder.Entity<Review>().HasQueryFilter(r => !r.IsDeleted);
-            // modelBuilder.Entity<Employee>().HasQueryFilter(e => !e.IsDeleted);
             modelBuilder.Entity<Notification>().HasQueryFilter(n => !n.IsDeleted);
             modelBuilder.Entity<BookingStatusHistory>().HasQueryFilter(bsh => !bsh.IsDeleted);
-     //       modelBuilder.Entity<Recommendation>().HasQueryFilter(r => !r.IsDeleted);
             modelBuilder.Entity<Payment>().HasQueryFilter(p => !p.IsDeleted);
             modelBuilder.Entity<PaymentAuditLog>().HasQueryFilter(pal => !pal.IsDeleted);
         }
