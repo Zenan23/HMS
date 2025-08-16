@@ -67,16 +67,6 @@ namespace API.Mapper
             CreateMap<UpdateReviewDto, Review>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
-            // Employee mappings
-            CreateMap<Employee, EmployeeDto>()
-                .ForMember(dest => dest.HotelName, opt => opt.MapFrom(src => src.Hotel.Name))
-                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => $"{src.FirstName} {src.LastName}"));
-            CreateMap<CreateEmployeeDto, Employee>()
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
-            CreateMap<UpdateEmployeeDto, Employee>()
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
-
             // User mappings
             CreateMap<User, UserDto>();
             CreateMap<CreateUserDto, User>()
@@ -103,14 +93,6 @@ namespace API.Mapper
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
             CreateMap<UpdateBookingStatusHistoryDto, BookingStatusHistory>()
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
-
-            // Recommendation mappings
-            CreateMap<Recommendation, RecommendationDto>();
-            CreateMap<CreateRecommendationDto, Recommendation>()
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
-            CreateMap<UpdateRecommendationDto, Recommendation>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
             // Payment mappings

@@ -193,5 +193,59 @@ namespace API.Services
             if (hotelReviews.Count == 0) return 0;
             return Math.Round(hotelReviews.Average(r => (double)r.Rating), 2);
         }
+
+        /// <summary>
+        /// User-based collaborative filtering hotel recommendations
+        /// </summary>
+        public async Task<IEnumerable<HotelDto>> GetUserBasedHotelRecommendationsAsync(int userId)
+        {
+            var allReviews = await _reviewService.GetAllAsync();
+            var allHotels = await _hotelRepository.GetAllAsync();
+
+            // Reviews of current user
+            var userReviews = allReviews.Where(r => r.UserId == userId && r.IsApproved && !r.IsDeleted).ToList();
+            var userHotelIds = userReviews.Select(r => r.HotelId).Distinct().ToList();
+
+            // Find similar users (who rated same hotels)
+            var similarUsers = allReviews.Where(r => userHotelIds.Contains(r.HotelId) && r.UserId != userId)
+                                        .Select(r => r.UserId)
+                                        .Distinct()
+                                        .ToList();
+
+            // For each similar user, get their reviews
+            var similarUserReviews = allReviews.Where(r => similarUsers.Contains(r.UserId ?? 0) && r.IsApproved && !r.IsDeleted).ToList();
+
+            // Calculate average rating per hotel by similar users
+            var recommendedHotels = similarUserReviews
+                .Where(r => !userHotelIds.Contains(r.HotelId) && r.Rating >= 4) // Only hotels not rated by current user, and with high rating
+                .GroupBy(r => r.HotelId)
+                .Select(g => new { HotelId = g.Key, AvgRating = g.Average(r => r.Rating), Count = g.Count() })
+                .OrderByDescending(h => h.AvgRating)
+                .ThenByDescending(h => h.Count)
+                .Take(3) // Top 3
+                .ToList();
+
+            // Get hotel entities
+            var hotels = allHotels.Where(h => recommendedHotels.Select(r => r.HotelId).Contains(h.Id)).ToList();
+
+            // Fallback: ako nema sličnih korisnika ili preporuka, vrati top hotele po prosječnom ratingu
+            if (hotels.Count == 0)
+            {
+                var topByRating = allReviews
+                    .Where(r => r.IsApproved && !r.IsDeleted)
+                    .GroupBy(r => r.HotelId)
+                    .Select(g => new { HotelId = g.Key, Avg = g.Average(x => (double)x.Rating), Cnt = g.Count() })
+                    .Where(x => x.Avg >= 4.0)
+                    .OrderByDescending(x => x.Avg)
+                    .ThenByDescending(x => x.Cnt)
+                    .Take(3)
+                    .Select(x => x.HotelId)
+                    .ToHashSet();
+
+                hotels = allHotels.Where(h => topByRating.Contains(h.Id)).ToList();
+            }
+
+            return _mapper.Map<IEnumerable<HotelDto>>(hotels);
+        }
     }
 }

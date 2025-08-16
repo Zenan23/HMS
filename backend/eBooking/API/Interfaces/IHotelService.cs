@@ -1,4 +1,5 @@
 ﻿using API.DTOs;
+using Microsoft.AspNetCore.Mvc;
 
 namespace API.Interfaces
 {
@@ -11,6 +12,7 @@ namespace API.Interfaces
         Task<bool> UpdateHotelAsync(int id, UpdateHotelDto updateHotelDto);
         Task<bool> DeleteHotelAsync(int id);
         Task<double> GetAverageRatingAsync(int hotelId);
+        Task<IEnumerable<HotelDto>> GetUserBasedHotelRecommendationsAsync(int userId);
     }
 
 }

@@ -3,7 +3,6 @@ using API.Enums;
 using API.Interfaces;
 using API.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 
 namespace API.Repositories
 {

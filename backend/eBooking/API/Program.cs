@@ -87,12 +87,11 @@ builder.Services.AddScoped<IBookingStatusHistoryService, BookingStatusHistorySer
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IPaymentAuditLogService, PaymentAuditLogService>();
-builder.Services.AddScoped<IRecommendationService, RecommendationService>();
+//builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
-// Ako želiš koristiti Employees modul, otkomentariši liniju ispod
-// builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+
 // Queries (read-only)
 builder.Services.AddScoped<API.Queries.IBookingQueries, API.Queries.BookingQueries>();
 builder.Services.AddScoped<API.Queries.IServiceQueries, API.Queries.ServiceQueries>();
@@ -103,7 +102,6 @@ builder.Services.AddScoped<IPaymentProvider, CardPaymentProvider>();
 builder.Services.AddScoped<IPaymentProvider, PayPalPaymentProvider>();
 
 // Add base services
-builder.Services.AddScoped(typeof(IBaseService<>), typeof(BaseService<>));
 builder.Services.AddScoped<IRoomService, RoomService>();
 
 builder.Services.AddEndpointsApiExplorer();
