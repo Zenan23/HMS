@@ -8,6 +8,7 @@ import 'screens/employees_screen.dart';
 import 'screens/users_screen.dart';
 import 'screens/rooms_screen.dart';
 import 'screens/services_screen.dart';
+import 'screens/dashboard_screen.dart';
 import 'models/user.dart';
 
 void main() {
@@ -60,11 +61,13 @@ class _MainTabsState extends State<MainTabs>
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (auth.role == null || auth.role == UserRole.Admin.index) {
       _tabs = const [
+        Tab(text: 'Dashboard'),
         Tab(text: 'Hoteli'),
         Tab(text: 'Uposlenici'),
         Tab(text: 'Korisnici'),
       ];
       _tabViews = const [
+        DashboardScreen(),
         HotelsScreen(),
         EmployeesScreen(),
         UsersScreen(),

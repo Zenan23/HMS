@@ -204,5 +204,69 @@ namespace Application.Services
                 throw;
             }
         }
+
+        public async Task<ReviewStatistics> GetReviewStatisticsAsync(DateTime? fromDate = null, DateTime? toDate = null)
+        {
+            try
+            {
+                var entities = await _repository.GetAllAsync();
+                var query = entities.Where(r => !r.IsDeleted);
+
+                if (fromDate.HasValue)
+                    query = query.Where(r => r.ReviewDate >= fromDate.Value);
+
+                if (toDate.HasValue)
+                    query = query.Where(r => r.ReviewDate <= toDate.Value);
+
+                var totalReviews = query.Count();
+                var approvedReviews = query.Where(r => r.IsApproved).ToList();
+                var averageRating = approvedReviews.Count > 0 ? approvedReviews.Average(r => (double)r.Rating) : 0;
+
+                var fiveStarReviews = approvedReviews.Count(r => r.Rating == 5);
+                var fourStarReviews = approvedReviews.Count(r => r.Rating == 4);
+                var threeStarReviews = approvedReviews.Count(r => r.Rating == 3);
+                var twoStarReviews = approvedReviews.Count(r => r.Rating == 2);
+                var oneStarReviews = approvedReviews.Count(r => r.Rating == 1);
+
+                // Monthly data for last 12 months
+                var monthlyData = new List<MonthlyReviewData>();
+                for (int i = 11; i >= 0; i--)
+                {
+                    var monthStart = DateTime.UtcNow.AddMonths(-i).Date.AddDays(1 - DateTime.UtcNow.AddMonths(-i).Day);
+                    var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+                    
+                    var monthQuery = query.Where(r => r.ReviewDate >= monthStart && r.ReviewDate <= monthEnd);
+                    var monthReviews = monthQuery.Where(r => r.IsApproved).ToList();
+                    var monthCount = monthReviews.Count;
+                    var monthAverage = monthReviews.Count > 0 ? monthReviews.Average(r => (double)r.Rating) : 0;
+
+                    monthlyData.Add(new MonthlyReviewData
+                    {
+                        Month = monthStart.ToString("MMM yyyy"),
+                        ReviewCount = monthCount,
+                        AverageRating = Math.Round(monthAverage, 2)
+                    });
+                }
+
+                return new ReviewStatistics
+                {
+                    TotalReviews = totalReviews,
+                    AverageRating = Math.Round(averageRating, 2),
+                    FiveStarReviews = fiveStarReviews,
+                    FourStarReviews = fourStarReviews,
+                    ThreeStarReviews = threeStarReviews,
+                    TwoStarReviews = twoStarReviews,
+                    OneStarReviews = oneStarReviews,
+                    FromDate = fromDate,
+                    ToDate = toDate,
+                    MonthlyData = monthlyData
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculating review statistics");
+                throw;
+            }
+        }
     }
 }
