@@ -22,16 +22,13 @@ class HotelsService extends ChangeNotifier {
   }
 
   Future<List<Hotel>> fetchHotels({int page = 1, int pageSize = 10}) async {
-    final response = await ApiService.get('/Hotels?pageNumber=$page&pageSize=$pageSize');
+    final response =
+        await ApiService.get('/Hotels?pageNumber=$page&pageSize=$pageSize');
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      print(response);
-      print(data);
-      
+
       final items = data['data']?['items'] ?? [];
-  print(items);
-  print("nema me");
-  return (items as List).map((e) => Hotel.fromJson(e)).toList();
+      return (items as List).map((e) => Hotel.fromJson(e)).toList();
     } else {
       throw Exception('Greška pri dohvatu hotela');
     }
@@ -82,10 +79,10 @@ class HotelsService extends ChangeNotifier {
         final decoded = jsonDecode(response.body);
 
 // "data" je zapravo lista soba
-final List<dynamic> roomsJson = decoded['data'] ?? [];
-_hotelRooms = roomsJson.map((json) => Room.fromJson(json)).toList();
-_isLoading = false;
-notifyListeners();
+        final List<dynamic> roomsJson = decoded['data'] ?? [];
+        _hotelRooms = roomsJson.map((json) => Room.fromJson(json)).toList();
+        _isLoading = false;
+        notifyListeners();
         return null;
       } else {
         _isLoading = false;

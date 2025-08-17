@@ -1,4 +1,4 @@
-﻿using API.Enums;
+﻿using Contracts.Enums;
 using Microsoft.AspNetCore.Authorization;
 using System.Data;
 

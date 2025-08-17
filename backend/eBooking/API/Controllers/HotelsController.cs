@@ -1,11 +1,10 @@
 ﻿using API.Attributes;
-using API.DTOs;
-using API.Enums;
-using API.Interfaces;
-using API.Services;
 using AutoMapper;
+using Contracts.DTOs;
+using Contracts.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Persistence.Interfaces;
 
 namespace API.Controllers
 {

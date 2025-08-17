@@ -1,6 +1,6 @@
-﻿using API.DTOs;
-using API.Interfaces;
+﻿using Contracts.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using Persistence.Interfaces;
 
 namespace API.Controllers
 {

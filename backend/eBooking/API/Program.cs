@@ -1,18 +1,18 @@
-using API.Data;
-using API.Interfaces;
 using API.Middleware;
-using API.Repositories;
-using API.Services;
-using API.Services.PaymentProviders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Reflection;
 using System.Text;
 using MassTransit;
-using API.Messaging.Configuration;
-using API.Hubs;
-using BookingService = API.Services.BookingService;
+using BookingService = Application.Services.BookingService;
+using Persistence.Data;
+using Application.Messaging.Configuration;
+using Persistence.Interfaces;
+using Persistence.Repositories;
+using Application.Services;
+using Application.Services.PaymentProviders;
+using Application.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -93,8 +93,8 @@ builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // Queries (read-only)
-builder.Services.AddScoped<API.Queries.IBookingQueries, API.Queries.BookingQueries>();
-builder.Services.AddScoped<API.Queries.IServiceQueries, API.Queries.ServiceQueries>();
+builder.Services.AddScoped<Application.Queries.IBookingQueries, Application.Queries.BookingQueries>();
+builder.Services.AddScoped<Application.Queries.IServiceQueries, Application.Queries.ServiceQueries>();
 
 // Add providers
 builder.Services.AddScoped<IPaymentProvider, BankTransferPaymentProvider>();
