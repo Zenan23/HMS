@@ -37,6 +37,22 @@ namespace Application.Services
             }
         }
 
+        public async Task<UserDto?> GetEmployeeByUsernameAsync(string username)
+        {
+            try
+            {
+                _logger.LogInformation("Getting user by username: {Username}", username);
+                var entities = await _repository.GetAllAsync();
+                var user = entities.FirstOrDefault(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase) && !u.IsDeleted && u.Role == UserRole.Employee);
+                return user == null ? null : _mapper.Map<UserDto>(user);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user by username: {Username}", username);
+                throw;
+            }
+        }
+
         public async Task<UserDto?> GetByEmailAsync(string email)
         {
             try

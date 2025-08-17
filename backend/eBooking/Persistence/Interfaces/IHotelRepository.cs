@@ -6,5 +6,6 @@ namespace Persistence.Interfaces
     {
         Task<IEnumerable<Hotel>> GetHotelsByCityAsync(string city);
         Task<Hotel?> GetHotelWithRoomsAsync(int hotelId);
+        Task<IEnumerable<Hotel>> GetHotelsByNameAsync(string name);
     }
 }

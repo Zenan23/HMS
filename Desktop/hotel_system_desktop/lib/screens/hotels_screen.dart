@@ -16,6 +16,8 @@ class _HotelsScreenState extends State<HotelsScreen> {
   int _totalPages = 1;
   bool _isLoading = false;
   List<Hotel> _hotels = [];
+  String _searchQuery = '';
+  bool _isSearchMode = false;
 
   @override
   void initState() {
@@ -37,10 +39,52 @@ class _HotelsScreenState extends State<HotelsScreen> {
         _page = page;
         int totalCount = data['totalCount'] ?? 0;
         _totalPages = (totalCount / _pageSize).ceil();
+        _isSearchMode = false;
       });
     } catch (e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Greška: $e')));
+    }
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _fetchHotelsByName(String name) async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService().get('/api/hotels/by-city/$name');
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      final data = decoded['data'] ?? {};
+      final List items = data['items'] ?? [];
+      final hotels = items.map((e) => Hotel.fromJson(e)).toList();
+      
+      setState(() {
+        _hotels = hotels;
+        _page = 1;
+        _totalPages = 1;
+        _isSearchMode = true;
+      });
+      
+      if (hotels.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Hotel sa tim nazivom nije pronađen.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _hotels = [];
+        _page = 1;
+        _totalPages = 0;
+        _isSearchMode = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Hotel sa tim nazivom nije pronađen.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
     }
     setState(() => _isLoading = false);
   }
@@ -65,8 +109,51 @@ class _HotelsScreenState extends State<HotelsScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 200,
+                      child: TextField(
+                        decoration: const InputDecoration(
+                          labelText: 'Pretraži po nazivu grada',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.search),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _searchQuery = value;
+                          });
+                        },
+                        onSubmitted: (value) {
+                          if (value.isNotEmpty) {
+                            _fetchHotelsByName(value);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        if (_searchQuery.isNotEmpty) {
+                          _fetchHotelsByName(_searchQuery);
+                        }
+                      },
+                      child: const Text('Filtriraj'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _searchQuery = '';
+                        });
+                        _fetchHotels(1);
+                      },
+                      child: const Text('Očisti filtere'),
+                    ),
+                  ],
+                ),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.add),
                   label: const Text('Dodaj hotel'),
@@ -76,9 +163,42 @@ class _HotelsScreenState extends State<HotelsScreen> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: DataTable(
+              child: _hotels.isEmpty && !_isLoading
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _isSearchMode ? Icons.search_off : Icons.hotel_outlined,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _isSearchMode 
+                                ? 'Nema rezultata za pretragu'
+                                : 'Nema hotela',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _isSearchMode
+                                ? 'Pokušajte sa drugim nazivom hotela'
+                                : 'Dodajte prvi hotel',
+                            style: const TextStyle(
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      scrollDirection: Axis.vertical,
+                      child: DataTable(
                   columns: const [
                     DataColumn(label: Text('Slika')),
                     DataColumn(label: Text('Naziv')),
