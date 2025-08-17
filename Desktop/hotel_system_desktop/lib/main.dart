@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Hotel Sistem',
       theme: ThemeData(
-        brightness: Brightness.light,
+        brightness: Brightness.dark,
         primarySwatch: Colors.indigo,
       ),
       home: Consumer<AuthProvider>(
@@ -80,12 +80,11 @@ class _MainTabsState extends State<MainTabs>
         RoomsScreen(),
         ServicesScreen(),
       ];
-    }
-    else {
-       _tabs = const [Tab(text: 'Greška')];
-  _tabViews = const [
-    Center(child: Text('Uloga nije podržana ili nemate dozvolu')),
-  ];
+    } else {
+      _tabs = const [Tab(text: 'Greška')];
+      _tabViews = const [
+        Center(child: Text('Uloga nije podržana ili nemate dozvolu')),
+      ];
     }
     _tabController = TabController(length: _tabs.length, vsync: this);
   }
