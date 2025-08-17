@@ -3,6 +3,7 @@ import 'package:hotel_booking_app/models/user.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import '../utils/validation_utils.dart';
 import 'dart:convert';
 
 class ProfileScreen extends StatefulWidget {
@@ -129,8 +130,7 @@ Widget build(BuildContext context) {
                   icon: Icons.email,
                   enabled: _editing,
                   keyboardType: TextInputType.emailAddress,
-                  validator: (v) =>
-                      v == null || !v.contains('@') ? 'Unesite validan email' : null,
+                  validator: ValidationUtils.validateEmail,
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
@@ -138,8 +138,7 @@ Widget build(BuildContext context) {
                   label: 'Korisničko ime',
                   icon: Icons.person,
                   enabled: _editing,
-                  validator: (v) =>
-                      v == null || v.isEmpty ? 'Unesite korisničko ime' : null,
+                  validator: ValidationUtils.validateUsername,
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
@@ -147,7 +146,7 @@ Widget build(BuildContext context) {
                   label: 'Ime',
                   icon: Icons.badge,
                   enabled: _editing,
-                  validator: (v) => v == null || v.isEmpty ? 'Unesite ime' : null,
+                  validator: ValidationUtils.validateFirstName,
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
@@ -155,8 +154,7 @@ Widget build(BuildContext context) {
                   label: 'Prezime',
                   icon: Icons.badge_outlined,
                   enabled: _editing,
-                  validator: (v) =>
-                      v == null || v.isEmpty ? 'Unesite prezime' : null,
+                  validator: ValidationUtils.validateLastName,
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
@@ -164,6 +162,8 @@ Widget build(BuildContext context) {
                   label: 'Telefon',
                   icon: Icons.phone,
                   enabled: _editing,
+                  keyboardType: TextInputType.phone,
+                  validator: ValidationUtils.validatePhoneNumber,
                 ),
                 const SizedBox(height: 24),
                 if (_status != null) ...[

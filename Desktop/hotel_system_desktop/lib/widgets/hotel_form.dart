@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/hotel.dart';
 import '../services/api_service.dart';
+import '../utils/validation_utils.dart';
 import 'dart:convert';
 
 class HotelFormDialog extends StatefulWidget {
@@ -93,50 +94,44 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
                 initialValue: name,
                 decoration: const InputDecoration(labelText: 'Naziv'),
                 onChanged: (v) => name = v,
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Obavezno polje' : null,
+                validator: ValidationUtils.validateHotelName,
               ),
               TextFormField(
                 initialValue: address,
                 decoration: const InputDecoration(labelText: 'Adresa'),
                 onChanged: (v) => address = v,
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Obavezno polje' : null,
+                validator: ValidationUtils.validateAddress,
               ),
               TextFormField(
                 initialValue: city,
                 decoration: const InputDecoration(labelText: 'Grad'),
                 onChanged: (v) => city = v,
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Obavezno polje' : null,
+                validator: ValidationUtils.validateCity,
               ),
               TextFormField(
                 initialValue: country,
                 decoration: const InputDecoration(labelText: 'Država'),
                 onChanged: (v) => country = v,
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Obavezno polje' : null,
+                validator: ValidationUtils.validateCity,
               ),
               TextFormField(
                 initialValue: phoneNumber,
                 decoration: const InputDecoration(labelText: 'Telefon'),
                 onChanged: (v) => phoneNumber = v,
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Obavezno polje' : null,
+                validator: ValidationUtils.validatePhoneNumber,
               ),
               TextFormField(
                 initialValue: email,
                 decoration: const InputDecoration(labelText: 'Email'),
                 onChanged: (v) => email = v,
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Obavezno polje' : null,
+                validator: ValidationUtils.validateEmail,
               ),
               TextFormField(
                 initialValue: description,
                 decoration: const InputDecoration(labelText: 'Opis'),
+                maxLines: 3,
                 onChanged: (v) => description = v,
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Obavezno polje' : null,
+                validator: ValidationUtils.validateDescription,
               ),
               TextFormField(
                 initialValue: imageUrl,

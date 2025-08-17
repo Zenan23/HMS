@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hotel_system_desktop/models/room.dart';
 import '../models/hotel.dart';
 import '../services/api_service.dart';
+import '../utils/validation_utils.dart';
 
 class RoomFormDialog extends StatefulWidget {
   final Room? room;
@@ -104,8 +105,7 @@ class _RoomFormDialogState extends State<RoomFormDialog> {
                 initialValue: roomNumber,
                 decoration: const InputDecoration(labelText: 'Broj sobe'),
                 onChanged: (v) => roomNumber = v,
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Obavezno polje' : null,
+                validator: ValidationUtils.validateRoomNumber,
               ),
               DropdownButtonFormField<RoomType>(
                 value: roomType,
@@ -127,12 +127,14 @@ class _RoomFormDialogState extends State<RoomFormDialog> {
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 onChanged: (v) => pricePerNight = double.tryParse(v) ?? 0.01,
+                validator: ValidationUtils.validatePrice,
               ),
               TextFormField(
                 initialValue: maxOccupancy.toString(),
                 decoration: const InputDecoration(labelText: 'Max broj osoba'),
                 keyboardType: TextInputType.number,
                 onChanged: (v) => maxOccupancy = int.tryParse(v) ?? 1,
+                validator: ValidationUtils.validateRoomCapacity,
               ),
               TextFormField(
                 initialValue: description,

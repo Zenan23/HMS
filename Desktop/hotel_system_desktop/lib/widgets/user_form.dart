@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../utils/validation_utils.dart';
 import 'dart:convert';
 
 class UserFormDialog extends StatefulWidget {
@@ -89,44 +90,38 @@ class _UserFormDialogState extends State<UserFormDialog> {
                 initialValue: username,
                 decoration: const InputDecoration(labelText: 'Korisničko ime'),
                 onChanged: (v) => username = v,
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Obavezno polje' : null,
+                validator: ValidationUtils.validateUsername,
               ),
               TextFormField(
                 initialValue: email,
                 decoration: const InputDecoration(labelText: 'Email'),
                 onChanged: (v) => email = v,
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Obavezno polje' : null,
+                validator: ValidationUtils.validateEmail,
               ),
               if (widget.user == null)
                 TextFormField(
                   decoration: const InputDecoration(labelText: 'Lozinka'),
                   obscureText: true,
                   onChanged: (v) => password = v,
-                  validator: (v) =>
-                      v == null || v.isEmpty ? 'Obavezno polje' : null,
+                  validator: ValidationUtils.validatePassword,
                 ),
               TextFormField(
                 initialValue: firstName,
                 decoration: const InputDecoration(labelText: 'Ime'),
                 onChanged: (v) => firstName = v,
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Obavezno polje' : null,
+                validator: ValidationUtils.validateFirstName,
               ),
               TextFormField(
                 initialValue: lastName,
                 decoration: const InputDecoration(labelText: 'Prezime'),
                 onChanged: (v) => lastName = v,
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Obavezno polje' : null,
+                validator: ValidationUtils.validateLastName,
               ),
               TextFormField(
                 initialValue: phoneNumber,
                 decoration: const InputDecoration(labelText: 'Telefon'),
                 onChanged: (v) => phoneNumber = v,
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Obavezno polje' : null,
+                validator: ValidationUtils.validatePhoneNumber,
               ),
               DropdownButtonFormField<UserRole>(
                 value: role,

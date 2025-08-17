@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../utils/validation_utils.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({Key? key}) : super(key: key);
@@ -60,7 +61,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 TextFormField(
                   decoration: const InputDecoration(labelText: 'Korisničko ime'),
                   maxLength: 50,
-                  validator: (v) => v == null || v.isEmpty ? 'Unesite korisničko ime' : (v.length < 3 ? 'Korisničko ime mora imati bar 3 karaktera' : null),
+                  validator: ValidationUtils.validateUsername,
                   onSaved: (v) => _username = v ?? '',
                 ),
                 const SizedBox(height: 8),
@@ -68,11 +69,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   decoration: const InputDecoration(labelText: 'Email'),
                   keyboardType: TextInputType.emailAddress,
                   maxLength: 100,
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Unesite email';
-                    if (!v.contains('@')) return 'Unesite validan email';
-                    return null;
-                  },
+                  validator: ValidationUtils.validateEmail,
                   onSaved: (v) => _email = v ?? '',
                 ),
                 const SizedBox(height: 8),
@@ -81,7 +78,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   obscureText: true,
                   maxLength: 100,
                   onChanged: (v) => setState(() => _password = v),
-                  validator: (v) => v == null || v.length < 6 ? 'Lozinka mora imati bar 6 karaktera' : null,
+                  validator: ValidationUtils.validatePassword,
                   onSaved: (v) => _password = v ?? '',
                 ),
                 const SizedBox(height: 8),
@@ -96,14 +93,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 TextFormField(
                   decoration: const InputDecoration(labelText: 'Ime'),
                   maxLength: 50,
-                  validator: (v) => v == null || v.isEmpty ? 'Unesite ime' : null,
+                  validator: ValidationUtils.validateFirstName,
                   onSaved: (v) => _firstName = v ?? '',
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   decoration: const InputDecoration(labelText: 'Prezime'),
                   maxLength: 50,
-                  validator: (v) => v == null || v.isEmpty ? 'Unesite prezime' : null,
+                  validator: ValidationUtils.validateLastName,
                   onSaved: (v) => _lastName = v ?? '',
                 ),
                 const SizedBox(height: 8),
@@ -111,12 +108,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   decoration: const InputDecoration(labelText: 'Broj telefona'),
                   maxLength: 20,
                   keyboardType: TextInputType.phone,
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return null;
-                    final phoneRegExp = RegExp(r'^[+]?\d{7,20}$');
-                    if (!phoneRegExp.hasMatch(v)) return 'Unesite validan broj telefona';
-                    return null;
-                  },
+                  validator: ValidationUtils.validatePhoneNumber,
                   onSaved: (v) => _phoneNumber = v ?? '',
                 ),
                 const SizedBox(height: 24),

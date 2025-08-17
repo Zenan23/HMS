@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Contracts.DTOs;
+using Contracts.Enums;
 using Microsoft.Extensions.Logging;
 using Persistence.Interfaces;
 using Persistence.Models;
@@ -10,29 +11,62 @@ namespace Application.Services
     {
         private readonly IHotelRepository _hotelRepository;
         private readonly IReviewService _reviewService;
+        private readonly IRoomService _roomService;
+        private readonly IBookingService _bookingService;
+        private readonly IRepository<Room> _roomRepository;
+        private readonly IRepository<Booking> _bookingRepository;
 
         public HotelService(
             IHotelRepository hotelRepository,
             IReviewService reviewService,
+            IRoomService roomService,
+            IBookingService bookingService,
+            IRepository<Room> roomRepository,
+            IRepository<Booking> bookingRepository,
             IMapper mapper,
             ILogger<HotelService> logger)
             : base(hotelRepository, mapper, logger)
         {
             _hotelRepository = hotelRepository;
             _reviewService = reviewService;
+            _roomService = roomService;
+            _bookingService = bookingService;
+            _roomRepository = roomRepository;
+            _bookingRepository = bookingRepository;
         }
 
-        public async Task<IEnumerable<HotelDto>> GetAllHotelsAsync()
+        public async Task<IEnumerable<HotelDto>> GetAllHotelsAsync(int? rating = null, string city = null, string name = null)
         {
+            // Dohvat svih hotela
             var hotels = await _hotelRepository.GetAllAsync();
+
+            // Filtriranje hotela prema opcionalnim parametrima
+            if (rating.HasValue)
+            {
+                hotels = hotels.Where(h => h.StarRating >= rating.Value);  // Filtriraj prema ocjeni
+            }
+
+            if (!string.IsNullOrEmpty(city))
+            {
+                hotels = hotels.Where(h => h.City.Contains(city, StringComparison.OrdinalIgnoreCase));  // Filtriraj prema gradu
+            }
+
+            if (!string.IsNullOrEmpty(name))
+            {
+                hotels = hotels.Where(h => h.Name.Contains(name, StringComparison.OrdinalIgnoreCase));  // Filtriraj prema imenu hotela
+            }
+
+            // Mapiranje hotela u DTO
             var hotelDtos = _mapper.Map<IEnumerable<HotelDto>>(hotels).ToList();
 
+            // Dohvat svih recenzija i grupisanje po hotelima
             var reviews = await _reviewService.GetAllAsync();
             var grouped = reviews
                 .Where(r => !r.IsDeleted && r.IsApproved)
                 .GroupBy(r => r.HotelId)
                 .ToDictionary(g => g.Key, g => new { Avg = g.Average(x => (double)x.Rating), Cnt = g.Count() });
 
+            // Dodavanje prosječne ocjene i broja recenzija za svaki hotel
             foreach (var dto in hotelDtos)
             {
                 if (grouped.TryGetValue(dto.Id, out var agg))
@@ -247,6 +281,86 @@ namespace Application.Services
             }
 
             return _mapper.Map<IEnumerable<HotelDto>>(hotels);
+        }
+
+        public async Task<HotelStatistics> GetHotelStatisticsAsync()
+        {
+            try
+            {
+                var hotels = await _hotelRepository.GetAllAsync();
+                var rooms = await _roomRepository.GetAllAsync();
+                var reviews = await _reviewService.GetAllAsync();
+                var bookings = await _bookingRepository.GetAllAsync();
+
+                var activeHotels = hotels.Where(h => !h.IsDeleted).ToList();
+                var totalHotels = activeHotels.Count;
+                var totalRooms = rooms.Where(r => !r.IsDeleted).Count();
+                var availableRooms = rooms.Where(r => !r.IsDeleted && r.IsAvailable).Count();
+
+                // Calculate average rating across all hotels
+                var approvedReviews = reviews.Where(r => r.IsApproved && !r.IsDeleted).ToList();
+                var averageRating = approvedReviews.Count > 0 ? approvedReviews.Average(r => (double)r.Rating) : 0;
+
+                // Top hotels by revenue and bookings
+                var topHotels = new List<TopHotelData>();
+                foreach (var hotel in activeHotels.Take(5))
+                {
+                    var hotelBookings = bookings.Where(b => !b.IsDeleted).ToList();
+                    var hotelRevenue = hotelBookings.Where(b => b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.CheckedOut)
+                        .Sum(b => b.TotalPrice);
+                    var hotelRooms = rooms.Where(r => r.HotelId == hotel.Id && !r.IsDeleted).Count();
+                    var hotelReviews = reviews.Where(r => r.HotelId == hotel.Id && r.IsApproved && !r.IsDeleted).ToList();
+                    var hotelRating = hotelReviews.Count > 0 ? hotelReviews.Average(r => (double)r.Rating) : 0;
+
+                    topHotels.Add(new TopHotelData
+                    {
+                        HotelId = hotel.Id,
+                        Name = hotel.Name,
+                        AverageRating = Math.Round(hotelRating, 2),
+                        TotalBookings = hotelBookings.Count,
+                        TotalRevenue = hotelRevenue,
+                        OccupancyRate = 0.0 // TODO: Calculate actual occupancy
+                    });
+                }
+
+                // Sort by revenue
+                topHotels = topHotels.OrderByDescending(h => h.TotalRevenue).ToList();
+
+                // Occupancy data
+                var occupancyData = new List<HotelOccupancyData>();
+                foreach (var hotel in activeHotels)
+                {
+                    var hotelRooms = rooms.Where(r => r.HotelId == hotel.Id && !r.IsDeleted).ToList();
+                    var totalHotelRooms = hotelRooms.Count;
+                    var occupiedRooms = hotelRooms.Count(r => !r.IsAvailable);
+                    var occupancyRate = totalHotelRooms > 0 ? (double)occupiedRooms / totalHotelRooms * 100 : 0;
+
+                    occupancyData.Add(new HotelOccupancyData
+                    {
+                        HotelId = hotel.Id,
+                        HotelName = hotel.Name,
+                        OccupancyRate = Math.Round(occupancyRate, 2),
+                        TotalRooms = totalHotelRooms,
+                        OccupiedRooms = occupiedRooms
+                    });
+                }
+
+                return new HotelStatistics
+                {
+                    TotalHotels = totalHotels,
+                    ActiveHotels = totalHotels,
+                    AverageRating = Math.Round(averageRating, 2),
+                    TotalRooms = totalRooms,
+                    AvailableRooms = availableRooms,
+                    TopHotels = topHotels,
+                    OccupancyData = occupancyData
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculating hotel statistics");
+                throw;
+            }
         }
     }
 }

@@ -154,5 +154,59 @@ namespace Application.Services
                 throw;
             }
         }
+
+        public async Task<UserStatistics> GetUserStatisticsAsync()
+        {
+            try
+            {
+                var entities = await _repository.GetAllAsync();
+                var activeUsers = entities.Where(u => !u.IsDeleted).ToList();
+
+                var totalUsers = activeUsers.Count;
+                var activeUserCount = activeUsers.Count(u => u.IsActive);
+                var guestUsers = activeUsers.Count(u => u.Role == UserRole.Guest);
+                var employeeUsers = activeUsers.Count(u => u.Role == UserRole.Employee);
+                var adminUsers = activeUsers.Count(u => u.Role == UserRole.Admin);
+
+                // New users this month
+                var thisMonth = DateTime.UtcNow.Date.AddDays(1 - DateTime.UtcNow.Day);
+                var newUsersThisMonth = activeUsers.Count(u => u.CreatedAt >= thisMonth);
+
+                // Monthly data for last 12 months
+                var monthlyData = new List<MonthlyUserData>();
+                for (int i = 11; i >= 0; i--)
+                {
+                    var monthStart = DateTime.UtcNow.AddMonths(-i).Date.AddDays(1 - DateTime.UtcNow.AddMonths(-i).Day);
+                    var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+                    
+                    var monthQuery = activeUsers.Where(u => u.CreatedAt >= monthStart && u.CreatedAt <= monthEnd);
+                    var newUsers = monthQuery.Count();
+                    var activeUsersInMonth = monthQuery.Count(u => u.IsActive);
+
+                    monthlyData.Add(new MonthlyUserData
+                    {
+                        Month = monthStart.ToString("MMM yyyy"),
+                        NewUsers = newUsers,
+                        ActiveUsers = activeUsersInMonth
+                    });
+                }
+
+                return new UserStatistics
+                {
+                    TotalUsers = totalUsers,
+                    ActiveUsers = activeUserCount,
+                    NewUsersThisMonth = newUsersThisMonth,
+                    GuestUsers = guestUsers,
+                    EmployeeUsers = employeeUsers,
+                    AdminUsers = adminUsers,
+                    MonthlyData = monthlyData
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculating user statistics");
+                throw;
+            }
+        }
     }
 }

@@ -12,5 +12,6 @@ namespace Persistence.Interfaces
         Task<bool> RejectReviewAsync(int reviewId, int? rejectedByUserId = null);
         Task<double> GetAverageRatingAsync(int hotelId);
         Task<IEnumerable<ReviewDto>> GetByRatingAsync(int rating);
+        Task<ReviewStatistics> GetReviewStatisticsAsync(DateTime? fromDate = null, DateTime? toDate = null);
     }
 }

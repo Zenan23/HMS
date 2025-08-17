@@ -4,6 +4,7 @@ import '../models/payment.dart';
 import '../services/payments_service.dart';
 import '../services/auth_service.dart';
 import '../screens/home_screen.dart';
+import '../utils/validation_utils.dart';
 
 class PaymentScreen extends StatefulWidget {
   final int bookingId;
@@ -109,7 +110,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   decoration: const InputDecoration(labelText: 'Broj kartice'),
                   maxLength: 19,
                   keyboardType: TextInputType.number,
-                  validator: (v) => v == null || v.length < 13 ? 'Unesite validan broj kartice' : null,
+                  validator: ValidationUtils.validateCardNumber,
                   onSaved: (v) => _cardNumber = v ?? '',
                 ),
                 Row(
@@ -139,13 +140,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   decoration: const InputDecoration(labelText: 'CVV'),
                   maxLength: 4,
                   keyboardType: TextInputType.number,
-                  validator: (v) => v == null || v.length < 3 ? 'CVV' : null,
+                  validator: ValidationUtils.validateCVV,
                   onSaved: (v) => _cvv = v ?? '',
                 ),
                 TextFormField(
                   decoration: const InputDecoration(labelText: 'Ime i prezime na kartici'),
                   maxLength: 100,
-                  validator: (v) => v == null || v.isEmpty ? 'Unesite ime i prezime' : null,
+                  validator: ValidationUtils.validateCardholderName,
                   onSaved: (v) => _cardholderName = v ?? '',
                 ),
               ],
@@ -153,7 +154,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 TextFormField(
                   decoration: const InputDecoration(labelText: 'PayPal email'),
                   keyboardType: TextInputType.emailAddress,
-                  validator: (v) => v == null || !v.contains('@') ? 'Unesite validan email' : null,
+                  validator: ValidationUtils.validateEmail,
                   onSaved: (v) => _paypalEmail = v ?? '',
                 ),
               ],

@@ -253,30 +253,19 @@ namespace API.Controllers
         /// <param name="toDate">To date (optional)</param>
         /// <returns>Payment statistics</returns>
         [HttpGet("statistics")]
-        public async Task<ActionResult<ApiResponse<PaymentStatistics>>> GetPaymentStatistics(
+        public async Task<ActionResult<ApiResponse<Contracts.DTOs.PaymentStatistics>>> GetPaymentStatistics(
             [FromQuery] DateTime? fromDate = null,
             [FromQuery] DateTime? toDate = null)
         {
             try
             {
-                var totalPayments = await _paymentService.GetTotalPaymentsAsync(fromDate, toDate);
-                var totalRefunds = await _paymentService.GetTotalRefundsAsync(fromDate, toDate);
-
-                var statistics = new PaymentStatistics
-                {
-                    TotalPayments = totalPayments,
-                    TotalRefunds = totalRefunds,
-                    NetPayments = totalPayments - totalRefunds,
-                    FromDate = fromDate,
-                    ToDate = toDate
-                };
-
-                return Ok(ApiResponse<PaymentStatistics>.SuccessResult(statistics, "Payment statistics retrieved successfully."));
+                var statistics = await _paymentService.GetPaymentStatisticsAsync(fromDate, toDate);
+                return Ok(ApiResponse<Contracts.DTOs.PaymentStatistics>.SuccessResult(statistics, "Payment statistics retrieved successfully."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving payment statistics");
-                return StatusCode(500, ApiResponse<PaymentStatistics>.ErrorResult("An error occurred while retrieving payment statistics."));
+                return StatusCode(500, ApiResponse<Contracts.DTOs.PaymentStatistics>.ErrorResult("An error occurred while retrieving payment statistics."));
             }
         }
 
@@ -317,12 +306,5 @@ namespace API.Controllers
         public int? InitiatedByUserId { get; set; }
     }
 
-    public class PaymentStatistics
-    {
-        public decimal TotalPayments { get; set; }
-        public decimal TotalRefunds { get; set; }
-        public decimal NetPayments { get; set; }
-        public DateTime? FromDate { get; set; }
-        public DateTime? ToDate { get; set; }
-    }
+
 }

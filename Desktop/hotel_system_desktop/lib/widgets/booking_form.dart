@@ -5,6 +5,7 @@ import '../models/room.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import '../models/service.dart';
+import '../utils/validation_utils.dart';
 
 class BookingFormDialog extends StatefulWidget {
   final Booking? booking;
@@ -207,6 +208,7 @@ class _BookingFormDialogState extends State<BookingFormDialog> {
                 keyboardType: TextInputType.number,
                 initialValue: numberOfGuests.toString(),
                 onChanged: (v) => numberOfGuests = int.tryParse(v) ?? 1,
+                validator: ValidationUtils.validateGuestCount,
               ),
               TextFormField(
                 decoration:

@@ -15,6 +15,7 @@ namespace Persistence.Interfaces
         Task<IEnumerable<PaymentAuditLogDto>> GetPaymentAuditLogsAsync(int paymentId);
         Task<decimal> GetTotalPaymentsAsync(DateTime? fromDate = null, DateTime? toDate = null);
         Task<decimal> GetTotalRefundsAsync(DateTime? fromDate = null, DateTime? toDate = null);
+        Task<PaymentStatistics> GetPaymentStatisticsAsync(DateTime? fromDate = null, DateTime? toDate = null);
     }
 
 }

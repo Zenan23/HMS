@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:hotel_system_desktop/models/service.dart';
 import '../models/hotel.dart';
 import '../services/api_service.dart';
+import '../utils/validation_utils.dart';
 
 class ServiceFormDialog extends StatefulWidget {
   final Service? service;
@@ -105,13 +106,14 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
                 initialValue: name,
                 decoration: const InputDecoration(labelText: 'Naziv'),
                 onChanged: (v) => name = v,
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Obavezno polje' : null,
+                validator: ValidationUtils.validateHotelName,
               ),
               TextFormField(
                 initialValue: description,
                 decoration: const InputDecoration(labelText: 'Opis'),
+                maxLines: 3,
                 onChanged: (v) => description = v,
+                validator: ValidationUtils.validateDescription,
               ),
               TextFormField(
                 initialValue: price.toString(),
@@ -119,6 +121,7 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 onChanged: (v) => price = double.tryParse(v) ?? 0,
+                validator: ValidationUtils.validatePrice,
               ),
               TextFormField(
                 initialValue: category,

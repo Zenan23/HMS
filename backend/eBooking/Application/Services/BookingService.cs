@@ -431,5 +431,73 @@ namespace Application.Services
                 _logger.LogError(ex, "Error logging booking status change for booking {BookingId}", bookingId);
             }
         }
+
+        public async Task<BookingStatistics> GetBookingStatisticsAsync(DateTime? fromDate = null, DateTime? toDate = null)
+        {
+            try
+            {
+                var entities = await _repository.GetAllAsync();
+                var query = entities.Where(b => !b.IsDeleted);
+
+                if (fromDate.HasValue)
+                    query = query.Where(b => b.CreatedAt >= fromDate.Value);
+
+                if (toDate.HasValue)
+                    query = query.Where(b => b.CreatedAt <= toDate.Value);
+
+                var totalBookings = query.Count();
+                var confirmedBookings = query.Count(b => b.Status == BookingStatus.Confirmed);
+                var cancelledBookings = query.Count(b => b.Status == BookingStatus.Cancelled);
+                var pendingBookings = query.Count(b => b.Status == BookingStatus.Pending);
+                var completedBookings = query.Count(b => b.Status == BookingStatus.CheckedOut);
+                var totalRevenue = query.Where(b => b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.CheckedOut)
+                    .Sum(b => b.TotalPrice);
+                var averageBookingValue = totalBookings > 0 ? (double)(totalRevenue / totalBookings) : 0;
+
+                // Calculate occupancy rate (simplified - would need room data for accurate calculation)
+                var averageOccupancyRate = 0.0; // TODO: Implement proper occupancy calculation
+
+                // Monthly data for last 12 months
+                var monthlyData = new List<MonthlyBookingData>();
+                for (int i = 11; i >= 0; i--)
+                {
+                    var monthStart = DateTime.UtcNow.AddMonths(-i).Date.AddDays(1 - DateTime.UtcNow.AddMonths(-i).Day);
+                    var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+                    
+                    var monthQuery = query.Where(b => b.CreatedAt >= monthStart && b.CreatedAt <= monthEnd);
+                    var monthBookings = monthQuery.Count();
+                    var monthRevenue = monthQuery.Where(b => b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.CheckedOut)
+                        .Sum(b => b.TotalPrice);
+
+                    monthlyData.Add(new MonthlyBookingData
+                    {
+                        Month = monthStart.ToString("MMM yyyy"),
+                        BookingCount = monthBookings,
+                        TotalRevenue = monthRevenue,
+                        OccupancyRate = 0.0 // TODO: Calculate actual occupancy
+                    });
+                }
+
+                return new BookingStatistics
+                {
+                    TotalBookings = totalBookings,
+                    ConfirmedBookings = confirmedBookings,
+                    CancelledBookings = cancelledBookings,
+                    PendingBookings = pendingBookings,
+                    CompletedBookings = completedBookings,
+                    TotalRevenue = totalRevenue,
+                    AverageBookingValue = averageBookingValue,
+                    AverageOccupancyRate = averageOccupancyRate,
+                    FromDate = fromDate,
+                    ToDate = toDate,
+                    MonthlyData = monthlyData
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculating booking statistics");
+                throw;
+            }
+        }
     }
 }

@@ -384,6 +384,65 @@ namespace Application.Services
             }
         }
 
+        public async Task<PaymentStatistics> GetPaymentStatisticsAsync(DateTime? fromDate = null, DateTime? toDate = null)
+        {
+            try
+            {
+                var entities = await _repository.GetAllAsync();
+                var query = entities.Where(p => !p.IsDeleted);
+
+                if (fromDate.HasValue)
+                    query = query.Where(p => p.ProcessedAt >= fromDate.Value);
+
+                if (toDate.HasValue)
+                    query = query.Where(p => p.ProcessedAt <= toDate.Value);
+
+                var totalPayments = query.Where(p => p.Status == PaymentStatus.Completed).Sum(p => p.Amount);
+                var totalRefunds = query.Where(p => p.Status == PaymentStatus.Refunded || p.Status == PaymentStatus.PartiallyRefunded)
+                    .Sum(p => p.RefundAmount ?? 0);
+                var totalTransactions = query.Count();
+                var successfulTransactions = query.Count(p => p.Status == PaymentStatus.Completed);
+                var failedTransactions = query.Count(p => p.Status == PaymentStatus.Failed);
+
+                // Monthly data for last 12 months
+                var monthlyData = new List<MonthlyPaymentData>();
+                for (int i = 11; i >= 0; i--)
+                {
+                    var monthStart = DateTime.UtcNow.AddMonths(-i).Date.AddDays(1 - DateTime.UtcNow.AddMonths(-i).Day);
+                    var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+                    
+                    var monthQuery = query.Where(p => p.ProcessedAt >= monthStart && p.ProcessedAt <= monthEnd);
+                    var monthAmount = monthQuery.Where(p => p.Status == PaymentStatus.Completed).Sum(p => p.Amount);
+                    var monthCount = monthQuery.Count();
+
+                    monthlyData.Add(new MonthlyPaymentData
+                    {
+                        Month = monthStart.ToString("MMM yyyy"),
+                        TotalAmount = monthAmount,
+                        TransactionCount = monthCount
+                    });
+                }
+
+                return new PaymentStatistics
+                {
+                    TotalPayments = totalPayments,
+                    TotalRefunds = totalRefunds,
+                    NetPayments = totalPayments - totalRefunds,
+                    TotalTransactions = totalTransactions,
+                    SuccessfulTransactions = successfulTransactions,
+                    FailedTransactions = failedTransactions,
+                    FromDate = fromDate,
+                    ToDate = toDate,
+                    MonthlyData = monthlyData
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculating payment statistics");
+                throw;
+            }
+        }
+
         private async Task UpdatePaymentStatus(int paymentId, PaymentStatus status, string? failureReason, string? userAgent, string? ipAddress, int? userId)
         {
             var payment = await _repository.GetByIdAsync(paymentId);
