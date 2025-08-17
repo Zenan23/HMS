@@ -17,6 +17,8 @@ class _RoomsScreenState extends State<RoomsScreen> {
   int _totalPages = 1;
   bool _isLoading = false;
   List<Room> _rooms = [];
+  String? _selectedRoomType;
+  bool _isSearchMode = false;
 
   @override
   void initState() {
@@ -38,12 +40,53 @@ class _RoomsScreenState extends State<RoomsScreen> {
         _page = page;
         int totalCount = data['totalCount'] ?? 0;
         _totalPages = (totalCount / _pageSize).ceil();
+        _isSearchMode = false;
       });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Greška: $e')));
       }
+    }
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _fetchRoomsByType(String roomType) async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService().get('/api/Rooms/by-type/$roomType');
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      final List data = decoded['data'] ?? [];
+      final rooms = data.map((e) => Room.fromJson(e)).toList();
+      
+      setState(() {
+        _rooms = rooms;
+        _page = 1;
+        _totalPages = 1;
+        _isSearchMode = true;
+      });
+      
+      if (rooms.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Nema soba sa tim tipom.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _rooms = [];
+        _page = 1;
+        _totalPages = 0;
+        _isSearchMode = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Greška pri učitavanju soba.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
     setState(() => _isLoading = false);
   }
@@ -68,8 +111,52 @@ class _RoomsScreenState extends State<RoomsScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 200,
+                      child: DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: 'Tip sobe',
+                          border: OutlineInputBorder(),
+                        ),
+                        value: _selectedRoomType,
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Svi tipovi'),
+                          ),
+                          ...RoomType.values.map((roomType) => DropdownMenuItem(
+                            value: roomType.name,
+                            child: Text(roomType.name),
+                          )),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedRoomType = value;
+                          });
+                          if (value != null) {
+                            _fetchRoomsByType(value);
+                          } else {
+                            _fetchRooms(1);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedRoomType = null;
+                        });
+                        _fetchRooms(1);
+                      },
+                      child: const Text('Očisti filtere'),
+                    ),
+                  ],
+                ),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.add),
                   label: const Text('Dodaj sobu'),
@@ -79,11 +166,44 @@ class _RoomsScreenState extends State<RoomsScreen> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: SingleChildScrollView(
-    scrollDirection: Axis.vertical,
-    child: SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-                child: DataTable(
+              child: _rooms.isEmpty && !_isLoading
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _isSearchMode ? Icons.search_off : Icons.bed_outlined,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _isSearchMode 
+                                ? 'Nema rezultata za pretragu'
+                                : 'Nema soba',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _isSearchMode
+                                ? 'Pokušajte sa drugim tipom sobe'
+                                : 'Dodajte prvu sobu',
+                            style: const TextStyle(
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      scrollDirection: Axis.vertical,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
                   columns: const [
                     DataColumn(label: Text('Broj')),
                     DataColumn(label: Text('Tip')),
@@ -168,27 +288,28 @@ class _RoomsScreenState extends State<RoomsScreen> {
               ),
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: _page > 1 && !_isLoading
-                      ? () => _fetchRooms(_page - 1)
-                      : null,
-                  child: const Text('Prethodna'),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text('Stranica $_page / $_totalPages'),
-                ),
-                ElevatedButton(
-                  onPressed: _page < _totalPages && !_isLoading
-                      ? () => _fetchRooms(_page + 1)
-                      : null,
-                  child: const Text('Sljedeća'),
-                ),
-              ],
-            ),
+            if (!_isSearchMode)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: _page > 1 && !_isLoading
+                        ? () => _fetchRooms(_page - 1)
+                        : null,
+                    child: const Text('Prethodna'),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text('Stranica $_page / $_totalPages'),
+                  ),
+                  ElevatedButton(
+                    onPressed: _page < _totalPages && !_isLoading
+                        ? () => _fetchRooms(_page + 1)
+                        : null,
+                    child: const Text('Sljedeća'),
+                  ),
+                ],
+              ),
             if (_isLoading)
               const Padding(
                 padding: EdgeInsets.all(16.0),

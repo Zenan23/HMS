@@ -56,6 +56,35 @@ namespace API.Controllers
         }
 
         /// <summary>
+        /// Get hotels by city
+        /// </summary>
+        /// <param name="city">City name</param>
+        /// <returns>Hotels in the specified city</returns>
+        [HttpGet("by-name/{name}")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<HotelDto>>>> GetHotelsByName([FromRoute] string name)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    return BadRequest(ApiResponse<IEnumerable<HotelDto>>.ErrorResult("City parameter cannot be empty."));
+                }
+
+                var hotels = await _hotelService.GetHotelsByNameAsync(name);
+                var hotelDtos = _mapper.Map<IEnumerable<HotelDto>>(hotels);
+
+                return Ok(ApiResponse<IEnumerable<HotelDto>>.SuccessResult(
+                    hotelDtos,
+                    $"Hotels in {name} retrieved successfully."));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving hotels for name: {name}", name);
+                return StatusCode(500, ApiResponse<IEnumerable<HotelDto>>.ErrorResult("An error occurred while retrieving hotels."));
+            }
+        }
+
+        /// <summary>
         /// Get hotels by star rating
         /// </summary>
         /// <param name="starRating">Star rating (1-5)</param>

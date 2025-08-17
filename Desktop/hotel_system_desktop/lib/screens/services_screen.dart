@@ -17,6 +17,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
   int _totalPages = 1;
   bool _isLoading = false;
   List<Service> _services = [];
+  String? _selectedAvailability;
+  bool _isSearchMode = false;
 
   @override
   void initState() {
@@ -38,12 +40,53 @@ class _ServicesScreenState extends State<ServicesScreen> {
         _page = page;
         int totalCount = data['totalCount'] ?? 0;
         _totalPages = (totalCount / _pageSize).ceil();
+        _isSearchMode = false;
       });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Greška: $e')));
       }
+    }
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _fetchAvailableServices() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService().get('/api/Services/available');
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      final List data = decoded['data'] ?? [];
+      final services = data.map((e) => Service.fromJson(e)).toList();
+      
+      setState(() {
+        _services = services;
+        _page = 1;
+        _totalPages = 1;
+        _isSearchMode = true;
+      });
+      
+      if (services.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Nema dostupnih servisa.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _services = [];
+        _page = 1;
+        _totalPages = 0;
+        _isSearchMode = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Greška pri učitavanju dostupnih servisa.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
     setState(() => _isLoading = false);
   }
@@ -68,8 +111,52 @@ class _ServicesScreenState extends State<ServicesScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 200,
+                      child: DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: 'Status dostupnosti',
+                          border: OutlineInputBorder(),
+                        ),
+                        value: _selectedAvailability,
+                        items: const [
+                          DropdownMenuItem(
+                            value: null,
+                            child: Text('Svi servisi'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'available',
+                            child: Text('Dostupni servisi'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedAvailability = value;
+                          });
+                          if (value == 'available') {
+                            _fetchAvailableServices();
+                          } else {
+                            _fetchServices(1);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedAvailability = null;
+                        });
+                        _fetchServices(1);
+                      },
+                      child: const Text('Očisti filtere'),
+                    ),
+                  ],
+                ),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.add),
                   label: const Text('Dodaj servis'),
@@ -79,9 +166,42 @@ class _ServicesScreenState extends State<ServicesScreen> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: DataTable(
+              child: _services.isEmpty && !_isLoading
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _isSearchMode ? Icons.search_off : Icons.room_service_outlined,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _isSearchMode 
+                                ? 'Nema rezultata za pretragu'
+                                : 'Nema servisa',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _isSearchMode
+                                ? 'Pokušajte sa drugim filterom'
+                                : 'Dodajte prvi servis',
+                            style: const TextStyle(
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      scrollDirection: Axis.vertical,
+                      child: DataTable(
                   columns: const [
                     DataColumn(label: Text('Naziv')),
                     DataColumn(label: Text('Opis')),
@@ -167,27 +287,28 @@ class _ServicesScreenState extends State<ServicesScreen> {
                 ),
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: _page > 1 && !_isLoading
-                      ? () => _fetchServices(_page - 1)
-                      : null,
-                  child: const Text('Prethodna'),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text('Stranica $_page / $_totalPages'),
-                ),
-                ElevatedButton(
-                  onPressed: _page < _totalPages && !_isLoading
-                      ? () => _fetchServices(_page + 1)
-                      : null,
-                  child: const Text('Sljedeća'),
-                ),
-              ],
-            ),
+            if (!_isSearchMode)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: _page > 1 && !_isLoading
+                        ? () => _fetchServices(_page - 1)
+                        : null,
+                    child: const Text('Prethodna'),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text('Stranica $_page / $_totalPages'),
+                  ),
+                  ElevatedButton(
+                    onPressed: _page < _totalPages && !_isLoading
+                        ? () => _fetchServices(_page + 1)
+                        : null,
+                    child: const Text('Sljedeća'),
+                  ),
+                ],
+              ),
             if (_isLoading)
               const Padding(
                 padding: EdgeInsets.all(16.0),

@@ -13,6 +13,7 @@ namespace Persistence.Interfaces
         Task<double> GetAverageRatingAsync(int hotelId);
         Task<IEnumerable<HotelDto>> GetUserBasedHotelRecommendationsAsync(int userId);
         Task<HotelStatistics> GetHotelStatisticsAsync();
+        Task<IEnumerable<HotelDto>> GetHotelsByNameAsync(string name);
     }
 
 }

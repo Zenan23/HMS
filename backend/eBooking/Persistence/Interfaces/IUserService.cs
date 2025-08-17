@@ -10,5 +10,6 @@ namespace Persistence.Interfaces
         Task<IEnumerable<UserDto>> GetActiveUsersAsync();
         Task<bool> UpdatePasswordAsync(int userId, string newPassword);
         Task<UserStatistics> GetUserStatisticsAsync();
+        Task<UserDto?> GetEmployeeByUsernameAsync(string username);
     }
 }

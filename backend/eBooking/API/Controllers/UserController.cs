@@ -51,6 +51,37 @@ namespace API.Controllers
             }
         }
 
+
+        /// <summary>
+        /// Get employee by username
+        /// </summary>
+        /// <param name="username">Username</param>
+        /// <returns>User if found</returns>
+        [HttpGet("employee/username/{username}")]
+        public async Task<ActionResult<ApiResponse<UserDto>>> GetEmployeeByUsername([FromRoute] string username)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(username))
+                {
+                    return BadRequest(ApiResponse<UserDto>.ErrorResult("Username is required."));
+                }
+
+                var user = await _userService.GetEmployeeByUsernameAsync(username);
+                if (user == null)
+                {
+                    return NotFound(ApiResponse<UserDto>.ErrorResult($"User with username '{username}' not found."));
+                }
+
+                return Ok(ApiResponse<UserDto>.SuccessResult(user, "User retrieved successfully."));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving user by username: {Username}", username);
+                return StatusCode(500, ApiResponse<UserDto>.ErrorResult("An error occurred while retrieving user."));
+            }
+        }
+
         /// <summary>
         /// Get user by email
         /// </summary>

@@ -18,6 +18,13 @@ namespace Persistence.Repositories
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<Hotel>> GetHotelsByNameAsync(string name)
+        {
+            return await _dbSet
+                .Where(h => h.Name.ToLower() == name.ToLower())
+                .ToListAsync();
+        }
+
         public async Task<Hotel?> GetHotelWithRoomsAsync(int hotelId)
         {
             return await _dbSet

@@ -362,5 +362,34 @@ namespace Application.Services
                 throw;
             }
         }
+
+        public async Task<IEnumerable<HotelDto>> GetHotelsByNameAsync(string name)
+        {
+            var hotels = await _hotelRepository.GetHotelsByNameAsync(name);
+            var hotelDtos = _mapper.Map<IEnumerable<HotelDto>>(hotels).ToList();
+
+            var hotelIds = hotelDtos.Select(h => h.Id).ToHashSet();
+            var reviews = await _reviewService.GetAllAsync();
+            var grouped = reviews
+                .Where(r => hotelIds.Contains(r.HotelId) && !r.IsDeleted && r.IsApproved)
+                .GroupBy(r => r.HotelId)
+                .ToDictionary(g => g.Key, g => new { Avg = g.Average(x => (double)x.Rating), Cnt = g.Count() });
+
+            foreach (var dto in hotelDtos)
+            {
+                if (grouped.TryGetValue(dto.Id, out var agg))
+                {
+                    dto.AverageRating = Math.Round(agg.Avg, 2);
+                    dto.ReviewsCount = agg.Cnt;
+                }
+                else
+                {
+                    dto.AverageRating = 0;
+                    dto.ReviewsCount = 0;
+                }
+            }
+
+            return hotelDtos;
+        }
     }
 }
