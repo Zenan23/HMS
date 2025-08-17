@@ -6,7 +6,7 @@ import 'api_service.dart';
 class ReservationsService {
   Future<int> createBooking(Map<String, dynamic> data) async {
     final response = await ApiService.post('/Bookings', data);
-    print('Booking response: ' + response.body);
+
     if (response.statusCode == 200 || response.statusCode == 201) {
       final resp = jsonDecode(response.body);
       if (resp is Map && resp['data'] != null) {

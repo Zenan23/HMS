@@ -1,9 +1,9 @@
 ﻿using API.Attributes;
-using API.DTOs;
-using API.Enums;
-using API.Interfaces;
+using Contracts.DTOs;
+using Contracts.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Persistence.Interfaces;
 using System.ComponentModel.DataAnnotations;
 
 namespace API.Controllers

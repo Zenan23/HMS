@@ -39,8 +39,8 @@ services:
 
   api:
     build:
-      context: .
-      dockerfile: backend/eBooking/API/Dockerfile
+      context: ./backend/eBooking    
+      dockerfile: Dockerfile
     container_name: ebooking-api
     depends_on:
       db:
