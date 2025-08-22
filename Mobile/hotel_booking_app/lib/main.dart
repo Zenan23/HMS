@@ -41,10 +41,11 @@ class MyApp extends StatelessWidget {
             elevation: 0,
             centerTitle: false,
           ),
-          cardTheme: CardTheme(
+          cardTheme: CardThemeData(
             color: Colors.white,
             elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
@@ -52,7 +53,8 @@ class MyApp extends StatelessWidget {
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               textStyle: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
@@ -62,7 +64,8 @@ class MyApp extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Colors.blue, width: 2),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           ),
           bottomNavigationBarTheme: const BottomNavigationBarThemeData(
             backgroundColor: Colors.white,
@@ -71,7 +74,8 @@ class MyApp extends StatelessWidget {
             elevation: 8,
             type: BottomNavigationBarType.fixed,
           ),
-          dividerTheme: const DividerThemeData(color: Color(0xFFE6EAF0), thickness: 1),
+          dividerTheme:
+              const DividerThemeData(color: Color(0xFFE6EAF0), thickness: 1),
         ),
         initialRoute: '/login',
         routes: {

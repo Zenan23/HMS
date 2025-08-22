@@ -70,9 +70,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _loadStatistics();
                   }
                 },
-                child: Text(_fromDate != null 
-                  ? DateFormat('dd.MM.yyyy').format(_fromDate!)
-                  : 'Od datuma'),
+                child: Text(_fromDate != null
+                    ? DateFormat('dd.MM.yyyy').format(_fromDate!)
+                    : 'Od datuma'),
               ),
               const SizedBox(width: 8),
               ElevatedButton(
@@ -90,14 +90,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _loadStatistics();
                   }
                 },
-                child: Text(_toDate != null 
-                  ? DateFormat('dd.MM.yyyy').format(_toDate!)
-                  : 'Do datuma'),
+                child: Text(_toDate != null
+                    ? DateFormat('dd.MM.yyyy').format(_toDate!)
+                    : 'Do datuma'),
               ),
               const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: _loadStatistics,
-                child: const Text('Osveži'),
+                child: const Text('Osvježi'),
               ),
               const SizedBox(width: 16),
             ],
@@ -119,7 +119,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: 16),
                       const Text(
                         'Greška pri učitavanju podataka',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(_error!),
@@ -203,7 +204,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 4),
                   Text(
                     value,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -230,7 +232,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Text(
                     'Mesečna zarada',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
@@ -255,7 +258,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             sideTitles: SideTitles(
                               showTitles: true,
                               getTitlesWidget: (value, meta) {
-                                if (value.toInt() < _statistics!.paymentStats.monthlyData.length) {
+                                if (value.toInt() <
+                                    _statistics!
+                                        .paymentStats.monthlyData.length) {
                                   return Text(
                                     'M${value.toInt() + 1}',
                                     style: const TextStyle(fontSize: 10),
@@ -265,8 +270,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               },
                             ),
                           ),
-                          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          topTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false)),
+                          rightTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false)),
                         ),
                         borderData: FlBorderData(show: true),
                         lineBarsData: [
@@ -274,7 +281,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             spots: _statistics!.paymentStats.monthlyData
                                 .asMap()
                                 .entries
-                                .map((entry) => FlSpot(entry.key.toDouble(), entry.value.totalAmount))
+                                .map((entry) => FlSpot(entry.key.toDouble(),
+                                    entry.value.totalAmount))
                                 .toList(),
                             isCurved: true,
                             color: Theme.of(context).primaryColor,
@@ -300,7 +308,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Text(
                     'Status rezervacija',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
@@ -309,25 +318,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       PieChartData(
                         sections: [
                           PieChartSectionData(
-                            value: _statistics!.bookingStats.confirmedBookings.toDouble(),
+                            value: _statistics!.bookingStats.confirmedBookings
+                                .toDouble(),
                             title: 'Potvrđene',
                             color: Theme.of(context).primaryColor,
                             radius: 60,
                           ),
                           PieChartSectionData(
-                            value: _statistics!.bookingStats.pendingBookings.toDouble(),
+                            value: _statistics!.bookingStats.pendingBookings
+                                .toDouble(),
                             title: 'Na čekanju',
                             color: Theme.of(context).primaryColor,
                             radius: 60,
                           ),
                           PieChartSectionData(
-                            value: _statistics!.bookingStats.cancelledBookings.toDouble(),
+                            value: _statistics!.bookingStats.cancelledBookings
+                                .toDouble(),
                             title: 'Otkazane',
                             color: Colors.red,
                             radius: 60,
                           ),
                           PieChartSectionData(
-                            value: _statistics!.bookingStats.completedBookings.toDouble(),
+                            value: _statistics!.bookingStats.completedBookings
+                                .toDouble(),
                             title: 'Završene',
                             color: Theme.of(context).primaryColor,
                             radius: 60,
@@ -360,8 +373,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Top hoteli',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    'Top hoteli po ratingu:',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
@@ -375,9 +389,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             child: Text('${index + 1}'),
                           ),
                           title: Text(hotel.name),
-                          subtitle: Text('Ocjena: ${hotel.averageRating}'),
+                          subtitle: Text('Rating: ${hotel.averageRating}'),
                           trailing: Text(
-                            NumberFormat.currency(locale: 'bs_BA', symbol: 'KM').format(hotel.totalRevenue),
+                            '${hotel.averageRating}',
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         );
@@ -398,8 +412,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Ocjene po zvjezdicama',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    'Ocjene soba po zvjezdicama',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
@@ -412,11 +427,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         return ListTile(
                           leading: Row(
                             mainAxisSize: MainAxisSize.min,
-                            children: List.generate(5, (i) => Icon(
-                              i < stars ? Icons.star : Icons.star_border,
-                              size: 16,
-                              color: i < stars ? Colors.amber : Colors.grey,
-                            )),
+                            children: List.generate(
+                                5,
+                                (i) => Icon(
+                                      i < stars
+                                          ? Icons.star
+                                          : Icons.star_border,
+                                      size: 16,
+                                      color: i < stars
+                                          ? Colors.amber
+                                          : Colors.grey,
+                                    )),
                           ),
                           title: Text('$stars zvjezdice'),
                           trailing: Text(

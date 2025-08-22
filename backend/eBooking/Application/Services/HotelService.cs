@@ -324,7 +324,7 @@ namespace Application.Services
                 }
 
                 // Sort by revenue
-                topHotels = topHotels.OrderByDescending(h => h.TotalRevenue).ToList();
+                topHotels = topHotels.OrderByDescending(h => h.AverageRating).ToList();
 
                 // Occupancy data
                 var occupancyData = new List<HotelOccupancyData>();
