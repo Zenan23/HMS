@@ -11,7 +11,7 @@ namespace Persistence.Interfaces
         Task<bool> UpdateHotelAsync(int id, UpdateHotelDto updateHotelDto);
         Task<bool> DeleteHotelAsync(int id);
         Task<double> GetAverageRatingAsync(int hotelId);
-        Task<IEnumerable<HotelDto>> GetUserBasedHotelRecommendationsAsync(int userId);
+        Task<IEnumerable<HotelDto>> GetUserBasedHotelRecommendationsAsync(int userId, int maxRecommendations = 3);
         Task<HotelStatistics> GetHotelStatisticsAsync();
         Task<IEnumerable<HotelDto>> GetHotelsByNameAsync(string name);
     }

@@ -197,14 +197,28 @@ namespace Persistence.Data
                 }
                 await context.SaveChangesAsync();
 
-                // Recenzije raznih korisnika (za signal prema preporukama)
+                // Recenzije raznih korisnika (za collaborative filtering)
                 var reviews = new List<Review>();
-                foreach (var h in hotelsAll)
-                {
-                    reviews.Add(new Review { HotelId = h.Id, UserId = demo.Id, Rating = h.City == "Split" ? 5 : 4, Title = "Boravak", Comment = "Dobro iskustvo", ReviewDate = today.AddDays(-15), IsApproved = true });
-                    reviews.Add(new Review { HotelId = h.Id, UserId = ana.Id, Rating = h.City == "Bled" ? 5 : 3, Title = "Ocjena", Comment = "Ugodno", ReviewDate = today.AddDays(-9), IsApproved = true });
-                    reviews.Add(new Review { HotelId = h.Id, UserId = marko.Id, Rating = h.City == "Zagreb" || h.City == "Sarajevo" ? 5 : 3, Title = "Poslovno", Comment = "Ok za posao", ReviewDate = today.AddDays(-4), IsApproved = true });
-                }
+                
+                // Demo - voli more i luksuz (visoke ocjene)
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Split").Id, UserId = demo.Id, Rating = 5, Title = "Odlično more", Comment = "Prekrasan pogled na more", ReviewDate = today.AddDays(-15), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Zagreb").Id, UserId = demo.Id, Rating = 4, Title = "Dobar gradski hotel", Comment = "Moderan i udoban", ReviewDate = today.AddDays(-12), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Bled").Id, UserId = demo.Id, Rating = 3, Title = "Planinski ugođaj", Comment = "Nije moj stil", ReviewDate = today.AddDays(-10), IsApproved = true });
+                
+                // Ana - voli planine i prirodu (srednje ocjene)
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Bled").Id, UserId = ana.Id, Rating = 5, Title = "Prekrasne planine", Comment = "Odličan wellness", ReviewDate = today.AddDays(-9), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Mostar").Id, UserId = ana.Id, Rating = 4, Title = "Lijep grad", Comment = "Ugodan boravak", ReviewDate = today.AddDays(-7), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Split").Id, UserId = ana.Id, Rating = 2, Title = "Previše turista", Comment = "Gradski hotel", ReviewDate = today.AddDays(-5), IsApproved = true });
+                
+                // Ivan - voli historijske gradove (visoke ocjene za historijske gradove)
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Mostar").Id, UserId = ivan.Id, Rating = 5, Title = "Historijski grad", Comment = "Prelijep most", ReviewDate = today.AddDays(-3), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Sarajevo").Id, UserId = ivan.Id, Rating = 4, Title = "Baščaršija", Comment = "Odlična kultura", ReviewDate = today.AddDays(-1), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Zagreb").Id, UserId = ivan.Id, Rating = 3, Title = "Moderan grad", Comment = "Ok, ali nije historijski", ReviewDate = today.AddDays(-8), IsApproved = true });
+                
+                // Marko - voli luksuz i visoke ocjene (sličan Demo-u)
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Split").Id, UserId = marko.Id, Rating = 5, Title = "Luksuzan boravak", Comment = "Odličan spa", ReviewDate = today.AddDays(-6), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Zagreb").Id, UserId = marko.Id, Rating = 4, Title = "Moderan luksuz", Comment = "Dobar standard", ReviewDate = today.AddDays(-4), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Bled").Id, UserId = marko.Id, Rating = 4, Title = "Planinski luksuz", Comment = "Odličan wellness", ReviewDate = today.AddDays(-2), IsApproved = true });
                 context.Reviews.AddRange(reviews);
                 await context.SaveChangesAsync();
             }
