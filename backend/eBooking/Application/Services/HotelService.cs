@@ -232,7 +232,13 @@ namespace Application.Services
         /// <summary>
         /// User-based collaborative filtering hotel recommendations
         /// </summary>
-        public async Task<IEnumerable<HotelDto>> GetUserBasedHotelRecommendationsAsync(int userId)
+        /// <summary>
+        /// User-based collaborative filtering hotel recommendations with improvements:
+        /// - Dynamic rating threshold based on user's average rating
+        /// - Time-based weighting for recent reviews
+        /// - Configurable number of recommendations
+        /// </summary>
+        public async Task<IEnumerable<HotelDto>> GetUserBasedHotelRecommendationsAsync(int userId, int maxRecommendations = 3)
         {
             var allReviews = await _reviewService.GetAllAsync();
             var allHotels = await _hotelRepository.GetAllAsync();
@@ -241,23 +247,42 @@ namespace Application.Services
             var userReviews = allReviews.Where(r => r.UserId == userId && r.IsApproved && !r.IsDeleted).ToList();
             var userHotelIds = userReviews.Select(r => r.HotelId).Distinct().ToList();
 
+            // Calculate user's average rating for dynamic threshold
+            var userAverageRating = userReviews.Count > 0 ? userReviews.Average(r => r.Rating) : 3.0;
+            var dynamicThreshold = Math.Max(3.0, userAverageRating - 0.5); // Minimum threshold of 3.0
+
             // Find similar users (who rated same hotels)
             var similarUsers = allReviews.Where(r => userHotelIds.Contains(r.HotelId) && r.UserId != userId)
                                         .Select(r => r.UserId)
                                         .Distinct()
                                         .ToList();
 
-            // For each similar user, get their reviews
+            // For each similar user, get their reviews with time-based weighting
             var similarUserReviews = allReviews.Where(r => similarUsers.Contains(r.UserId ?? 0) && r.IsApproved && !r.IsDeleted).ToList();
 
-            // Calculate average rating per hotel by similar users
-            var recommendedHotels = similarUserReviews
-                .Where(r => !userHotelIds.Contains(r.HotelId) && r.Rating >= 4) // Only hotels not rated by current user, and with high rating
-                .GroupBy(r => r.HotelId)
-                .Select(g => new { HotelId = g.Key, AvgRating = g.Average(r => r.Rating), Count = g.Count() })
-                .OrderByDescending(h => h.AvgRating)
+            // Calculate time-based weights (recent reviews get higher weight)
+            var now = DateTime.UtcNow;
+            var timeWeightedReviews = similarUserReviews.Select(r => new
+            {
+                Review = r,
+                TimeWeight = CalculateTimeWeight(r.ReviewDate, now)
+            }).ToList();
+
+            // Calculate weighted average rating per hotel by similar users
+            var recommendedHotels = timeWeightedReviews
+                .Where(r => !userHotelIds.Contains(r.Review.HotelId) && r.Review.Rating >= dynamicThreshold)
+                .GroupBy(r => r.Review.HotelId)
+                .Select(g => new 
+                { 
+                    HotelId = g.Key, 
+                    WeightedAvgRating = g.Sum(r => r.Review.Rating * r.TimeWeight) / g.Sum(r => r.TimeWeight),
+                    Count = g.Count(),
+                    TotalWeight = g.Sum(r => r.TimeWeight)
+                })
+                .OrderByDescending(h => h.WeightedAvgRating)
+                .ThenByDescending(h => h.TotalWeight) // Prioritize hotels with more recent reviews
                 .ThenByDescending(h => h.Count)
-                .Take(3) // Top 3
+                .Take(maxRecommendations)
                 .ToList();
 
             // Get hotel entities
@@ -270,10 +295,10 @@ namespace Application.Services
                     .Where(r => r.IsApproved && !r.IsDeleted)
                     .GroupBy(r => r.HotelId)
                     .Select(g => new { HotelId = g.Key, Avg = g.Average(x => (double)x.Rating), Cnt = g.Count() })
-                    .Where(x => x.Avg >= 4.0)
+                    .Where(x => x.Avg >= dynamicThreshold)
                     .OrderByDescending(x => x.Avg)
                     .ThenByDescending(x => x.Cnt)
-                    .Take(3)
+                    .Take(maxRecommendations)
                     .Select(x => x.HotelId)
                     .ToHashSet();
 
@@ -281,6 +306,22 @@ namespace Application.Services
             }
 
             return _mapper.Map<IEnumerable<HotelDto>>(hotels);
+        }
+
+        /// <summary>
+        /// Calculate time-based weight for reviews. Recent reviews get higher weight.
+        /// Weight decreases exponentially with time (half-life of 6 months).
+        /// </summary>
+        private double CalculateTimeWeight(DateTime reviewDate, DateTime currentDate)
+        {
+            var daysSinceReview = (currentDate - reviewDate).TotalDays;
+            var halfLifeDays = 180.0; // 6 months
+            
+            // Exponential decay: weight = 2^(-days/halfLife)
+            var weight = Math.Pow(2, -daysSinceReview / halfLifeDays);
+            
+            // Ensure minimum weight of 0.1 for very old reviews
+            return Math.Max(0.1, weight);
         }
 
         public async Task<HotelStatistics> GetHotelStatisticsAsync()

@@ -152,12 +152,13 @@ namespace API.Controllers
         }
 
         /// <summary>
-        /// Get user-based hotel recommendations (collaborative filtering)
+        /// Get user-based hotel recommendations (collaborative filtering with improvements)
         /// </summary>
         /// <param name="userId">User ID</param>
+        /// <param name="maxRecommendations">Maximum number of recommendations (default: 3)</param>
         /// <returns>List of recommended hotels</returns>
         [HttpGet("user/{userId}/hotels")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<HotelDto>>>> GetUserBasedHotelRecommendations([FromRoute] int userId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<HotelDto>>>> GetUserBasedHotelRecommendations([FromRoute] int userId, [FromQuery] int maxRecommendations = 3)
         {
             try
             {
@@ -166,7 +167,12 @@ namespace API.Controllers
                     return BadRequest(ApiResponse<IEnumerable<HotelDto>>.ErrorResult("Invalid user ID."));
                 }
 
-                var hotels = await _hotelService.GetUserBasedHotelRecommendationsAsync(userId);
+                if (maxRecommendations <= 0 || maxRecommendations > 20)
+                {
+                    return BadRequest(ApiResponse<IEnumerable<HotelDto>>.ErrorResult("Max recommendations must be between 1 and 20."));
+                }
+
+                var hotels = await _hotelService.GetUserBasedHotelRecommendationsAsync(userId, maxRecommendations);
                 return Ok(ApiResponse<IEnumerable<HotelDto>>.SuccessResult(hotels, "Recommended hotels retrieved successfully."));
             }
             catch (Exception ex)
