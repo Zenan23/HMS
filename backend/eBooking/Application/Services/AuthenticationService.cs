@@ -60,12 +60,12 @@ namespace Application.Services
             // Check if user already exists
             if (await _userRepository.ExistsByEmailAsync(registerDto.Email))
             {
-                throw new InvalidOperationException("User with this email already exists.");
+                throw new InvalidOperationException("Korisnik sa ovim email-om vec postoji u bazi.");
             }
 
             if (await _userRepository.ExistsByUsernameAsync(registerDto.Username))
             {
-                throw new InvalidOperationException("User with this username already exists.");
+                throw new InvalidOperationException("Korisnik sa ovim korisničkim imenom vec postoji u bazi.");
             }
 
             // Create new user

@@ -15,6 +15,18 @@ class ReservationsService {
       }
       return resp['id'] ?? resp['bookingId'] ?? 0;
     } else {
+      // Pokušaj parsirati response body za specifičnu poruku o grešci
+      try {
+        final errorData = jsonDecode(response.body) as Map<String, dynamic>;
+        if (errorData.containsKey('message')) {
+          throw Exception(errorData['message'] as String);
+        }
+      } catch (e) {
+        // Ako ne možemo parsirati response body ili već imamo Exception, koristimo generičku poruku
+        if (e is Exception) {
+          throw e;
+        }
+      }
       throw Exception('Greška pri kreiranju rezervacije.');
     }
   }
