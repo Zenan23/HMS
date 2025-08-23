@@ -62,23 +62,23 @@ class _MainTabsState extends State<MainTabs>
     if (auth.role == null || auth.role == UserRole.Admin.index) {
       _tabs = const [
         Tab(text: 'Dashboard'),
-        Tab(text: 'Hoteli'),
         Tab(text: 'Uposlenici'),
         Tab(text: 'Korisnici'),
       ];
       _tabViews = const [
         DashboardScreen(),
-        HotelsScreen(),
         EmployeesScreen(),
         UsersScreen(),
       ];
     } else if (auth.role == UserRole.Employee.index) {
       _tabs = const [
+        Tab(text: 'Hoteli'),
         Tab(text: 'Rezervacije'),
         Tab(text: 'Sobe'),
         Tab(text: 'Servisi'),
       ];
       _tabViews = const [
+        HotelsScreen(),
         BookingsScreen(),
         RoomsScreen(),
         ServicesScreen(),

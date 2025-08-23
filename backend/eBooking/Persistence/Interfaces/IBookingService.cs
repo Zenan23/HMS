@@ -17,6 +17,7 @@ namespace Persistence.Interfaces
         Task<IEnumerable<BookingDto>> GetPaidBookingsByUserIdAsync(int userId);
         Task<IEnumerable<BookingDto>> GetNoPaidBookingsByUserIdAsync(int userId);
         Task<BookingStatistics> GetBookingStatisticsAsync(DateTime? fromDate = null, DateTime? toDate = null);
+        Task<bool> ConfirmBookingAfterPaymentAsync(int bookingId, int paymentId);
     }
 
 }

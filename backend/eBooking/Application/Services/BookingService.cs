@@ -331,9 +331,6 @@ namespace Application.Services
         {
             try
             {
-                var isAvailable = await IsRoomAvailableAsync(createDto.RoomId, createDto.CheckInDate, createDto.CheckOutDate);
-                if (!isAvailable)
-                    throw new InvalidOperationException("Room is not available for the selected dates");
 
                 var room = await _roomService.GetByIdAsync(createDto.RoomId) ?? throw new InvalidOperationException("Room not found.");
 
@@ -392,16 +389,6 @@ namespace Application.Services
                 // Log initial status
                 await LogBookingStatusChangeAsync(booking.Id, BookingStatus.Pending, BookingStatus.Pending, "Booking created", createDto.UserId);
 
-                // Publish BookingCreated event
-                await _publishEndpoint.Publish(new BookingCreated(
-                    booking.Id,
-                    booking.UserId,
-                    booking.RoomId,
-                    room.HotelId,
-                    booking.CheckInDate,
-                    booking.CheckOutDate
-                ));
-
                 return _mapper.Map<BookingDto>(booking);
             }
             catch (Exception ex)
@@ -429,6 +416,55 @@ namespace Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error logging booking status change for booking {BookingId}", bookingId);
+            }
+        }
+
+        /// <summary>
+        /// Confirm a booking after successful payment
+        /// </summary>
+        /// <param name="bookingId">Booking ID to confirm</param>
+        /// <param name="paymentId">Payment ID that triggered the confirmation</param>
+        /// <returns>True if booking was successfully confirmed</returns>
+        public async Task<bool> ConfirmBookingAfterPaymentAsync(int bookingId, int paymentId)
+        {
+            try
+            {
+                _logger.LogInformation("Confirming booking {BookingId} after payment {PaymentId}", bookingId, paymentId);
+
+                var booking = await _repository.GetByIdAsync(bookingId);
+                if (booking == null)
+                {
+                    _logger.LogWarning("Booking {BookingId} not found for confirmation", bookingId);
+                    return false;
+                }
+
+                if (booking.Status != BookingStatus.Pending)
+                {
+                    _logger.LogWarning("Booking {BookingId} cannot be confirmed - current status is {Status}", bookingId, booking.Status);
+                    return false;
+                }
+
+                // Update booking status to Confirmed
+                var previousStatus = booking.Status;
+                booking.Status = BookingStatus.Confirmed;
+                booking.UpdatedAt = DateTime.UtcNow;
+
+                await _repository.UpdateAsync(booking);
+
+                // Log the status change
+                await LogBookingStatusChangeAsync(bookingId, previousStatus, BookingStatus.Confirmed, 
+                    $"Booking confirmed after successful payment {paymentId}", null);
+
+                // Publish BookingConfirmed event
+                await _publishEndpoint.Publish(new BookingConfirmed(bookingId, booking.UserId, paymentId));
+
+                _logger.LogInformation("Booking {BookingId} successfully confirmed after payment {PaymentId}", bookingId, paymentId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error confirming booking {BookingId} after payment {PaymentId}", bookingId, paymentId);
+                return false;
             }
         }
 
