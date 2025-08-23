@@ -51,6 +51,8 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
         } else {
           _checkOut = picked;
         }
+        // Reset cijenu i dostupnost kada se promijeni datum
+        _resetPriceAndAvailability();
       });
     }
   }
@@ -133,6 +135,17 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
     return _selectedServices.entries
         .map((e) => e.value > 1 ? '${e.key}:${e.value}' : '${e.key}')
         .join(',');
+  }
+
+  void _resetPriceAndAvailability() {
+    // Reset cijenu i dostupnost kada se promijeni bilo koji parametar
+    if (_available == true || _price != null) {
+      setState(() {
+        _available = null;
+        _price = null;
+        _error = null;
+      });
+    }
   }
 
   Future<void> _loadServicesForHotel(int hotelId) async {
@@ -257,14 +270,21 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.remove),
-                      onPressed:
-                          _guests > 1 ? () => setState(() => _guests--) : null,
+                      onPressed: _guests > 1 
+                          ? () => setState(() {
+                                _guests--;
+                                _resetPriceAndAvailability();
+                              }) 
+                          : null,
                     ),
                     Text('$_guests'),
                     IconButton(
                       icon: const Icon(Icons.add),
                       onPressed: _guests < widget.maxOccupancy
-                          ? () => setState(() => _guests++)
+                          ? () => setState(() {
+                                _guests++;
+                                _resetPriceAndAvailability();
+                              })
                           : null,
                     ),
                   ],
@@ -282,6 +302,8 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
                             } else {
                               _selectedServices.remove(svc['id']);
                             }
+                            // Reset cijenu i dostupnost kada se promijene usluge
+                            _resetPriceAndAvailability();
                           });
                         },
                         title: Text('${svc['name']} (+${svc['price']} €)'),
@@ -296,6 +318,8 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
                                             (_selectedServices[svc['id']] ?? 1);
                                         if (q > 1)
                                           _selectedServices[svc['id']] = q - 1;
+                                        // Reset cijenu i dostupnost kada se promijeni količina
+                                        _resetPriceAndAvailability();
                                       });
                                     }),
                                 Text('${_selectedServices[svc['id']] ?? 1}'),
@@ -306,6 +330,8 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
                                         final q =
                                             (_selectedServices[svc['id']] ?? 1);
                                         _selectedServices[svc['id']] = q + 1;
+                                        // Reset cijenu i dostupnost kada se promijeni količina
+                                        _resetPriceAndAvailability();
                                       });
                                     }),
                               ])
