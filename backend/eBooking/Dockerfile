@@ -2,7 +2,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# copy all csproj files
+# copy csproj files first for better layer caching
 COPY ["API/API.csproj", "API/"]
 COPY ["Application/Application.csproj", "Application/"]
 COPY ["Contracts/Contracts.csproj", "Contracts/"]
@@ -13,11 +13,11 @@ RUN dotnet restore "API/API.csproj"
 
 # copy source code
 COPY . .
-WORKDIR "/src/API"
-RUN dotnet build "API.csproj" -c Release -o /app/build
 
-# publish
-RUN dotnet publish "API.csproj" -c Release -o /app/publish /p:UseAppHost=false
+# build and publish in one step to reduce layers
+WORKDIR "/src/API"
+RUN dotnet build "API.csproj" -c Release -o /app/build && \
+    dotnet publish "API.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # final stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
