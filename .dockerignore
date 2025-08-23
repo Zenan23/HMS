@@ -14,16 +14,49 @@ build/
 **/.dart_tool/
 **/.packages
 **/pubspec.lock
+**/node_modules/
+**/dist/
+**/out/
 
 # Dotnet
 **/bin/
 **/obj/
+**/.vs/
+**/*.user
+**/*.suo
+**/*.cache
 
 # Docker
 **/.dockerignore
+**/Dockerfile*
+**/docker-compose*
 
 # Logs
 **/*.log
+**/logs/
 
 # Artifacts
 artifacts/
+**/artifacts/
+
+# Temporary files
+**/tmp/
+**/temp/
+**/*.tmp
+**/*.temp
+
+# Large files
+**/*.zip
+**/*.tar.gz
+**/*.rar
+**/*.7z
+**/*.iso
+
+# Documentation
+**/*.pdf
+**/*.doc
+**/*.docx
+
+# Mobile/Desktop specific
+Mobile/
+Desktop/

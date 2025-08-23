@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: db/Dockerfile
+      cache_from:
+        - mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04
     container_name: ebooking-sql
     environment:
       - ACCEPT_EULA=Y
@@ -41,6 +43,11 @@ services:
     build:
       context: ./backend/eBooking    
       dockerfile: Dockerfile
+      cache_from:
+        - mcr.microsoft.com/dotnet/sdk:8.0
+        - mcr.microsoft.com/dotnet/aspnet:8.0
+      args:
+        - BUILDKIT_INLINE_CACHE=1
     container_name: ebooking-api
     depends_on:
       db:

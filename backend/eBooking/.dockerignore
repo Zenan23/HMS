@@ -1,0 +1,30 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.cache
+
+# Build outputs
+**/bin/
+**/obj/
+**/out/
+
+# Logs
+**/*.log
+**/logs/
+
+# Temporary files
+**/tmp/
+**/*.tmp
+
+# Docker
+Dockerfile*
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+**/.DS_Store
+**/Thumbs.db
