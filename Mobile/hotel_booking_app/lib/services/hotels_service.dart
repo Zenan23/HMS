@@ -87,6 +87,15 @@ class HotelsService extends ChangeNotifier {
       } else {
         _isLoading = false;
         notifyListeners();
+        // Pokušaj parsirati response body za specifičnu poruku o grešci
+        try {
+          final errorData = jsonDecode(response.body) as Map<String, dynamic>;
+          if (errorData.containsKey('message')) {
+            return errorData['message'] as String;
+          }
+        } catch (e) {
+          // Ako ne možemo parsirati response body, koristimo generičku poruku
+        }
         return 'Greška pri dohvaćanju soba';
       }
     } catch (e) {

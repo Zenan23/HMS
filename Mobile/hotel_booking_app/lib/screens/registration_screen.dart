@@ -47,7 +47,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Registracija')),
+      appBar: AppBar(
+        title: const Text('Registracija'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+        ),
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -122,6 +128,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         onPressed: () => _register(context),
                         child: const Text('Registruj se'),
                       ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+                  child: const Text('Nazad na prijavu'),
+                ),
               ],
             ),
           ),
