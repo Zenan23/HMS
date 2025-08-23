@@ -1,10 +1,12 @@
 ﻿using Contracts.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Persistence.Interfaces;
 
 namespace API.Controllers
 {
     [ApiController]
+    [Authorize]
     public abstract class BaseController<TDto, TCreateDto, TUpdateDto> : ControllerBase
         where TDto : BaseEntityDto
         where TCreateDto : CreateBaseEntityDto

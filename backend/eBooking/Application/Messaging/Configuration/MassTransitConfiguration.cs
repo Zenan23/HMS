@@ -1,5 +1,4 @@
 using API.Messaging.Consumers;
-using Application.Messaging.Consumers;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,8 +12,8 @@ namespace Application.Messaging.Configuration
             services.AddMassTransit(x =>
             {
                 x.AddConsumer<BookingUpdatedConsumer>();
-                x.AddConsumer<BookingCreatedConsumer>();
                 x.AddConsumer<PaymentCompletedConsumer>();
+                x.AddConsumer<BookingConfirmedConsumer>();
                 x.AddConsumer<UpcomingCheckInReminderConsumer>();
                 x.AddConsumer<NotificationCreatedConsumer>();
 
@@ -26,8 +25,8 @@ namespace Application.Messaging.Configuration
                     cfg.Host(host, h => { h.Username(user); h.Password(pass); });
 
                     cfg.ReceiveEndpoint("booking-updated-queue", e => { e.ConfigureConsumer<BookingUpdatedConsumer>(ctx); });
-                    cfg.ReceiveEndpoint("booking-created-queue", e => { e.ConfigureConsumer<BookingCreatedConsumer>(ctx); });
                     cfg.ReceiveEndpoint("payment-completed-queue", e => { e.ConfigureConsumer<PaymentCompletedConsumer>(ctx); });
+                    cfg.ReceiveEndpoint("booking-confirmed-queue", e => { e.ConfigureConsumer<BookingConfirmedConsumer>(ctx); });
                     cfg.ReceiveEndpoint("upcoming-checkin-reminder-queue", e => { e.ConfigureConsumer<UpcomingCheckInReminderConsumer>(ctx); });
                     cfg.ReceiveEndpoint("notification-created-queue", e => { e.ConfigureConsumer<NotificationCreatedConsumer>(ctx); });
                 });

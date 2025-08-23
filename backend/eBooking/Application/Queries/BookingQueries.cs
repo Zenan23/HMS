@@ -28,8 +28,7 @@ namespace Application.Queries
             var overlapping = bookings.Where(b =>
                 !b.IsDeleted &&
                 b.RoomId == roomId &&
-                b.Status != BookingStatus.Cancelled &&
-                b.Status != BookingStatus.CheckedOut &&
+                (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.CheckedIn) &&
                 (excludeBookingId == null || b.Id != excludeBookingId) &&
                 b.CheckInDate < checkOut &&
                 b.CheckOutDate > checkIn);

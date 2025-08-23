@@ -14,15 +14,18 @@ namespace API.Controllers
     public class RoomsController : BaseController<RoomDto, CreateRoomDto, UpdateRoomDto>
     {
         private readonly IRoomService _roomService;
+        private readonly IPaymentService _paymentService;
         private readonly IMapper _mapper;
 
         public RoomsController(
             IRoomService roomService,
+            IPaymentService paymentService,
             IMapper mapper,
             ILogger<RoomsController> logger)
             : base(roomService, logger)
         {
             _roomService = roomService;
+            _paymentService = paymentService;
             _mapper = mapper;
         }
 

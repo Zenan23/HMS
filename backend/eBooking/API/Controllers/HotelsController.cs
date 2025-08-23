@@ -120,7 +120,7 @@ namespace API.Controllers
         /// <param name="createDto">Hotel creation data</param>
         /// <returns>Created hotel</returns>
         [HttpPost]
-        [AuthorizeRole(UserRole.Admin)]
+        [AuthorizeRole(UserRole.Employee)]
         public override async Task<ActionResult<ApiResponse<HotelDto>>> Create([FromBody] CreateHotelDto createDto)
         {
             return await base.Create(createDto);
@@ -133,7 +133,7 @@ namespace API.Controllers
         /// <param name="updateDto">Hotel update data</param>
         /// <returns>Updated hotel</returns>
         [HttpPut("{id}")]
-        [AuthorizeRole(UserRole.Admin)]
+        [AuthorizeRole(UserRole.Employee)]
         public override async Task<ActionResult<ApiResponse<HotelDto>>> Update([FromRoute] int id, [FromBody] UpdateHotelDto updateDto)
         {
             return await base.Update(id, updateDto);
@@ -145,7 +145,7 @@ namespace API.Controllers
         /// <param name="id">Hotel ID</param>
         /// <returns>Deletion result</returns>
         [HttpDelete("{id}")]
-        [AuthorizeRole(UserRole.Admin)]
+        [AuthorizeRole(UserRole.Employee)]
         public override async Task<ActionResult<ApiResponse<bool>>> Delete([FromRoute] int id)
         {
             return await base.Delete(id);
