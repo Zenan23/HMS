@@ -7,10 +7,11 @@ docker-compose up -d
 LOGIN PODACI:
 
 USERS:
+
 email: marko@demo.com
 pw: Marko123!
 
-emai: ana@demo.com
+email: ana@demo.com
 pw: Ana123!
 
 email: ivan@demo.com
