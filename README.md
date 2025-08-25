@@ -10,6 +10,12 @@ USERS:
 email: marko@demo.com
 pw: Marko123!
 
+emai: ana@demo.com
+pw: Ana123!
+
+email: ivan@demo.com
+pw: Ivan123!
+
 ADMIN:
 email: admin@demo.com
 pw: Admin123!
