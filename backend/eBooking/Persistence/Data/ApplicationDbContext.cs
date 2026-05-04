@@ -22,6 +22,7 @@ namespace Persistence.Data
         public DbSet<BookingStatusHistory> BookingStatusHistories { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<PaymentAuditLog> PaymentAuditLogs { get; set; }
+        public DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents { get; set; }
         public DbSet<RoomMaintenanceLog> RoomMaintenanceLogs { get; set; }
         public DbSet<PriceAdjustment> PriceAdjustments { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
@@ -200,7 +201,8 @@ namespace Persistence.Data
                 entity.HasKey(p => p.Id);
                 entity.Property(p => p.Amount).HasColumnType("decimal(18,2)").IsRequired();
                 entity.Property(p => p.Currency).IsRequired().HasMaxLength(3).HasDefaultValue("USD");
-                entity.Property(p => p.TransactionId).HasMaxLength(100);
+                entity.Property(p => p.TransactionId).HasMaxLength(200);
+                entity.Property(p => p.CheckoutId).HasMaxLength(200);
                 entity.Property(p => p.FailureReason).HasMaxLength(500);
                 entity.Property(p => p.Description).HasMaxLength(500);
                 entity.Property(p => p.RefundAmount).HasColumnType("decimal(18,2)");
@@ -219,6 +221,15 @@ namespace Persistence.Data
                     .WithOne(pal => pal.Payment)
                     .HasForeignKey(pal => pal.PaymentId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ProcessedWebhookEvent>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Provider).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.EventId).IsRequired().HasMaxLength(256);
+                entity.HasIndex(e => new { e.Provider, e.EventId }).IsUnique();
+                entity.Property(e => e.ReceivedAt).IsRequired();
             });
 
             // PaymentAuditLog configuration

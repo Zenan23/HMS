@@ -1,84 +1,139 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/payment.dart';
 import '../services/payments_service.dart';
 import '../services/auth_service.dart';
 import '../screens/home_screen.dart';
-import '../utils/validation_utils.dart';
 
 class PaymentScreen extends StatefulWidget {
   final int bookingId;
   final double amount;
   final String currency;
-  const PaymentScreen({Key? key, required this.bookingId, required this.amount, this.currency = 'USD'}) : super(key: key);
+  const PaymentScreen({
+    super.key,
+    required this.bookingId,
+    required this.amount,
+    this.currency = 'EUR',
+  });
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  PaymentMethod _method = PaymentMethod.card;
   final _formKey = GlobalKey<FormState>();
-  // Card
-  String _cardNumber = '';
-  int _expiryMonth = 1;
-  int _expiryYear = 2024;
-  String _cvv = '';
-  String _cardholderName = '';
-  // PayPal
-  String _paypalEmail = '';
-  // Bank
-  String _bankAccountNumber = '';
-  String _bankRoutingNumber = '';
-  String _accountHolderName = '';
-  String? _bankName;
-  // Ostalo
+  PaymentMethod _method = PaymentMethod.stripe;
+  final _sessionController = TextEditingController();
   String? _description;
   bool _loading = false;
   String? _error;
   String? _success;
+  int? _pendingPaymentId;
 
-  void _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; _error = null; _success = null; });
-    _formKey.currentState!.save();
+  @override
+  void dispose() {
+    _sessionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openCheckoutAndPoll() async {
+    if (!(_formKey.currentState?.validate() ?? true)) return;
+    _formKey.currentState?.save();
+
+    setState(() {
+      _loading = true;
+      _error = null;
+      _success = null;
+    });
+
     final userId = Provider.of<AuthService>(context, listen: false).user?.userId;
     if (userId == null) {
-      setState(() { _loading = false; _error = 'Niste prijavljeni.'; });
+      setState(() {
+        _loading = false;
+        _error = 'Niste prijavljeni.';
+      });
       return;
     }
-    CreatePaymentDto dto = CreatePaymentDto(
+
+    final dto = CreateHostedCheckoutDto(
       userId: userId,
       bookingId: widget.bookingId,
       amount: widget.amount,
       paymentMethod: _method,
       currency: widget.currency,
       description: _description,
-      cardData: _method == PaymentMethod.card ? CardPaymentData(
-        cardNumber: _cardNumber,
-        expiryMonth: _expiryMonth,
-        expiryYear: _expiryYear,
-        cvv: _cvv,
-        cardholderName: _cardholderName,
-      ) : null,
-      payPalData: _method == PaymentMethod.paypal ? PayPalPaymentData(payPalEmail: _paypalEmail) : null,
-      bankTransferData: _method == PaymentMethod.bankTransfer ? BankTransferPaymentData(
-        bankAccountNumber: _bankAccountNumber,
-        bankRoutingNumber: _bankRoutingNumber,
-        accountHolderName: _accountHolderName,
-        bankName: _bankName,
-      ) : null,
     );
-    final ok = await PaymentsService().processPayment(dto);
-    setState(() { _loading = false; _success = ok ? 'Plaćanje uspješno!' : 'Plaćanje nije uspjelo.'; });
-    if (ok) {
-      await Future.delayed(const Duration(seconds: 1));
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomeScreen(initialTabIndex: 1)),
-          (route) => false,
-        );
+
+    final checkout = await PaymentsService().startHostedCheckout(dto);
+    if (checkout == null) {
+      setState(() {
+        _loading = false;
+        _error = 'Neuspješno kreiranje plaćanja. Provjerite API i konfiguraciju.';
+      });
+      return;
+    }
+
+    _pendingPaymentId = checkout.paymentId;
+    final uri = Uri.parse(checkout.redirectUrl);
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched) {
+      setState(() {
+        _loading = false;
+        _error = 'Nije moguće otvoriti link plaćanja.';
+      });
+      return;
+    }
+
+    setState(() {
+      _loading = false;
+      _success =
+          'Završite plaćanje u pregledniku. Aplikacija provjerava status… (Stripe: po potrebi unesite session_id ispod i potvrdite.)';
+    });
+
+    await _pollUntilComplete(checkout.paymentId);
+  }
+
+  Future<void> _pollUntilComplete(int paymentId) async {
+    final svc = PaymentsService();
+    for (var i = 0; i < 90; i++) {
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted) return;
+      final done = await svc.isPaymentCompleted(paymentId);
+      if (done) {
+        setState(() => _success = 'Plaćanje potvrđeno!');
+        await Future.delayed(const Duration(seconds: 1));
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+                builder: (_) => const HomeScreen(initialTabIndex: 1)),
+            (route) => false,
+          );
+        }
+        return;
       }
+    }
+    if (mounted) {
+      setState(() {
+        _error =
+            'Plaćanje još nije potvrđeno (webhook ili sandbox kašnjenje). Pokušajte "Potvrdi Stripe sesiju" ili sačekajte.';
+      });
+    }
+  }
+
+  Future<void> _finalizeStripeManual() async {
+    final sid = _sessionController.text.trim();
+    if (sid.isEmpty) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final ok = await PaymentsService().finalizeStripeSession(sid);
+    setState(() => _loading = false);
+    if (ok && _pendingPaymentId != null) {
+      await _pollUntilComplete(_pendingPaymentId!);
+    } else {
+      setState(() => _error = 'Finalize nije uspio.');
     }
   }
 
@@ -92,99 +147,47 @@ class _PaymentScreenState extends State<PaymentScreen> {
           key: _formKey,
           child: ListView(
             children: [
-              Text('Iznos: ${widget.amount.toStringAsFixed(2)} ${widget.currency}', style: const TextStyle(fontSize: 18)),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<PaymentMethod>(
-                value: _method,
-                items: const [
-                  DropdownMenuItem(value: PaymentMethod.card, child: Text('Kartica')),
-                  DropdownMenuItem(value: PaymentMethod.paypal, child: Text('PayPal')),
-                  DropdownMenuItem(value: PaymentMethod.bankTransfer, child: Text('Bankovni transfer')),
+              Text(
+                'Iznos: ${widget.amount.toStringAsFixed(2)} ${widget.currency}',
+                style: const TextStyle(fontSize: 18),
+              ),
+              const SizedBox(height: 8),
+              const Text('Metoda plaćanja', style: TextStyle(fontSize: 12)),
+              const SizedBox(height: 8),
+              SegmentedButton<PaymentMethod>(
+                segments: const [
+                  ButtonSegment(
+                    value: PaymentMethod.stripe,
+                    label: Text('Stripe'),
+                  ),
+                  ButtonSegment(
+                    value: PaymentMethod.paypal,
+                    label: Text('PayPal'),
+                  ),
                 ],
-                onChanged: (v) => setState(() => _method = v!),
-                decoration: const InputDecoration(labelText: 'Metoda plaćanja'),
+                selected: {_method},
+                onSelectionChanged: (Set<PaymentMethod> selection) {
+                  if (selection.isNotEmpty) {
+                    setState(() => _method = selection.first);
+                  }
+                },
               ),
               const SizedBox(height: 16),
-              if (_method == PaymentMethod.card) ...[
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Broj kartice'),
-                  maxLength: 19,
-                  keyboardType: TextInputType.number,
-                  validator: ValidationUtils.validateCardNumber,
-                  onSaved: (v) => _cardNumber = v ?? '',
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        decoration: const InputDecoration(labelText: 'MM'),
-                        maxLength: 2,
-                        keyboardType: TextInputType.number,
-                        validator: (v) => v == null || int.tryParse(v) == null || int.parse(v) < 1 || int.parse(v) > 12 ? 'MM' : null,
-                        onSaved: (v) => _expiryMonth = int.tryParse(v ?? '') ?? 1,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextFormField(
-                        decoration: const InputDecoration(labelText: 'YYYY'),
-                        maxLength: 4,
-                        keyboardType: TextInputType.number,
-                        validator: (v) => v == null || int.tryParse(v) == null || int.parse(v) < 2024 ? 'YYYY' : null,
-                        onSaved: (v) => _expiryYear = int.tryParse(v ?? '') ?? 2024,
-                      ),
-                    ),
-                  ],
-                ),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'CVV'),
-                  maxLength: 4,
-                  keyboardType: TextInputType.number,
-                  validator: ValidationUtils.validateCVV,
-                  onSaved: (v) => _cvv = v ?? '',
-                ),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Ime i prezime na kartici'),
-                  maxLength: 100,
-                  validator: ValidationUtils.validateCardholderName,
-                  onSaved: (v) => _cardholderName = v ?? '',
-                ),
-              ],
-              if (_method == PaymentMethod.paypal) ...[
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'PayPal email'),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: ValidationUtils.validateEmail,
-                  onSaved: (v) => _paypalEmail = v ?? '',
-                ),
-              ],
-              if (_method == PaymentMethod.bankTransfer) ...[
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Broj bankovnog računa'),
-                  validator: (v) => v == null || v.isEmpty ? 'Unesite broj računa' : null,
-                  onSaved: (v) => _bankAccountNumber = v ?? '',
-                ),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Routing broj'),
-                  validator: (v) => v == null || v.isEmpty ? 'Unesite routing broj' : null,
-                  onSaved: (v) => _bankRoutingNumber = v ?? '',
-                ),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Ime vlasnika računa'),
-                  validator: (v) => v == null || v.isEmpty ? 'Unesite ime vlasnika' : null,
-                  onSaved: (v) => _accountHolderName = v ?? '',
-                ),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Naziv banke (opciono)'),
-                  onSaved: (v) => _bankName = v,
-                ),
-              ],
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Opis (opciono)'),
+                decoration: const InputDecoration(
+                    labelText: 'Opis (opciono)', counterText: ''),
                 maxLength: 500,
                 onSaved: (v) => _description = v,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _sessionController,
+                decoration: const InputDecoration(
+                  labelText: 'Stripe session_id (nakon povratka, opciono)',
+                  hintText: 'cs_test_...',
+                ),
+              ),
+              const SizedBox(height: 12),
               if (_error != null) ...[
                 Text(_error!, style: const TextStyle(color: Colors.red)),
                 const SizedBox(height: 12),
@@ -195,9 +198,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ],
               _loading
                   ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      onPressed: _submit,
-                      child: const Text('Plati'),
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ElevatedButton(
+                          onPressed: _openCheckoutAndPoll,
+                          child: const Text('Plati (otvori checkout)'),
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton(
+                          onPressed: _loading ? null : _finalizeStripeManual,
+                          child: const Text('Potvrdi Stripe sesiju (ručno)'),
+                        ),
+                      ],
                     ),
             ],
           ),

@@ -23,10 +23,89 @@ namespace API.Controllers
         }
 
         /// <summary>
-        /// Process a payment
+        /// Započinje hosted checkout (Stripe ili PayPal). Vraća URL za redirect u preglednik.
         /// </summary>
-        /// <param name="createPaymentDto">Payment details</param>
-        /// <returns>Processed payment</returns>
+        [HttpPost("hosted-checkout")]
+        public async Task<ActionResult<ApiResponse<HostedCheckoutResponseDto>>> HostedCheckout([FromBody] CreateHostedCheckoutDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                    return BadRequest(ApiResponse<HostedCheckoutResponseDto>.ErrorResult("Validation failed.", errors));
+                }
+
+                var userAgent = Request.Headers["User-Agent"].ToString();
+                var ipAddress = GetClientIpAddress();
+                var result = await _paymentService.StartHostedCheckoutAsync(dto, userAgent, ipAddress);
+                return Ok(ApiResponse<HostedCheckoutResponseDto>.SuccessResult(result, "Otvorite redirectUrl u pregledniku."));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<HostedCheckoutResponseDto>.ErrorResult(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Hosted checkout greška");
+                return StatusCode(500, ApiResponse<HostedCheckoutResponseDto>.ErrorResult("Greška pri kreiranju plaćanja."));
+            }
+        }
+
+        /// <summary>
+        /// Nakon povratka sa PayPal-a: capture narudžbe (token = order id iz query stringa).
+        /// </summary>
+        [HttpPost("paypal/capture")]
+        public async Task<ActionResult<ApiResponse<bool>>> PayPalCapture([FromBody] PayPalCaptureRequestDto request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Validation failed.", errors));
+                }
+
+                int? userId = null;
+                var uidClaim = User.FindFirst("userId") ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (uidClaim != null && int.TryParse(uidClaim.Value, out var uid))
+                    userId = uid;
+
+                var ok = await _paymentService.CapturePayPalAfterReturnAsync(request.Token, userId);
+                if (!ok)
+                    return BadRequest(ApiResponse<bool>.ErrorResult("PayPal capture nije uspio."));
+                return Ok(ApiResponse<bool>.SuccessResult(true, "Plaćanje potvrđeno."));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "PayPal capture greška");
+                return StatusCode(500, ApiResponse<bool>.ErrorResult("Greška pri PayPal capture-u."));
+            }
+        }
+
+        /// <summary>
+        /// Polling: potvrdi Stripe sesiju ako webhook još nije stigao (session_id sa Stripe redirecta).
+        /// </summary>
+        [HttpPost("stripe/finalize")]
+        public async Task<ActionResult<ApiResponse<bool>>> StripeFinalize([FromQuery] string session_id)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(session_id))
+                    return BadRequest(ApiResponse<bool>.ErrorResult("session_id je obavezan."));
+                var ok = await _paymentService.TryFinalizeStripeFromSessionIdAsync(session_id);
+                return Ok(ApiResponse<bool>.SuccessResult(ok, ok ? "Sesija obrađena." : "Sesija još nije plaćena ili je već obrađena."));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Stripe finalize greška");
+                return StatusCode(500, ApiResponse<bool>.ErrorResult("Greška."));
+            }
+        }
+
+        /// <summary>
+        /// Legacy endpoint – koristite hosted-checkout.
+        /// </summary>
         [HttpPost("process")]
         public async Task<ActionResult<ApiResponse<PaymentDto>>> ProcessPayment([FromBody] CreatePaymentDto createPaymentDto)
         {
@@ -39,12 +118,15 @@ namespace API.Controllers
                     return BadRequest(ApiResponse<PaymentDto>.ErrorResult("Validation failed.", errors));
                 }
 
-                // Get user agent and IP address from request
                 var userAgent = Request.Headers["User-Agent"].ToString();
                 var ipAddress = GetClientIpAddress();
 
                 var payment = await _paymentService.ProcessPaymentAsync(createPaymentDto, userAgent, ipAddress);
                 return Ok(ApiResponse<PaymentDto>.SuccessResult(payment, "Payment processed successfully."));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<PaymentDto>.ErrorResult(ex.Message));
             }
             catch (Exception ex)
             {

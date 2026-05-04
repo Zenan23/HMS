@@ -9,7 +9,9 @@ namespace Persistence.Models
         public decimal Amount { get; set; }
         public PaymentMethod PaymentMethod { get; set; }
         public PaymentStatus Status { get; set; }
-        public string? TransactionId { get; set; } 
+        public string? TransactionId { get; set; }
+        /// <summary>Stripe Checkout Session id or PayPal Order id during hosted checkout.</summary>
+        public string? CheckoutId { get; set; }
         public string? PaymentProviderResponse { get; set; }
         public DateTime? ProcessedAt { get; set; }
         public string? FailureReason { get; set; }

@@ -103,6 +103,10 @@ namespace Application.Mapper
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => Contracts.Enums.PaymentStatus.Pending))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+            CreateMap<CreateHostedCheckoutDto, Payment>()
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => Contracts.Enums.PaymentStatus.Pending))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
             CreateMap<UpdatePaymentDto, Payment>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
