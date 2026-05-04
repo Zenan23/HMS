@@ -22,6 +22,11 @@ namespace Persistence.Data
         public DbSet<BookingStatusHistory> BookingStatusHistories { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<PaymentAuditLog> PaymentAuditLogs { get; set; }
+        public DbSet<RoomMaintenanceLog> RoomMaintenanceLogs { get; set; }
+        public DbSet<PriceAdjustment> PriceAdjustments { get; set; }
+        public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
+        public DbSet<LoyaltyPointsRedemption> LoyaltyPointsRedemptions { get; set; }
+        public DbSet<SupportTicket> SupportTickets { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -232,6 +237,72 @@ namespace Persistence.Data
                     .OnDelete(DeleteBehavior.SetNull);
             });
 
+            // RoomMaintenanceLog configuration
+            modelBuilder.Entity<RoomMaintenanceLog>(entity =>
+            {
+                entity.HasKey(rml => rml.Id);
+                entity.Property(rml => rml.Description).HasMaxLength(1000);
+                entity.Property(rml => rml.Cost).HasColumnType("decimal(18,2)");
+                entity.Property(rml => rml.TechnicianName).HasMaxLength(100);
+
+                entity.HasOne(rml => rml.Room)
+                    .WithMany()
+                    .HasForeignKey(rml => rml.RoomId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // PriceAdjustment configuration
+            modelBuilder.Entity<PriceAdjustment>(entity =>
+            {
+                entity.HasKey(pa => pa.Id);
+                entity.Property(pa => pa.Name).IsRequired().HasMaxLength(100);
+                entity.Property(pa => pa.PercentageModifier).HasColumnType("decimal(5,2)");
+            });
+
+            // InventoryTransaction configuration
+            modelBuilder.Entity<InventoryTransaction>(entity =>
+            {
+                entity.HasKey(it => it.Id);
+                entity.Property(it => it.Reason).IsRequired().HasMaxLength(500);
+
+                entity.HasOne(it => it.StaffUser)
+                    .WithMany()
+                    .HasForeignKey(it => it.StaffUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // LoyaltyPointsRedemption configuration
+            modelBuilder.Entity<LoyaltyPointsRedemption>(entity =>
+            {
+                entity.HasKey(lpr => lpr.Id);
+                entity.Property(lpr => lpr.EquivalentValueAmount).HasColumnType("decimal(18,2)");
+
+                entity.HasOne(lpr => lpr.User)
+                    .WithMany()
+                    .HasForeignKey(lpr => lpr.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(lpr => lpr.Booking)
+                    .WithMany()
+                    .HasForeignKey(lpr => lpr.BookingId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // SupportTicket configuration
+            modelBuilder.Entity<SupportTicket>(entity =>
+            {
+                entity.HasKey(st => st.Id);
+                entity.Property(st => st.Subject).IsRequired().HasMaxLength(200);
+                entity.Property(st => st.MessageBody).IsRequired().HasMaxLength(5000);
+                entity.Property(st => st.Status).IsRequired();
+                entity.Property(st => st.Priority).IsRequired();
+
+                entity.HasOne(st => st.User)
+                    .WithMany()
+                    .HasForeignKey(st => st.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
             // Add global query filter for soft delete
             modelBuilder.Entity<Hotel>().HasQueryFilter(h => !h.IsDeleted);
             modelBuilder.Entity<Room>().HasQueryFilter(r => !r.IsDeleted);
@@ -243,6 +314,11 @@ namespace Persistence.Data
             modelBuilder.Entity<BookingStatusHistory>().HasQueryFilter(bsh => !bsh.IsDeleted);
             modelBuilder.Entity<Payment>().HasQueryFilter(p => !p.IsDeleted);
             modelBuilder.Entity<PaymentAuditLog>().HasQueryFilter(pal => !pal.IsDeleted);
+            modelBuilder.Entity<RoomMaintenanceLog>().HasQueryFilter(rml => !rml.IsDeleted);
+            modelBuilder.Entity<PriceAdjustment>().HasQueryFilter(pa => !pa.IsDeleted);
+            modelBuilder.Entity<InventoryTransaction>().HasQueryFilter(it => !it.IsDeleted);
+            modelBuilder.Entity<LoyaltyPointsRedemption>().HasQueryFilter(lpr => !lpr.IsDeleted);
+            modelBuilder.Entity<SupportTicket>().HasQueryFilter(st => !st.IsDeleted);
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

@@ -91,6 +91,11 @@ builder.Services.AddScoped<IPaymentAuditLogService, PaymentAuditLogService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IRoomMaintenanceLogService, RoomMaintenanceLogService>();
+builder.Services.AddScoped<IPriceAdjustmentService, PriceAdjustmentService>();
+builder.Services.AddScoped<IInventoryTransactionService, InventoryTransactionService>();
+builder.Services.AddScoped<ILoyaltyPointsRedemptionService, LoyaltyPointsRedemptionService>();
+builder.Services.AddScoped<ISupportTicketService, SupportTicketService>();
 
 // Queries (read-only)
 builder.Services.AddScoped<Application.Queries.IBookingQueries, Application.Queries.BookingQueries>();

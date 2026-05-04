@@ -115,6 +115,49 @@ namespace Application.Mapper
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
             CreateMap<UpdatePaymentAuditLogDto, PaymentAuditLog>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
+            // RoomMaintenanceLog mappings
+            CreateMap<RoomMaintenanceLog, RoomMaintenanceLogDto>();
+            CreateMap<CreateRoomMaintenanceLogDto, RoomMaintenanceLog>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+            CreateMap<UpdateRoomMaintenanceLogDto, RoomMaintenanceLog>()
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
+            // PriceAdjustment mappings
+            CreateMap<PriceAdjustment, PriceAdjustmentDto>();
+            CreateMap<CreatePriceAdjustmentDto, PriceAdjustment>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+            CreateMap<UpdatePriceAdjustmentDto, PriceAdjustment>()
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
+            // InventoryTransaction mappings
+            CreateMap<InventoryTransaction, InventoryTransactionDto>()
+                .ForMember(dest => dest.StaffUserName, opt => opt.MapFrom(src => src.StaffUser.Username));
+            CreateMap<CreateInventoryTransactionDto, InventoryTransaction>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+            CreateMap<UpdateInventoryTransactionDto, InventoryTransaction>()
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
+            // LoyaltyPointsRedemption mappings
+            CreateMap<LoyaltyPointsRedemption, LoyaltyPointsRedemptionDto>()
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.Username));
+            CreateMap<CreateLoyaltyPointsRedemptionDto, LoyaltyPointsRedemption>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+            CreateMap<UpdateLoyaltyPointsRedemptionDto, LoyaltyPointsRedemption>()
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
+            // SupportTicket mappings
+            CreateMap<SupportTicket, SupportTicketDto>()
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.Username));
+            CreateMap<CreateSupportTicketDto, SupportTicket>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+            CreateMap<UpdateSupportTicketDto, SupportTicket>()
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
         }
     }
 }
