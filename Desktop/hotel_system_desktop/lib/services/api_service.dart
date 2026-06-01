@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/dashboard_statistics.dart';
+import '../utils/api_response.dart';
 
 class ApiService {
   static const String baseUrl = 'http://localhost:8080';
@@ -54,9 +55,7 @@ class ApiService {
   }
 
   void _handleError(http.Response response) {
-    if (response.statusCode >= 400) {
-      throw Exception('Greška:  ${response.statusCode} - ${response.body}');
-    }
+    ApiResponseParser.ensureSuccess(response);
   }
 
   Future<DashboardStatistics> getDashboardStatistics({

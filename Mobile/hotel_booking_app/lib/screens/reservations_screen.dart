@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/reservations_service.dart';
+import '../services/loyalty_points_redemptions_service.dart';
+import '../models/loyalty_points_redemption.dart';
 import '../services/auth_service.dart';
 import '../models/reservation.dart';
 
@@ -13,6 +15,18 @@ class ReservationsScreen extends StatefulWidget {
 
 class _ReservationsScreenState extends State<ReservationsScreen> {
   Future<List<Reservation>>? _future;
+  List<LoyaltyPointsRedemption> _loyaltyForBookings = [];
+
+  Future<void> _loadData(int userId) async {
+    final reservations =
+        await ReservationsService().fetchPaidReservations(userId);
+    final loyaltyService = LoyaltyPointsRedemptionsService();
+    final allRedemptions = await loyaltyService.getByUserId(userId);
+    setState(() {
+      _future = Future.value(reservations);
+      _loyaltyForBookings = allRedemptions;
+    });
+  }
 
   @override
   void initState() {
@@ -21,9 +35,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
       final auth = context.read<AuthService>();
       final userId = auth.user?.userId;
       if (userId != null) {
-        setState(() {
-          _future = ReservationsService().fetchPaidReservations(userId);
-        });
+        _loadData(userId);
       }
     });
   }
@@ -61,15 +73,15 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                     }
                     return RefreshIndicator(
                       onRefresh: () async {
-                        setState(() {
-                          _future = ReservationsService().fetchPaidReservations(userId);
-                        });
-                        await _future;
+                        await _loadData(userId);
                       },
                       child: ListView.builder(
                         itemCount: reservations.length,
                         itemBuilder: (context, i) {
                           final r = reservations[i];
+                          final loyalty = _loyaltyForBookings
+                              .where((l) => l.bookingId == r.id)
+                              .toList();
                           return Card(
                             color: Colors.green[50],
                             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -83,6 +95,11 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                                   Text('Check-out: ${r.checkOutDate != null ? r.checkOutDate!.toLocal().toString().split(" ")[0] : ''}'),
                                   Text('Broj gostiju: ${r.numberOfGuests}'),
                                   Text('Ukupno: ${r.totalPrice} EUR'),
+                                  if (loyalty.isNotEmpty)
+                                    Text(
+                                      'Loyalty: ${loyalty.first.pointsUsed} bodova (-${loyalty.first.equivalentValueAmount} EUR)',
+                                      style: const TextStyle(color: Colors.amber),
+                                    ),
                                 ],
                               ),
                               trailing: const Text('Plaćeno', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),

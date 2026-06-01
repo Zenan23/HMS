@@ -222,6 +222,140 @@ namespace Persistence.Data
                 context.Reviews.AddRange(reviews);
                 await context.SaveChangesAsync();
             }
+
+            await SeedOperationalDataAsync(context);
+        }
+
+        private static async Task SeedOperationalDataAsync(ApplicationDbContext context)
+        {
+            var today = DateTime.UtcNow.Date;
+
+            if (!await context.PriceAdjustments.AnyAsync())
+            {
+                context.PriceAdjustments.AddRange(
+                    new PriceAdjustment
+                    {
+                        Name = "Summer Sale",
+                        PercentageModifier = -15m,
+                        StartDate = today.AddDays(-30),
+                        EndDate = today.AddDays(90),
+                        IsCumulative = true
+                    },
+                    new PriceAdjustment
+                    {
+                        Name = "Early Bird",
+                        PercentageModifier = -10m,
+                        StartDate = today,
+                        EndDate = today.AddDays(60),
+                        IsCumulative = false
+                    },
+                    new PriceAdjustment
+                    {
+                        Name = "Nova godina",
+                        PercentageModifier = 25m,
+                        StartDate = new DateTime(today.Year, 12, 20),
+                        EndDate = new DateTime(today.Year + 1, 1, 5),
+                        IsCumulative = false
+                    });
+                await context.SaveChangesAsync();
+            }
+
+            var demo = await context.Users.FirstOrDefaultAsync(u => u.Email == "demo@demo.com");
+            var ana = await context.Users.FirstOrDefaultAsync(u => u.Email == "ana@demo.com");
+            var leo = await context.Users.FirstOrDefaultAsync(u => u.Email == "leo@demo.com");
+            var firstRoom = await context.Rooms.FirstOrDefaultAsync();
+            var demoBooking = demo != null
+                ? await context.Bookings.FirstOrDefaultAsync(b => b.UserId == demo.Id)
+                : null;
+
+            if (!await context.SupportTickets.AnyAsync() && demo != null && ana != null)
+            {
+                context.SupportTickets.AddRange(
+                    new SupportTicket
+                    {
+                        UserId = demo.Id,
+                        Subject = "Kasni check-in",
+                        MessageBody = "Molim potvrdu kasnog dolaska nakon 22h.",
+                        Status = SupportTicketStatus.Open,
+                        Priority = SupportTicketPriority.Medium
+                    },
+                    new SupportTicket
+                    {
+                        UserId = ana.Id,
+                        Subject = "Pitanje o parkingu",
+                        MessageBody = "Da li hotel nudi besplatan parking?",
+                        Status = SupportTicketStatus.InProgress,
+                        Priority = SupportTicketPriority.Low
+                    });
+                await context.SaveChangesAsync();
+            }
+
+            if (!await context.RoomMaintenanceLogs.AnyAsync() && firstRoom != null)
+            {
+                context.RoomMaintenanceLogs.AddRange(
+                    new RoomMaintenanceLog
+                    {
+                        RoomId = firstRoom.Id,
+                        ReportedAt = today.AddDays(-3),
+                        ResolvedAt = today.AddDays(-2),
+                        Description = "Curenje slavine u kupatilu",
+                        Cost = 45m,
+                        TechnicianName = "Mario K."
+                    },
+                    new RoomMaintenanceLog
+                    {
+                        RoomId = firstRoom.Id,
+                        ReportedAt = today.AddDays(-1),
+                        Description = "Klima ne hladi dovoljno",
+                        Cost = 0m,
+                        TechnicianName = "Pending"
+                    });
+                await context.SaveChangesAsync();
+            }
+
+            if (!await context.InventoryTransactions.AnyAsync() && leo != null)
+            {
+                context.InventoryTransactions.AddRange(
+                    new InventoryTransaction
+                    {
+                        InventoryItemId = 1,
+                        QuantityChange = 100,
+                        TransactionDate = today.AddDays(-7),
+                        StaffUserId = leo.Id,
+                        Reason = "Ulaz robe - sapuni"
+                    },
+                    new InventoryTransaction
+                    {
+                        InventoryItemId = 1,
+                        QuantityChange = -20,
+                        TransactionDate = today.AddDays(-2),
+                        StaffUserId = leo.Id,
+                        Reason = "Restocking soba 101-110"
+                    },
+                    new InventoryTransaction
+                    {
+                        InventoryItemId = 2,
+                        QuantityChange = -15,
+                        TransactionDate = today,
+                        StaffUserId = leo.Id,
+                        Reason = "Mini bar potrošnja"
+                    });
+                await context.SaveChangesAsync();
+            }
+
+            if (!await context.LoyaltyPointsRedemptions.AnyAsync() && demo != null && demoBooking != null)
+            {
+                context.LoyaltyPointsRedemptions.Add(
+                    new LoyaltyPointsRedemption
+                    {
+                        UserId = demo.Id,
+                        BookingId = demoBooking.Id,
+                        PointsUsed = 500,
+                        RedeemedAt = today.AddDays(-18),
+                        EquivalentValueAmount = 25m
+                    });
+                await context.SaveChangesAsync();
+            }
         }
     }
 }

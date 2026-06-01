@@ -331,13 +331,21 @@ namespace Application.Services
         {
             try
             {
+                if (createDto.NumberOfGuests <= 0)
+                    throw new ArgumentException("Number of guests must be at least 1.");
 
                 var room = await _roomService.GetByIdAsync(createDto.RoomId) ?? throw new InvalidOperationException("Room not found.");
 
-                // Base price (mirror logic from RoomService)
-                var nights = (createDto.CheckOutDate.Date - createDto.CheckInDate.Date).Days;
-                if (nights <= 0) throw new ArgumentException("Stay must be at least one night.");
-                decimal total = nights * room.PricePerNight;
+                var serviceSelections = createDto.Services?
+                    .Select(s => (s.ServiceId, s.Quantity))
+                    .ToList() ?? new List<(int ServiceId, int Quantity)>();
+
+                var total = await _roomService.CalculatePriceAsync(
+                    createDto.RoomId,
+                    createDto.CheckInDate,
+                    createDto.CheckOutDate,
+                    createDto.NumberOfGuests,
+                    serviceSelections);
 
                 var booking = new Booking
                 {
@@ -350,7 +358,7 @@ namespace Application.Services
                     Status = BookingStatus.Pending,
                 };
 
-                // Attach services (optional)
+                // Attach services (optional) — total već uključuje servise iz CalculatePriceAsync
                 var serviceItems = new List<Persistence.Models.BookingService>();
                 if (createDto.Services != null)
                 {
@@ -367,7 +375,6 @@ namespace Application.Services
                             UnitPrice = svc.Price,
                             Quantity = qty
                         });
-                        total += svc.Price * qty;
                     }
                 }
 

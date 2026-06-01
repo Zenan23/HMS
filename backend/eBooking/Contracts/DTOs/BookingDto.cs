@@ -22,6 +22,7 @@ namespace Contracts.DTOs
         public DateTime CheckInDate { get; set; }
         [JsonPropertyName("checkOut")]
         public DateTime CheckOutDate { get; set; }
+        [JsonPropertyName("guests")]
         public int NumberOfGuests { get; set; }
         public string SpecialRequests { get; set; } = string.Empty;
         public int RoomId { get; set; }

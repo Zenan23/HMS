@@ -12,18 +12,24 @@ namespace Application.Services
     {
         private readonly IBookingQueries _bookingQueries;
         private readonly IServiceQueries _serviceQueries;
+        private readonly IPriceAdjustmentService _priceAdjustmentService;
+        private readonly IRepository<RoomMaintenanceLog> _maintenanceLogRepository;
 
         public RoomService(
             IRepository<Room> repository,
             IBookingQueries bookingQueries,
             IServiceQueries serviceQueries,
+            IPriceAdjustmentService priceAdjustmentService,
+            IRepository<RoomMaintenanceLog> maintenanceLogRepository,
             IMapper mapper,
             ILogger<RoomService> logger)
             : base(repository, mapper, logger)
         {
             _bookingQueries = bookingQueries;
             _serviceQueries = serviceQueries;
-    }
+            _priceAdjustmentService = priceAdjustmentService;
+            _maintenanceLogRepository = maintenanceLogRepository;
+        }
 
         public async Task<IEnumerable<Room>> GetRoomsByHotelIdAsync(int hotelId)
         {
@@ -101,6 +107,11 @@ namespace Application.Services
         {
             try
             {
+                var hasOpenMaintenance = (await _maintenanceLogRepository.GetAllAsync())
+                    .Any(m => m.RoomId == roomId && !m.IsDeleted && m.ResolvedAt == null);
+                if (hasOpenMaintenance)
+                    return false;
+
                 var conflictingBookings = await _bookingQueries.GetOverlappingActiveBookingsAsync(roomId, checkIn, checkOut);
 
                 return !conflictingBookings.Any();
@@ -140,32 +151,39 @@ namespace Application.Services
             if (nights <= 0)
                 throw new ArgumentException("Stay must be at least one night.");
 
-            // Osnovna kalkulacija: broj noćenja * cijena po noći
             decimal total = nights * room.PricePerNight;
-            // Ovdje možeš dodati dodatne logike za popuste, takse, više gostiju itd.
-            return total;
+            return await _priceAdjustmentService.ApplyActiveAdjustmentsAsync(total, checkIn);
         }
 
         public async Task<decimal> CalculatePriceAsync(int roomId, DateTime checkIn, DateTime checkOut, int guests, IEnumerable<(int ServiceId, int Quantity)> services)
         {
-            var baseTotal = await CalculatePriceAsync(roomId, checkIn, checkOut, guests);
-
-            if (services == null)
-                return baseTotal;
-
             var room = await _repository.GetByIdAsync(roomId) ?? throw new InvalidOperationException("Room not found.");
-            decimal servicesTotal = 0m;
-            foreach (var item in services)
+            if (checkIn >= checkOut)
+                throw new ArgumentException("Check-in date must be before check-out date.");
+            if (guests <= 0)
+                throw new ArgumentException("Number of guests must be at least 1.");
+
+            var nights = (checkOut.Date - checkIn.Date).Days;
+            if (nights <= 0)
+                throw new ArgumentException("Stay must be at least one night.");
+
+            decimal total = nights * room.PricePerNight;
+
+            if (services != null)
             {
-                var svc = await _serviceQueries.GetByIdAsync(item.ServiceId);
-                if (svc == null || !svc.IsAvailable)
-                    continue; // ili baci grešku po potrebi
-                if (svc.HotelId != room.HotelId)
-                    throw new InvalidOperationException("Service does not belong to the room's hotel.");
-                var qty = item.Quantity <= 0 ? 1 : item.Quantity;
-                servicesTotal += svc.Price * qty;
+                foreach (var item in services)
+                {
+                    var svc = await _serviceQueries.GetByIdAsync(item.ServiceId);
+                    if (svc == null || !svc.IsAvailable)
+                        continue;
+                    if (svc.HotelId != room.HotelId)
+                        throw new InvalidOperationException("Service does not belong to the room's hotel.");
+                    var qty = item.Quantity <= 0 ? 1 : item.Quantity;
+                    total += svc.Price * qty;
+                }
             }
-            return baseTotal + servicesTotal;
+
+            return await _priceAdjustmentService.ApplyActiveAdjustmentsAsync(total, checkIn);
         }
 
         public override async Task<RoomDto> CreateAsync(CreateRoomDto createDto)

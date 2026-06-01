@@ -3,6 +3,8 @@ import 'package:hotel_booking_app/models/user.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import '../services/loyalty_points_redemptions_service.dart';
+import '../models/loyalty_points_redemption.dart';
 import '../utils/validation_utils.dart';
 import 'dart:convert';
 
@@ -23,6 +25,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _saving = false;
   String? _status;
   bool _editing = false;
+  List<LoyaltyPointsRedemption> _loyaltyHistory = [];
+  bool _loadingLoyalty = false;
 
   @override
   void initState() {
@@ -33,6 +37,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _firstName = TextEditingController(text: user?.firstName ?? '');
     _lastName = TextEditingController(text: user?.lastName ?? '');
     _phoneNumber = TextEditingController(text: user?.phoneNumber ?? '');
+    _loadLoyaltyHistory();
+  }
+
+  Future<void> _loadLoyaltyHistory() async {
+    final userId = context.read<AuthService>().user?.userId;
+    if (userId == null) return;
+    setState(() => _loadingLoyalty = true);
+    try {
+      final history =
+          await LoyaltyPointsRedemptionsService().getByUserId(userId);
+      setState(() => _loyaltyHistory = history);
+    } catch (_) {
+      setState(() => _loyaltyHistory = []);
+    } finally {
+      setState(() => _loadingLoyalty = false);
+    }
   }
 
   @override
@@ -217,6 +237,29 @@ Widget build(BuildContext context) {
                     ),
                   ],
                 ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () =>
+                      Navigator.pushNamed(context, '/support-tickets'),
+                  icon: const Icon(Icons.support_agent),
+                  label: const Text('Tiketi podrške'),
+                ),
+                const SizedBox(height: 24),
+                const Text('Historija loyalty bodova',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                if (_loadingLoyalty)
+                  const Center(child: CircularProgressIndicator())
+                else if (_loyaltyHistory.isEmpty)
+                  const Text('Nema iskorištenih loyalty bodova.')
+                else
+                  ..._loyaltyHistory.map((r) => ListTile(
+                        leading: const Icon(Icons.stars, color: Colors.amber),
+                        title: Text('Rezervacija #${r.bookingId}'),
+                        subtitle: Text(
+                            '${r.pointsUsed} bodova • ${r.equivalentValueAmount.toStringAsFixed(2)} EUR'),
+                      )),
               ],
             ),
           ),

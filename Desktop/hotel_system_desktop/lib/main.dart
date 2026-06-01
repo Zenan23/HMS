@@ -9,7 +9,12 @@ import 'screens/users_screen.dart';
 import 'screens/rooms_screen.dart';
 import 'screens/services_screen.dart';
 import 'screens/dashboard_screen.dart';
-import 'models/user.dart';
+import 'screens/support_tickets_screen.dart';
+import 'screens/room_maintenance_logs_screen.dart';
+import 'screens/price_adjustments_screen.dart';
+import 'screens/inventory_transactions_screen.dart';
+import 'screens/loyalty_redemptions_screen.dart';
+import 'utils/role_utils.dart';
 
 void main() {
   runApp(
@@ -34,8 +39,10 @@ class MyApp extends StatelessWidget {
       ),
       home: Consumer<AuthProvider>(
         builder: (context, auth, _) {
-          if (auth.isLoading)
-            return const Center(child: CircularProgressIndicator());
+          if (auth.isLoading) {
+            return const Scaffold(
+                body: Center(child: CircularProgressIndicator()));
+          }
           return auth.isAuthenticated ? const MainTabs() : const LoginScreen();
         },
       ),
@@ -59,29 +66,43 @@ class _MainTabsState extends State<MainTabs>
   void initState() {
     super.initState();
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    if (auth.role == null || auth.role == UserRole.Admin.index) {
+    if (RoleUtils.isAdmin(auth.role)) {
       _tabs = const [
         Tab(text: 'Dashboard'),
         Tab(text: 'Uposlenici'),
         Tab(text: 'Korisnici'),
+        Tab(text: 'Podrška'),
+        Tab(text: 'Cijene'),
       ];
       _tabViews = const [
         DashboardScreen(),
         EmployeesScreen(),
         UsersScreen(),
+        SupportTicketsScreen(),
+        PriceAdjustmentsScreen(),
       ];
-    } else if (auth.role == UserRole.Employee.index) {
+    } else if (RoleUtils.isEmployee(auth.role)) {
       _tabs = const [
         Tab(text: 'Hoteli'),
         Tab(text: 'Rezervacije'),
         Tab(text: 'Sobe'),
         Tab(text: 'Servisi'),
+        Tab(text: 'Podrška'),
+        Tab(text: 'Održavanje'),
+        Tab(text: 'Cijene'),
+        Tab(text: 'Skladište'),
+        Tab(text: 'Loyalty'),
       ];
       _tabViews = const [
         HotelsScreen(),
         BookingsScreen(),
         RoomsScreen(),
         ServicesScreen(),
+        SupportTicketsScreen(),
+        RoomMaintenanceLogsScreen(),
+        PriceAdjustmentsScreen(),
+        InventoryTransactionsScreen(),
+        LoyaltyRedemptionsScreen(),
       ];
     } else {
       _tabs = const [Tab(text: 'Greška')];
@@ -105,6 +126,7 @@ class _MainTabsState extends State<MainTabs>
         title: const Text('Hotel Sistem'),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
           tabs: _tabs,
         ),
         actions: [
