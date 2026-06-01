@@ -12,7 +12,9 @@ using Persistence.Interfaces;
 using Persistence.Repositories;
 using Application.Services;
 using Application.Services.PaymentProviders;
+using Application.Configuration;
 using Application.Hubs;
+using Persistence.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -101,10 +103,17 @@ builder.Services.AddScoped<ISupportTicketService, SupportTicketService>();
 builder.Services.AddScoped<Application.Queries.IBookingQueries, Application.Queries.BookingQueries>();
 builder.Services.AddScoped<Application.Queries.IServiceQueries, Application.Queries.ServiceQueries>();
 
-// Add providers
-builder.Services.AddScoped<IPaymentProvider, BankTransferPaymentProvider>();
-builder.Services.AddScoped<IPaymentProvider, CardPaymentProvider>();
-builder.Services.AddScoped<IPaymentProvider, PayPalPaymentProvider>();
+builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection(PaymentOptions.SectionName));
+builder.Services.AddHttpClient("PayPalApi", (sp, client) =>
+{
+    var baseUrl = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PaymentOptions>>().Value.PayPal.BaseUrl;
+    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+});
+builder.Services.AddScoped<IWebhookEventDedupService, WebhookEventDedupService>();
+builder.Services.AddScoped<PayPalPaymentProvider>();
+builder.Services.AddScoped<StripePaymentProvider>();
+builder.Services.AddScoped<IPaymentGatewayProvider>(sp => sp.GetRequiredService<PayPalPaymentProvider>());
+builder.Services.AddScoped<IPaymentGatewayProvider>(sp => sp.GetRequiredService<StripePaymentProvider>());
 
 // Add base services
 builder.Services.AddScoped<IRoomService, RoomService>();
@@ -183,6 +192,12 @@ builder.Services.AddCors(options =>
 builder.Services.AddSignalR();
 
 var app = builder.Build();
+
+app.Use(async (context, next) =>
+{
+    context.Request.EnableBuffering();
+    await next();
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
