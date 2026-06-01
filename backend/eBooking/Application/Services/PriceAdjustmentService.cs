@@ -1,3 +1,4 @@
+using Application.Helpers;
 using AutoMapper;
 using Contracts.DTOs;
 using Microsoft.Extensions.Logging;
@@ -24,6 +25,16 @@ namespace Application.Services
                 x.EndDate >= atDate &&
                 !x.IsDeleted);
             return _mapper.Map<IEnumerable<PriceAdjustmentDto>>(filtered);
+        }
+
+        public async Task<decimal> ApplyActiveAdjustmentsAsync(decimal basePrice, DateTime atDate)
+        {
+            var entities = await _repository.GetAllAsync();
+            var active = entities.Where(x =>
+                x.StartDate <= atDate &&
+                x.EndDate >= atDate &&
+                !x.IsDeleted);
+            return PriceAdjustmentCalculator.Apply(basePrice, active);
         }
     }
 }

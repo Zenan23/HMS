@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../utils/role_utils.dart';
 
 class AuthProvider with ChangeNotifier {
   bool isAuthenticated = false;
@@ -11,6 +12,9 @@ class AuthProvider with ChangeNotifier {
   String? firstName;
   String? lastName;
   int? role; // čuvamo kao int
+
+  bool get isAdmin => RoleUtils.isAdmin(role);
+  bool get isEmployee => RoleUtils.isEmployee(role);
 
   AuthProvider() {
     _checkAuth();

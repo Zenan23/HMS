@@ -1,20 +1,15 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../models/room.dart';
+import '../utils/api_response.dart';
 import 'api_service.dart';
 
 class RoomsService {
   Future<List<Room>> fetchRooms(
       {int page = 1, int pageSize = 10, String? filter}) async {
     final query =
-        '?page=$page&pageSize=$pageSize${filter != null ? '&filter=$filter' : ''}';
-    final response = await ApiService.get('/rooms$query');
-    if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
-      return data.map((e) => Room.fromJson(e)).toList();
-    } else {
-      throw Exception('Greška pri dohvatu soba');
-    }
+        '?pageNumber=$page&pageSize=$pageSize${filter != null ? '&filter=$filter' : ''}';
+    final response = await ApiService.get('/Rooms$query');
+    final result = ApiResponseParser.parsePaginated(response, Room.fromJson);
+    return result.items;
   }
 
   Future<bool> checkAvailability(
@@ -24,12 +19,8 @@ class RoomsService {
         : '';
     final response = await ApiService.get(
         '/Rooms/$roomId/availability?checkIn=$checkIn&checkOut=$checkOut$svcQuery');
-    if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-      return decoded['data'] == true;
-    } else {
-      throw Exception('Greška pri provjeri dostupnosti.');
-    }
+    final data = ApiResponseParser.extractData(response);
+    return data == true;
   }
 
   Future<double> calculatePrice(
@@ -40,14 +31,8 @@ class RoomsService {
         : '';
     final response = await ApiService.get(
         '/rooms/$roomId/calculate-price?checkIn=$checkIn&checkOut=$checkOut&guests=$guests$svcQuery');
-    if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-      final price = (decoded['data'] is num)
-          ? decoded['data'].toDouble()
-          : double.parse(decoded['data'].toString());
-      return price;
-    } else {
-      throw Exception('Greška pri izračunu cijene.');
-    }
+    final data = ApiResponseParser.extractData(response);
+    if (data is num) return data.toDouble();
+    return double.parse(data.toString());
   }
 }

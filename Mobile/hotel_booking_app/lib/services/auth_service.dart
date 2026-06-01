@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'api_service.dart';
 import '../models/user.dart';
+import '../utils/role_utils.dart';
 
 class AuthService extends ChangeNotifier {
   static const _storage = FlutterSecureStorage();
@@ -12,6 +13,7 @@ class AuthService extends ChangeNotifier {
 
   User? get user => _user;
   String? get token => _user?.token;
+  bool get isGuest => RoleUtils.isGuest(_user?.role);
 
   Future<String?> login(String email, String password) async {
     try {

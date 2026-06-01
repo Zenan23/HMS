@@ -84,4 +84,14 @@ class ApiService {
     final url = Uri.parse('$baseUrl$endpoint');
     return http.put(url, headers: headers, body: jsonEncode(body));
   }
+
+  static Future<http.Response> delete(String endpoint) async {
+    final token = await getToken();
+    final headers = {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+    final url = Uri.parse('$baseUrl$endpoint');
+    return http.delete(url, headers: headers);
+  }
 }

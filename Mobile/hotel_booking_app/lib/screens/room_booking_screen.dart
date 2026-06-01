@@ -6,8 +6,9 @@ import 'payment_screen.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/reservations_service.dart';
+import '../services/price_adjustments_service.dart';
+import '../models/price_adjustment.dart';
 import '../services/api_service.dart';
-import '../utils/validation_utils.dart';
 
 class RoomBookingScreen extends StatefulWidget {
   final int roomId;
@@ -28,6 +29,7 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
   String? _error;
   bool? _available;
   double? _price;
+  List<PriceAdjustment> _activeAdjustments = [];
   // services selection: serviceId -> quantity
   final Map<int, int> _selectedServices = {};
   // available services for hotel (id, name, price)
@@ -94,8 +96,11 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
       final price = await RoomsService().calculatePrice(
           widget.roomId, checkInStr, checkOutStr, _guests,
           services: servicesStr);
+      final adjustments =
+          await PriceAdjustmentsService().getActive(atDate: _checkIn);
       setState(() {
         _available = true;
+        _activeAdjustments = adjustments;
         _price = price;
         _loading = false;
       });
@@ -138,11 +143,11 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
   }
 
   void _resetPriceAndAvailability() {
-    // Reset cijenu i dostupnost kada se promijeni bilo koji parametar
     if (_available == true || _price != null) {
       setState(() {
         _available = null;
         _price = null;
+        _activeAdjustments = [];
         _error = null;
       });
     }
@@ -192,8 +197,7 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
           'roomId': widget.roomId,
           'checkIn': _checkIn!.toIso8601String(),
           'checkOut': _checkOut!.toIso8601String(),
-          'guests': _guests,
-          'price': _price,
+          'numberOfGuests': _guests,
           'services': servicesPayload,
         };
         final bookingId =
@@ -341,6 +345,17 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
                 if (_error != null) ...[
                   Text(_error!, style: const TextStyle(color: Colors.red)),
                   const SizedBox(height: 12),
+                ],
+                if (_activeAdjustments.isNotEmpty) ...[
+                  const Text('Aktivni popusti/doplate',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  ..._activeAdjustments.map((a) => ListTile(
+                        dense: true,
+                        title: Text(a.name),
+                        trailing: Text(
+                            '${a.percentageModifier > 0 ? '+' : ''}${a.percentageModifier.toStringAsFixed(1)}%'),
+                      )),
+                  const Divider(),
                 ],
                 const SizedBox(height: 80),
               ],

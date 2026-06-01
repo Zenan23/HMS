@@ -9,6 +9,7 @@ import 'screens/rooms_screen.dart';
 import 'screens/reservations_screen.dart';
 import 'screens/registration_screen.dart';
 import 'screens/notifications_screen.dart';
+import 'screens/support_tickets_screen.dart';
 import 'services/notifications_service.dart';
 
 void main() {
@@ -86,6 +87,7 @@ class MyApp extends StatelessWidget {
           '/rooms': (context) => const RoomsScreen(),
           '/reservations': (context) => const ReservationsScreen(),
           '/notifications': (context) => const NotificationsScreen(),
+          '/support-tickets': (context) => const SupportTicketsScreen(),
         },
       ),
     );
