@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/room_maintenance_log.dart';
 import '../services/room_maintenance_log_service.dart';
+import 'date_picker_field.dart';
 
 class RoomMaintenanceLogFormDialog extends StatefulWidget {
   final RoomMaintenanceLog? log;
@@ -38,6 +39,11 @@ class _RoomMaintenanceLogFormDialogState
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (resolvedAt != null && resolvedAt!.isBefore(reportedAt)) {
+      setState(
+          () => error = 'Datum rješavanja mora biti nakon datuma prijave.');
+      return;
+    }
     setState(() {
       isLoading = true;
       error = null;
@@ -68,38 +74,64 @@ class _RoomMaintenanceLogFormDialogState
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(widget.log == null ? 'Novi zapis' : 'Uredi zapis'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                initialValue: roomId.toString(),
-                decoration: const InputDecoration(labelText: 'Room ID'),
-                keyboardType: TextInputType.number,
-                onChanged: (v) => roomId = int.tryParse(v) ?? roomId,
-              ),
-              TextFormField(
-                initialValue: description,
-                decoration: const InputDecoration(labelText: 'Opis'),
-                onChanged: (v) => description = v,
-              ),
-              TextFormField(
-                initialValue: cost.toString(),
-                decoration: const InputDecoration(labelText: 'Trošak'),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                onChanged: (v) => cost = double.tryParse(v) ?? 0,
-              ),
-              TextFormField(
-                initialValue: technicianName,
-                decoration: const InputDecoration(labelText: 'Tehničar'),
-                onChanged: (v) => technicianName = v,
-              ),
-              if (error != null)
-                Text(error!, style: const TextStyle(color: Colors.red)),
-            ],
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  initialValue: roomId.toString(),
+                  decoration: const InputDecoration(labelText: 'ID sobe'),
+                  keyboardType: TextInputType.number,
+                  validator: (v) =>
+                      int.tryParse(v ?? '') == null ? 'Unesite ID sobe' : null,
+                  onChanged: (v) => roomId = int.tryParse(v) ?? roomId,
+                ),
+                TextFormField(
+                  initialValue: description,
+                  decoration: const InputDecoration(labelText: 'Opis'),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Unesite opis' : null,
+                  onChanged: (v) => description = v,
+                ),
+                TextFormField(
+                  initialValue: cost.toString(),
+                  decoration: const InputDecoration(labelText: 'Trošak (EUR)'),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (v) => cost = double.tryParse(v) ?? 0,
+                ),
+                TextFormField(
+                  initialValue: technicianName,
+                  decoration: const InputDecoration(labelText: 'Tehničar'),
+                  onChanged: (v) => technicianName = v,
+                ),
+                const SizedBox(height: 8),
+                DatePickerField(
+                  label: 'Datum prijave',
+                  value: reportedAt,
+                  onChanged: (d) {
+                    if (d != null) setState(() => reportedAt = d);
+                  },
+                ),
+                const SizedBox(height: 8),
+                DatePickerField(
+                  label: 'Datum rješavanja',
+                  value: resolvedAt,
+                  allowClear: true,
+                  onChanged: (d) => setState(() => resolvedAt = d),
+                ),
+                if (error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(error!,
+                        style: const TextStyle(color: Colors.red)),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

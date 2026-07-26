@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../widgets/employee_form.dart';
 import '../utils/date_format_utils.dart';
+import '../utils/display_labels.dart';
 import '../services/api_service.dart';
 import 'dart:convert';
 
@@ -223,7 +224,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                                   DataCell(Text(emp.firstName)),
                                   DataCell(Text(emp.lastName)),
                                   DataCell(Text(emp.phoneNumber)),
-                                  DataCell(Text(emp.role.name)),
+                                  DataCell(Text(userRoleLabel(emp.role))),
                                   DataCell(Text(emp.isActive ? 'Da' : 'Ne')),
                                   DataCell(Text(formatDisplayDate(emp.lastLoginDate))),
                                   DataCell(Row(

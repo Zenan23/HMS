@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/loyalty_points_redemption.dart';
 import '../services/loyalty_points_redemption_service.dart';
+import '../utils/date_format_utils.dart';
 import '../utils/error_helper.dart';
 import '../widgets/loyalty_redemption_form.dart';
 
@@ -15,7 +16,7 @@ class LoyaltyRedemptionsScreen extends StatefulWidget {
 class _LoyaltyRedemptionsScreenState extends State<LoyaltyRedemptionsScreen> {
   final _service = LoyaltyPointsRedemptionService();
   int _page = 1;
-  int _pageSize = 10;
+  final int _pageSize = 10;
   bool _isLoading = false;
   List<LoyaltyPointsRedemption> _redemptions = [];
   final _userIdController = TextEditingController();
@@ -51,7 +52,7 @@ class _LoyaltyRedemptionsScreenState extends State<LoyaltyRedemptionsScreen> {
     } catch (e) {
       if (mounted) showApiError(context, e);
     }
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _openForm({LoyaltyPointsRedemption? redemption}) async {
@@ -65,9 +66,10 @@ class _LoyaltyRedemptionsScreenState extends State<LoyaltyRedemptionsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Loyalty iskorištenja')),
+      appBar: AppBar(title: const Text('Iskorištenja bodova vjernosti')),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openForm(),
+        tooltip: 'Novo iskorištenje',
         child: const Icon(Icons.add),
       ),
       body: Padding(
@@ -77,22 +79,25 @@ class _LoyaltyRedemptionsScreenState extends State<LoyaltyRedemptionsScreen> {
             Row(
               children: [
                 SizedBox(
-                  width: 120,
+                  width: 140,
                   child: TextField(
                     controller: _userIdController,
-                    decoration: const InputDecoration(labelText: 'User ID'),
+                    decoration:
+                        const InputDecoration(labelText: 'ID korisnika'),
                     keyboardType: TextInputType.number,
                   ),
                 ),
                 const SizedBox(width: 8),
                 SizedBox(
-                  width: 120,
+                  width: 140,
                   child: TextField(
                     controller: _bookingIdController,
-                    decoration: const InputDecoration(labelText: 'Booking ID'),
+                    decoration:
+                        const InputDecoration(labelText: 'ID rezervacije'),
                     keyboardType: TextInputType.number,
                   ),
                 ),
+                const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: _fetchRedemptions,
                   child: const Text('Filtriraj'),
@@ -103,24 +108,30 @@ class _LoyaltyRedemptionsScreenState extends State<LoyaltyRedemptionsScreen> {
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : ListView.builder(
-                      itemCount: _redemptions.length,
-                      itemBuilder: (context, i) {
-                        final r = _redemptions[i];
-                        return Card(
-                          child: ListTile(
-                            title: Text('${r.userName} - ${r.pointsUsed} bodova'),
-                            subtitle: Text(
-                                'Rezervacija #${r.bookingId} • ${r.equivalentValueAmount} EUR\n${r.redeemedAt}'),
-                            isThreeLine: true,
-                            trailing: IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () => _openForm(redemption: r),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                  : _redemptions.isEmpty
+                      ? const Center(child: Text('Nema iskorištenja.'))
+                      : ListView.builder(
+                          itemCount: _redemptions.length,
+                          itemBuilder: (context, i) {
+                            final r = _redemptions[i];
+                            return Card(
+                              child: ListTile(
+                                title: Text(
+                                    '${r.userName} – ${r.pointsUsed} bodova'),
+                                subtitle: Text(
+                                    'Rezervacija #${r.bookingId} • ${r.equivalentValueAmount.toStringAsFixed(2)} EUR\n'
+                                    '${formatDisplayDate(r.redeemedAt)}'),
+                                isThreeLine: true,
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.edit),
+                                  tooltip: 'Uredi',
+                                  onPressed: () =>
+                                      _openForm(redemption: r),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
             ),
           ],
         ),

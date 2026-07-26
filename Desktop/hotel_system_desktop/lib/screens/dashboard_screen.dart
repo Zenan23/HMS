@@ -51,7 +51,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: const Text('Pregled'),
         actions: [
           Row(
             children: [
@@ -389,7 +389,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             child: Text('${index + 1}'),
                           ),
                           title: Text(hotel.name),
-                          subtitle: Text('Rating: ${hotel.averageRating}'),
+                          subtitle: Text('Ocjena: ${hotel.averageRating}'),
                           trailing: Text(
                             '${hotel.averageRating}',
                             style: const TextStyle(fontWeight: FontWeight.bold),

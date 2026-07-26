@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/price_adjustment.dart';
 import '../services/price_adjustment_service.dart';
+import '../widgets/date_picker_field.dart';
 
 class PriceAdjustmentFormDialog extends StatefulWidget {
   final PriceAdjustment? adjustment;
@@ -35,6 +36,10 @@ class _PriceAdjustmentFormDialogState extends State<PriceAdjustmentFormDialog> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (endDate.isBefore(startDate)) {
+      setState(() => error = 'Datum kraja mora biti nakon datuma početka.');
+      return;
+    }
     setState(() {
       isLoading = true;
       error = null;
@@ -65,33 +70,56 @@ class _PriceAdjustmentFormDialogState extends State<PriceAdjustmentFormDialog> {
     return AlertDialog(
       title: Text(
           widget.adjustment == null ? 'Novo pravilo cijene' : 'Uredi pravilo'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                initialValue: name,
-                decoration: const InputDecoration(labelText: 'Naziv'),
-                onChanged: (v) => name = v,
-              ),
-              TextFormField(
-                initialValue: percentageModifier.toString(),
-                decoration:
-                    const InputDecoration(labelText: 'Modifikator (%)'),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                onChanged: (v) => percentageModifier = double.tryParse(v) ?? 0,
-              ),
-              SwitchListTile(
-                title: const Text('Kumulativno'),
-                value: isCumulative,
-                onChanged: (v) => setState(() => isCumulative = v),
-              ),
-              if (error != null)
-                Text(error!, style: const TextStyle(color: Colors.red)),
-            ],
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  initialValue: name,
+                  decoration: const InputDecoration(labelText: 'Naziv'),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Unesite naziv' : null,
+                  onChanged: (v) => name = v,
+                ),
+                TextFormField(
+                  initialValue: percentageModifier.toString(),
+                  decoration:
+                      const InputDecoration(labelText: 'Modifikator (%)'),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (v) =>
+                      percentageModifier = double.tryParse(v) ?? 0,
+                ),
+                const SizedBox(height: 8),
+                DatePickerField(
+                  label: 'Datum početka',
+                  value: startDate,
+                  onChanged: (d) {
+                    if (d != null) setState(() => startDate = d);
+                  },
+                ),
+                const SizedBox(height: 8),
+                DatePickerField(
+                  label: 'Datum kraja',
+                  value: endDate,
+                  onChanged: (d) {
+                    if (d != null) setState(() => endDate = d);
+                  },
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Kumulativno'),
+                  value: isCumulative,
+                  onChanged: (v) => setState(() => isCumulative = v),
+                ),
+                if (error != null)
+                  Text(error!, style: const TextStyle(color: Colors.red)),
+              ],
+            ),
           ),
         ),
       ),

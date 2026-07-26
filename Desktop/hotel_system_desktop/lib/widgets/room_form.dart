@@ -4,6 +4,7 @@ import 'package:hotel_system_desktop/models/room.dart';
 import '../models/hotel.dart';
 import '../services/api_service.dart';
 import '../utils/validation_utils.dart';
+import '../utils/display_labels.dart';
 
 class RoomFormDialog extends StatefulWidget {
   final Room? room;
@@ -113,7 +114,7 @@ class _RoomFormDialogState extends State<RoomFormDialog> {
                 items: RoomType.values
                     .map((e) => DropdownMenuItem<RoomType>(
                           value: e,
-                          child: Text(e.name),
+                          child: Text(roomTypeLabel(e)),
                         ))
                     .toList(),
                 onChanged: (v) => setState(() {

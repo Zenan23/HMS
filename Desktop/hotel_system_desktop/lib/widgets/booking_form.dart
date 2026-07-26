@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../models/service.dart';
 import '../utils/validation_utils.dart';
 import '../utils/date_format_utils.dart';
+import '../utils/display_labels.dart';
 
 class BookingFormDialog extends StatefulWidget {
   final Booking? booking;
@@ -124,7 +125,7 @@ class _BookingFormDialogState extends State<BookingFormDialog> {
       return;
     }
     if (checkInDate!.isAfter(checkOutDate!)) {
-      setState(() => error = 'Check-out mora biti nakon check-ina');
+      setState(() => error = 'Datum odjave mora biti nakon datuma prijave');
       return;
     }
     setState(() {
@@ -181,7 +182,7 @@ class _BookingFormDialogState extends State<BookingFormDialog> {
                     child: TextFormField(
                       readOnly: true,
                       decoration:
-                          const InputDecoration(labelText: 'Check-in datum'),
+                          const InputDecoration(labelText: 'Datum prijave'),
                       controller: TextEditingController(
                           text: checkInDate != null
                               ? formatDisplayDate(checkInDate)
@@ -195,7 +196,7 @@ class _BookingFormDialogState extends State<BookingFormDialog> {
                     child: TextFormField(
                       readOnly: true,
                       decoration:
-                          const InputDecoration(labelText: 'Check-out datum'),
+                          const InputDecoration(labelText: 'Datum odjave'),
                       controller: TextEditingController(
                           text: checkOutDate != null
                               ? formatDisplayDate(checkOutDate)
@@ -300,7 +301,8 @@ class _BookingFormDialogState extends State<BookingFormDialog> {
                 value: status,
                 decoration: const InputDecoration(labelText: 'Status'),
                 items: BookingStatus.values
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s.name)))
+                    .map((s) => DropdownMenuItem(
+                        value: s, child: Text(bookingStatusLabel(s))))
                     .toList(),
                 onChanged: (v) => setState(() {
                   if (v != null) status = v;

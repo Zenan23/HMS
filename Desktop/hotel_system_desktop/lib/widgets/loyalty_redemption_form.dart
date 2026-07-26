@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/loyalty_points_redemption.dart';
 import '../services/loyalty_points_redemption_service.dart';
+import 'date_picker_field.dart';
 
 class LoyaltyRedemptionFormDialog extends StatefulWidget {
   final LoyaltyPointsRedemption? redemption;
@@ -67,42 +68,58 @@ class _LoyaltyRedemptionFormDialogState
       title: Text(widget.redemption == null
           ? 'Novo iskorištenje bodova'
           : 'Uredi iskorištenje'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                initialValue: userId.toString(),
-                decoration: const InputDecoration(labelText: 'User ID'),
-                keyboardType: TextInputType.number,
-                onChanged: (v) => userId = int.tryParse(v) ?? userId,
-              ),
-              TextFormField(
-                initialValue: bookingId.toString(),
-                decoration: const InputDecoration(labelText: 'Booking ID'),
-                keyboardType: TextInputType.number,
-                onChanged: (v) => bookingId = int.tryParse(v) ?? bookingId,
-              ),
-              TextFormField(
-                initialValue: pointsUsed.toString(),
-                decoration: const InputDecoration(labelText: 'Bodova'),
-                keyboardType: TextInputType.number,
-                onChanged: (v) => pointsUsed = int.tryParse(v) ?? pointsUsed,
-              ),
-              TextFormField(
-                initialValue: equivalentValueAmount.toString(),
-                decoration:
-                    const InputDecoration(labelText: 'Ekvivalentna vrijednost'),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                onChanged: (v) =>
-                    equivalentValueAmount = double.tryParse(v) ?? 0,
-              ),
-              if (error != null)
-                Text(error!, style: const TextStyle(color: Colors.red)),
-            ],
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  initialValue: userId.toString(),
+                  decoration: const InputDecoration(labelText: 'ID korisnika'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => userId = int.tryParse(v) ?? userId,
+                ),
+                TextFormField(
+                  initialValue: bookingId.toString(),
+                  decoration:
+                      const InputDecoration(labelText: 'ID rezervacije'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => bookingId = int.tryParse(v) ?? bookingId,
+                ),
+                TextFormField(
+                  initialValue: pointsUsed.toString(),
+                  decoration: const InputDecoration(labelText: 'Bodova'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => pointsUsed = int.tryParse(v) ?? pointsUsed,
+                ),
+                TextFormField(
+                  initialValue: equivalentValueAmount.toString(),
+                  decoration: const InputDecoration(
+                      labelText: 'Ekvivalentna vrijednost (EUR)'),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (v) =>
+                      equivalentValueAmount = double.tryParse(v) ?? 0,
+                ),
+                const SizedBox(height: 8),
+                DatePickerField(
+                  label: 'Datum iskorištenja',
+                  value: redeemedAt,
+                  onChanged: (d) {
+                    if (d != null) setState(() => redeemedAt = d);
+                  },
+                ),
+                if (error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(error!,
+                        style: const TextStyle(color: Colors.red)),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

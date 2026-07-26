@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/inventory_transaction.dart';
 import '../services/inventory_transaction_service.dart';
+import 'date_picker_field.dart';
 
 class InventoryTransactionFormDialog extends StatefulWidget {
   final InventoryTransaction? transaction;
@@ -67,40 +68,59 @@ class _InventoryTransactionFormDialogState
       title: Text(widget.transaction == null
           ? 'Nova transakcija'
           : 'Uredi transakciju'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                initialValue: inventoryItemId.toString(),
-                decoration: const InputDecoration(labelText: 'Inventory Item ID'),
-                keyboardType: TextInputType.number,
-                onChanged: (v) =>
-                    inventoryItemId = int.tryParse(v) ?? inventoryItemId,
-              ),
-              TextFormField(
-                initialValue: quantityChange.toString(),
-                decoration: const InputDecoration(labelText: 'Promjena količine'),
-                keyboardType: TextInputType.number,
-                onChanged: (v) =>
-                    quantityChange = int.tryParse(v) ?? quantityChange,
-              ),
-              TextFormField(
-                initialValue: staffUserId.toString(),
-                decoration: const InputDecoration(labelText: 'Staff User ID'),
-                keyboardType: TextInputType.number,
-                onChanged: (v) => staffUserId = int.tryParse(v) ?? staffUserId,
-              ),
-              TextFormField(
-                initialValue: reason,
-                decoration: const InputDecoration(labelText: 'Razlog'),
-                onChanged: (v) => reason = v,
-              ),
-              if (error != null)
-                Text(error!, style: const TextStyle(color: Colors.red)),
-            ],
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  initialValue: inventoryItemId.toString(),
+                  decoration:
+                      const InputDecoration(labelText: 'ID artikla skladišta'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) =>
+                      inventoryItemId = int.tryParse(v) ?? inventoryItemId,
+                ),
+                TextFormField(
+                  initialValue: quantityChange.toString(),
+                  decoration:
+                      const InputDecoration(labelText: 'Promjena količine'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) =>
+                      quantityChange = int.tryParse(v) ?? quantityChange,
+                ),
+                TextFormField(
+                  initialValue: staffUserId.toString(),
+                  decoration:
+                      const InputDecoration(labelText: 'ID uposlenika'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) =>
+                      staffUserId = int.tryParse(v) ?? staffUserId,
+                ),
+                TextFormField(
+                  initialValue: reason,
+                  decoration: const InputDecoration(labelText: 'Razlog'),
+                  onChanged: (v) => reason = v,
+                ),
+                const SizedBox(height: 8),
+                DatePickerField(
+                  label: 'Datum transakcije',
+                  value: transactionDate,
+                  onChanged: (d) {
+                    if (d != null) setState(() => transactionDate = d);
+                  },
+                ),
+                if (error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(error!,
+                        style: const TextStyle(color: Colors.red)),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

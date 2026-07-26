@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import '../utils/validation_utils.dart';
+import '../utils/display_labels.dart';
 import 'dart:convert';
 
 class EmployeeFormDialog extends StatefulWidget {
@@ -121,10 +122,10 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
                 decoration: const InputDecoration(labelText: 'Uloga'),
                 items: UserRole.values.map((r) => DropdownMenuItem(
                   value: r,
-                  child: Text(r.name),
+                  child: Text(userRoleLabel(r)),
                 )).toList(),
                 onChanged: widget.forceRoleEmployee ? null : (v) => setState(() { if (v != null) role = v; }),
-                disabledHint: const Text('Employee'),
+                disabledHint: const Text('Uposlenik'),
               ),
               SwitchListTile(
                 title: const Text('Aktivan'),

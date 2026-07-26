@@ -3,6 +3,7 @@ import 'package:hotel_system_desktop/widgets/user_form.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import '../utils/date_format_utils.dart';
+import '../utils/display_labels.dart';
 import 'dart:convert';
 
 class UsersScreen extends StatefulWidget {
@@ -222,7 +223,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                   DataCell(Text(emp.firstName)),
                                   DataCell(Text(emp.lastName)),
                                   DataCell(Text(emp.phoneNumber)),
-                                  DataCell(Text(emp.role.name)),
+                                  DataCell(Text(userRoleLabel(emp.role))),
                                   DataCell(Text(emp.isActive ? 'Da' : 'Ne')),
                                   DataCell(Text(formatDisplayDate(emp.lastLoginDate))),
                                   DataCell(Row(

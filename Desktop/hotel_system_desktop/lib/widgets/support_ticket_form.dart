@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/support_ticket.dart';
 import '../services/support_ticket_service.dart';
+import '../utils/display_labels.dart';
 
 class SupportTicketFormDialog extends StatefulWidget {
   final SupportTicket? ticket;
@@ -72,7 +73,7 @@ class _SupportTicketFormDialogState extends State<SupportTicketFormDialog> {
             children: [
               TextFormField(
                 initialValue: userId.toString(),
-                decoration: const InputDecoration(labelText: 'User ID'),
+                decoration: const InputDecoration(labelText: 'ID korisnika'),
                 keyboardType: TextInputType.number,
                 onChanged: (v) => userId = int.tryParse(v) ?? userId,
                 validator: (v) =>
@@ -110,7 +111,7 @@ class _SupportTicketFormDialogState extends State<SupportTicketFormDialog> {
                 items: SupportTicketPriority.values
                     .map((p) => DropdownMenuItem(
                           value: p,
-                          child: Text(p.name),
+                          child: Text(supportTicketPriorityLabel(p)),
                         ))
                     .toList(),
                 onChanged: (v) => setState(() => priority = v ?? priority),

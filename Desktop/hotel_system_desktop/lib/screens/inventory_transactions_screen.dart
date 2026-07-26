@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/inventory_transaction.dart';
 import '../services/inventory_transaction_service.dart';
+import '../utils/date_format_utils.dart';
 import '../utils/error_helper.dart';
 import '../widgets/inventory_transaction_form.dart';
 
@@ -16,7 +17,7 @@ class _InventoryTransactionsScreenState
     extends State<InventoryTransactionsScreen> {
   final _service = InventoryTransactionService();
   int _page = 1;
-  int _pageSize = 10;
+  final int _pageSize = 10;
   bool _isLoading = false;
   List<InventoryTransaction> _transactions = [];
   final _itemIdController = TextEditingController();
@@ -52,7 +53,7 @@ class _InventoryTransactionsScreenState
     } catch (e) {
       if (mounted) showApiError(context, e);
     }
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _openForm({InventoryTransaction? transaction}) async {
@@ -69,6 +70,7 @@ class _InventoryTransactionsScreenState
       appBar: AppBar(title: const Text('Skladišne transakcije')),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openForm(),
+        tooltip: 'Nova transakcija',
         child: const Icon(Icons.add),
       ),
       body: Padding(
@@ -78,24 +80,25 @@ class _InventoryTransactionsScreenState
             Row(
               children: [
                 SizedBox(
-                  width: 120,
+                  width: 140,
                   child: TextField(
                     controller: _itemIdController,
                     decoration:
-                        const InputDecoration(labelText: 'Item ID'),
+                        const InputDecoration(labelText: 'ID artikla'),
                     keyboardType: TextInputType.number,
                   ),
                 ),
                 const SizedBox(width: 8),
                 SizedBox(
-                  width: 120,
+                  width: 140,
                   child: TextField(
                     controller: _staffIdController,
                     decoration:
-                        const InputDecoration(labelText: 'Staff ID'),
+                        const InputDecoration(labelText: 'ID uposlenika'),
                     keyboardType: TextInputType.number,
                   ),
                 ),
+                const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: _fetchTransactions,
                   child: const Text('Filtriraj'),
@@ -106,25 +109,29 @@ class _InventoryTransactionsScreenState
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : ListView.builder(
-                      itemCount: _transactions.length,
-                      itemBuilder: (context, i) {
-                        final t = _transactions[i];
-                        return Card(
-                          child: ListTile(
-                            title: Text(
-                                'Artikal ${t.inventoryItemId} (${t.quantityChange > 0 ? '+' : ''}${t.quantityChange})'),
-                            subtitle: Text(
-                                '${t.reason}\n${t.staffUserName} • ${t.transactionDate}'),
-                            isThreeLine: true,
-                            trailing: IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () => _openForm(transaction: t),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                  : _transactions.isEmpty
+                      ? const Center(child: Text('Nema transakcija.'))
+                      : ListView.builder(
+                          itemCount: _transactions.length,
+                          itemBuilder: (context, i) {
+                            final t = _transactions[i];
+                            return Card(
+                              child: ListTile(
+                                title: Text(
+                                    'Artikal ${t.inventoryItemId} (${t.quantityChange > 0 ? '+' : ''}${t.quantityChange})'),
+                                subtitle: Text(
+                                    '${t.reason}\n${t.staffUserName} • ${formatDisplayDate(t.transactionDate)}'),
+                                isThreeLine: true,
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.edit),
+                                  tooltip: 'Uredi',
+                                  onPressed: () =>
+                                      _openForm(transaction: t),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
             ),
           ],
         ),

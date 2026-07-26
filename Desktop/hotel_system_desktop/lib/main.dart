@@ -68,7 +68,7 @@ class _MainTabsState extends State<MainTabs>
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (RoleUtils.isAdmin(auth.role)) {
       _tabs = const [
-        Tab(text: 'Dashboard'),
+        Tab(text: 'Pregled'),
         Tab(text: 'Uposlenici'),
         Tab(text: 'Korisnici'),
         Tab(text: 'Podrška'),
@@ -91,7 +91,7 @@ class _MainTabsState extends State<MainTabs>
         Tab(text: 'Održavanje'),
         Tab(text: 'Cijene'),
         Tab(text: 'Skladište'),
-        Tab(text: 'Loyalty'),
+        Tab(text: 'Vjernost'),
       ];
       _tabViews = const [
         HotelsScreen(),
@@ -132,7 +132,7 @@ class _MainTabsState extends State<MainTabs>
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
+            tooltip: 'Odjava',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
             },

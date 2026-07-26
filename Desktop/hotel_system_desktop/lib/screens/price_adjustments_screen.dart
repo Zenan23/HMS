@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/price_adjustment.dart';
 import '../services/price_adjustment_service.dart';
+import '../utils/date_format_utils.dart';
 import '../utils/error_helper.dart';
 import '../widgets/price_adjustment_form.dart';
 
@@ -14,7 +15,7 @@ class PriceAdjustmentsScreen extends StatefulWidget {
 class _PriceAdjustmentsScreenState extends State<PriceAdjustmentsScreen> {
   final _service = PriceAdjustmentService();
   int _page = 1;
-  int _pageSize = 10;
+  final int _pageSize = 10;
   int _totalPages = 1;
   bool _isLoading = false;
   List<PriceAdjustment> _adjustments = [];
@@ -33,6 +34,7 @@ class _PriceAdjustmentsScreenState extends State<PriceAdjustmentsScreen> {
         final list = await _service.getActive();
         setState(() {
           _adjustments = list;
+          _page = 1;
           _totalPages = 1;
         });
       } else {
@@ -40,13 +42,13 @@ class _PriceAdjustmentsScreenState extends State<PriceAdjustmentsScreen> {
             await _service.getPaged(pageNumber: _page, pageSize: _pageSize);
         setState(() {
           _adjustments = result.items;
-          _totalPages = result.totalPages;
+          _totalPages = result.totalPages < 1 ? 1 : result.totalPages;
         });
       }
     } catch (e) {
       if (mounted) showApiError(context, e);
     }
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _openForm({PriceAdjustment? adjustment}) async {
@@ -57,9 +59,25 @@ class _PriceAdjustmentsScreenState extends State<PriceAdjustmentsScreen> {
     if (result == true) _fetchAdjustments();
   }
 
-  Future<void> _delete(int id) async {
+  Future<void> _delete(PriceAdjustment a) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Potvrda brisanja'),
+        content: Text('Obrisati pravilo „${a.name}”?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Ne')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Da')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
     try {
-      await _service.delete(id);
+      await _service.delete(a.id);
       _fetchAdjustments();
     } catch (e) {
       if (mounted) showApiError(context, e);
@@ -72,50 +90,94 @@ class _PriceAdjustmentsScreenState extends State<PriceAdjustmentsScreen> {
       appBar: AppBar(title: const Text('Upravljanje cijenama')),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openForm(),
+        tooltip: 'Novo pravilo',
         child: const Icon(Icons.add),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            SwitchListTile(
-              title: const Text('Prikaži samo aktivne'),
-              value: _showActiveOnly,
-              onChanged: (v) {
-                setState(() => _showActiveOnly = v);
-                _fetchAdjustments();
-              },
+            Row(
+              children: [
+                Expanded(
+                  child: SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Prikaži samo aktivne'),
+                    value: _showActiveOnly,
+                    onChanged: (v) {
+                      setState(() {
+                        _showActiveOnly = v;
+                        _page = 1;
+                      });
+                      _fetchAdjustments();
+                    },
+                  ),
+                ),
+                if (!_showActiveOnly)
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed: _page > 1 && !_isLoading
+                            ? () {
+                                setState(() => _page--);
+                                _fetchAdjustments();
+                              }
+                            : null,
+                      ),
+                      Text('Strana $_page / $_totalPages'),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: _page < _totalPages && !_isLoading
+                            ? () {
+                                setState(() => _page++);
+                                _fetchAdjustments();
+                              }
+                            : null,
+                      ),
+                    ],
+                  ),
+              ],
             ),
+            const SizedBox(height: 8),
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : ListView.builder(
-                      itemCount: _adjustments.length,
-                      itemBuilder: (context, i) {
-                        final a = _adjustments[i];
-                        return Card(
-                          child: ListTile(
-                            title: Text(a.name),
-                            subtitle: Text(
-                                '${a.percentageModifier}% • ${a.startDate.toLocal()} - ${a.endDate.toLocal()}\nKumulativno: ${a.isCumulative ? 'Da' : 'Ne'}'),
-                            isThreeLine: true,
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () => _openForm(adjustment: a),
+                  : _adjustments.isEmpty
+                      ? const Center(child: Text('Nema pravila cijene.'))
+                      : ListView.builder(
+                          itemCount: _adjustments.length,
+                          itemBuilder: (context, i) {
+                            final a = _adjustments[i];
+                            return Card(
+                              child: ListTile(
+                                title: Text(a.name),
+                                subtitle: Text(
+                                  '${a.percentageModifier}% • '
+                                  '${formatDisplayDate(a.startDate)} – ${formatDisplayDate(a.endDate)}\n'
+                                  'Kumulativno: ${a.isCumulative ? 'Da' : 'Ne'}',
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete),
-                                  onPressed: () => _delete(a.id),
+                                isThreeLine: true,
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit),
+                                      tooltip: 'Uredi',
+                                      onPressed: () =>
+                                          _openForm(adjustment: a),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete),
+                                      tooltip: 'Obriši',
+                                      onPressed: () => _delete(a),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                              ),
+                            );
+                          },
+                        ),
             ),
           ],
         ),
