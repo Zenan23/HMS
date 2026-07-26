@@ -14,6 +14,7 @@ namespace Persistence.Interfaces
         Task<IEnumerable<HotelDto>> GetUserBasedHotelRecommendationsAsync(int userId, int maxRecommendations = 3);
         Task<HotelStatistics> GetHotelStatisticsAsync();
         Task<IEnumerable<HotelDto>> GetHotelsByNameAsync(string name);
+        Task<HotelDto?> SetHotelImageAsync(int hotelId, Stream fileStream, string fileName, CancellationToken cancellationToken = default);
+        Task<bool> RemoveHotelImageAsync(int hotelId, CancellationToken cancellationToken = default);
     }
-
 }

@@ -86,7 +86,10 @@ namespace Application.Services.PaymentProviders
                     {
                         ReturnUrl = urls.SuccessUrl,
                         CancelUrl = urls.CancelUrl,
-                        UserAction = "PAYNOW",
+                        UserAction = "PAY_NOW",
+                        ShippingPreference = "NO_SHIPPING",
+                        Locale = "en-US",
+                        BrandName = "eBooking Hotels",
                     },
                 };
 
@@ -152,6 +155,130 @@ namespace Application.Services.PaymentProviders
             }
         }
 
+        /// <summary>PayPal order for in-app WebView (approve URL, deep-link return).</summary>
+        public async Task<PayPalNativeOrderResult> CreateNativeOrderAsync(
+            Payment pendingPayment,
+            int paymentIdForReturnUrl,
+            string? returnUrlOverride = null,
+            string? cancelUrlOverride = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(_paypal.ClientId) || string.IsNullOrWhiteSpace(_paypal.ClientSecret))
+                {
+                    return new PayPalNativeOrderResult
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "PayPal ClientId/ClientSecret nisu konfigurisani."
+                    };
+                }
+
+                var token = await GetAccessTokenAsync(cancellationToken);
+                if (token == null)
+                {
+                    return new PayPalNativeOrderResult
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "PayPal OAuth token nije dostupan."
+                    };
+                }
+
+                // WebView ne može pouzdano otvoriti ebooking:// — koristi HTTP override kad je poslan.
+                var returnBase = string.IsNullOrWhiteSpace(returnUrlOverride) ? _paypal.ReturnUrl : returnUrlOverride;
+                var cancelBase = string.IsNullOrWhiteSpace(cancelUrlOverride) ? _paypal.CancelUrl : cancelUrlOverride;
+                var returnUrl = AppendPaymentId(returnBase, paymentIdForReturnUrl);
+                var cancelUrl = AppendPaymentId(cancelBase, paymentIdForReturnUrl);
+
+                var client = CreateApiClient(token);
+                var amountStr = pendingPayment.Amount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+                var currency = pendingPayment.Currency.ToUpperInvariant();
+
+                var body = new PayPalCreateOrderRequest
+                {
+                    Intent = "CAPTURE",
+                    PurchaseUnits =
+                    [
+                        new PayPalPurchaseUnit
+                        {
+                            Amount = new PayPalMoney { CurrencyCode = currency, Value = amountStr },
+                            CustomId = pendingPayment.Id.ToString(),
+                            Description = pendingPayment.Description ?? $"Booking {pendingPayment.BookingId}",
+                        }
+                    ],
+                    ApplicationContext = new PayPalApplicationContext
+                    {
+                        ReturnUrl = returnUrl,
+                        CancelUrl = cancelUrl,
+                        UserAction = "PAY_NOW",
+                        ShippingPreference = "NO_SHIPPING",
+                        Locale = "en-US",
+                        BrandName = "eBooking Hotels",
+                    },
+                };
+
+                var json = JsonSerializer.Serialize(body, JsonOpts);
+                using var request = new HttpRequestMessage(HttpMethod.Post, "v2/checkout/orders")
+                {
+                    Content = new StringContent(json, Encoding.UTF8, "application/json"),
+                };
+
+                using var response = await client.SendAsync(request, cancellationToken);
+                var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("PayPal native order failed: {Status} {Body}", response.StatusCode, responseText);
+                    return new PayPalNativeOrderResult
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "PayPal kreiranje narudžbe nije uspjelo."
+                    };
+                }
+
+                using var doc = JsonDocument.Parse(responseText);
+                var root = doc.RootElement;
+                var orderId = root.GetProperty("id").GetString();
+                string? approveUrl = null;
+                if (root.TryGetProperty("links", out var links))
+                {
+                    foreach (var link in links.EnumerateArray())
+                    {
+                        if (link.GetProperty("rel").GetString() == "approve")
+                        {
+                            approveUrl = link.GetProperty("href").GetString();
+                            break;
+                        }
+                    }
+                }
+
+                if (string.IsNullOrEmpty(orderId) || string.IsNullOrEmpty(approveUrl))
+                {
+                    return new PayPalNativeOrderResult
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "PayPal odgovor ne sadrži order id ili approve link."
+                    };
+                }
+
+                return new PayPalNativeOrderResult
+                {
+                    IsSuccess = true,
+                    OrderId = orderId,
+                    ApproveUrl = approveUrl,
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "PayPal native order greška");
+                return new PayPalNativeOrderResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Greška pri PayPal narudžbi."
+                };
+            }
+        }
+
         /// <summary>Capture after buyer returns (token = order id).</summary>
         public async Task<PayPalCaptureOperationResult> CaptureOrderAsync(string orderId, CancellationToken cancellationToken = default)
         {
@@ -166,7 +293,11 @@ namespace Application.Services.PaymentProviders
                 var client = CreateApiClient(token);
                 using var request = new HttpRequestMessage(
                     HttpMethod.Post,
-                    $"v2/checkout/orders/{Uri.EscapeDataString(orderId)}/capture");
+                    $"v2/checkout/orders/{Uri.EscapeDataString(orderId)}/capture")
+                {
+                    // PayPal zahtijeva application/json čak i za prazan body.
+                    Content = new StringContent("{}", Encoding.UTF8, "application/json"),
+                };
 
                 using var response = await client.SendAsync(request, cancellationToken);
                 var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -174,7 +305,8 @@ namespace Application.Services.PaymentProviders
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("PayPal capture failed: {Status} {Body}", response.StatusCode, responseText);
-                    return new PayPalCaptureOperationResult(false, null, null, "Capture nije uspio.");
+                    var detail = TryExtractPayPalError(responseText) ?? "Capture nije uspio.";
+                    return new PayPalCaptureOperationResult(false, null, null, detail);
                 }
 
                 using var doc = JsonDocument.Parse(responseText);
@@ -340,12 +472,49 @@ namespace Application.Services.PaymentProviders
             }
         }
 
+        private static string AppendPaymentId(string baseUrl, int paymentId)
+        {
+            var trimmed = baseUrl.TrimEnd('/');
+            var sep = trimmed.Contains('?', StringComparison.Ordinal) ? "&" : "?";
+            return $"{trimmed}{sep}paymentId={paymentId}";
+        }
+
         private HttpClient CreateApiClient(string bearer)
         {
             var client = _httpClientFactory.CreateClient("PayPalApi");
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            if (!client.DefaultRequestHeaders.Contains("Prefer"))
+                client.DefaultRequestHeaders.Add("Prefer", "return=representation");
             return client;
+        }
+
+        private static string? TryExtractPayPalError(string responseText)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(responseText);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("details", out var details) && details.GetArrayLength() > 0)
+                {
+                    var d = details[0];
+                    var issue = d.TryGetProperty("issue", out var iss) ? iss.GetString() : null;
+                    var desc = d.TryGetProperty("description", out var des) ? des.GetString() : null;
+                    if (!string.IsNullOrEmpty(issue) && !string.IsNullOrEmpty(desc))
+                        return $"{issue}: {desc}";
+                    if (!string.IsNullOrEmpty(desc))
+                        return desc;
+                    if (!string.IsNullOrEmpty(issue))
+                        return issue;
+                }
+                if (root.TryGetProperty("message", out var msg))
+                    return msg.GetString();
+            }
+            catch
+            {
+                // ignore parse errors
+            }
+            return null;
         }
 
         private async Task<string?> GetAccessTokenAsync(CancellationToken cancellationToken)
@@ -413,7 +582,10 @@ namespace Application.Services.PaymentProviders
         {
             public string ReturnUrl { get; set; } = string.Empty;
             public string CancelUrl { get; set; } = string.Empty;
-            public string UserAction { get; set; } = "PAYNOW";
+            public string UserAction { get; set; } = "PAY_NOW";
+            public string ShippingPreference { get; set; } = "NO_SHIPPING";
+            public string Locale { get; set; } = "en-US";
+            public string? BrandName { get; set; }
         }
 
         #endregion

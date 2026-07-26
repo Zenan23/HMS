@@ -47,7 +47,10 @@ class _HotelsScreenState extends State<HotelsScreen> {
 
   Future<void> _filterByCity() async {
     final city = _cityController.text.trim();
-    if (city.isEmpty) return;
+    if (city.isEmpty) {
+      await _loadHotels();
+      return;
+    }
     setState(() { _isFiltering = true; });
     final hotelsService = Provider.of<HotelsService>(context, listen: false);
     try {
@@ -247,7 +250,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
-                    hotel.imageUrl,
+                    hotel.displayImageUrl,
                     height: 70,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -302,7 +305,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
-                    hotel.imageUrl,
+                    hotel.displayImageUrl,
                     height: 150,
                     width: double.infinity,
                     fit: BoxFit.cover,

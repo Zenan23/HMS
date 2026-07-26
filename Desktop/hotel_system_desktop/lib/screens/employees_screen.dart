@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../widgets/employee_form.dart';
+import '../utils/date_format_utils.dart';
 import '../services/api_service.dart';
 import 'dart:convert';
 
@@ -213,8 +214,6 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                           DataColumn(label: Text('Uloga')),
                           DataColumn(label: Text('Aktivan')),
                           DataColumn(label: Text('Zadnja prijava')),
-                          DataColumn(label: Text('Kreiran')),
-                          DataColumn(label: Text('Ažuriran')),
                           DataColumn(label: Text('Akcije')),
                         ],
                         rows: _employees
@@ -226,9 +225,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                                   DataCell(Text(emp.phoneNumber)),
                                   DataCell(Text(emp.role.name)),
                                   DataCell(Text(emp.isActive ? 'Da' : 'Ne')),
-                                  DataCell(Text(emp.lastLoginDate?.toString() ?? '-')),
-                                  DataCell(Text(emp.createdAt.toString())),
-                                  DataCell(Text(emp.updatedAt.toString())),
+                                  DataCell(Text(formatDisplayDate(emp.lastLoginDate))),
                                   DataCell(Row(
                                     children: [
                                       IconButton(

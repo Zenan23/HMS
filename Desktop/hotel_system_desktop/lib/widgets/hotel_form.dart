@@ -1,8 +1,10 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../models/hotel.dart';
 import '../services/api_service.dart';
+import '../utils/api_response.dart';
 import '../utils/validation_utils.dart';
-import 'dart:convert';
+import '../utils/image_utils.dart';
 
 class HotelFormDialog extends StatefulWidget {
   final Hotel? hotel;
@@ -23,7 +25,9 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
   late String email;
   late String description;
   late int starRating;
-  late String imageUrl;
+  String? _currentImageUrl;
+  PlatformFile? _selectedImage;
+  bool _removeExistingImage = false;
   bool isLoading = false;
   String? error;
 
@@ -40,7 +44,19 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
     email = h?.email ?? '';
     description = h?.description ?? '';
     starRating = h?.starRating ?? 1;
-    imageUrl = h?.imageUrl ?? '';
+    _currentImageUrl = h?.imageUrl;
+  }
+
+  Future<void> _pickImage() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    setState(() {
+      _selectedImage = result.files.first;
+      _removeExistingImage = false;
+    });
   }
 
   Future<void> _submit() async {
@@ -49,6 +65,7 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
       isLoading = true;
       error = null;
     });
+
     final body = {
       'id': id,
       'name': name,
@@ -59,16 +76,26 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
       'email': email,
       'description': description,
       'starRating': starRating,
-      'imageUrl': imageUrl,
+      'imageUrl': _removeExistingImage ? '' : (_currentImageUrl ?? ''),
     };
+
     try {
+      int hotelId;
       if (widget.hotel == null) {
-        // Dodavanje
-        await ApiService().post('/api/hotels', body);
+        final response = await ApiService().post('/api/hotels', body);
+        final created = ApiResponseParser.parseObject(response, Hotel.fromJson);
+        hotelId = created.id;
       } else {
-        // Uređivanje
-        await ApiService().put('/api/hotels/${widget.hotel!.id}', body);
+        hotelId = widget.hotel!.id;
+        await ApiService().put('/api/hotels/$hotelId', body);
       }
+
+      if (_removeExistingImage) {
+        await ApiService().delete('/api/hotels/$hotelId/image');
+      } else if (_selectedImage != null) {
+        await ApiService().uploadHotelImage(hotelId, _selectedImage!);
+      }
+
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       setState(() {
@@ -78,6 +105,34 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
     setState(() {
       isLoading = false;
     });
+  }
+
+  Widget _buildImagePreview() {
+    if (_selectedImage != null && _selectedImage!.bytes != null) {
+      return Image.memory(
+        _selectedImage!.bytes!,
+        width: 160,
+        height: 100,
+        fit: BoxFit.cover,
+      );
+    }
+
+    if (!_removeExistingImage && (_currentImageUrl?.isNotEmpty ?? false)) {
+      return Image.network(
+        resolveImageUrl(_currentImageUrl!),
+        width: 160,
+        height: 100,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 48),
+      );
+    }
+
+    return Container(
+      width: 160,
+      height: 100,
+      color: Colors.grey.shade200,
+      child: const Icon(Icons.photo, size: 48),
+    );
   }
 
   @override
@@ -133,10 +188,35 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
                 onChanged: (v) => description = v,
                 validator: ValidationUtils.validateDescription,
               ),
-              TextFormField(
-                initialValue: imageUrl,
-                decoration: const InputDecoration(labelText: 'URL slike (opcionalno)'),
-                onChanged: (v) => imageUrl = v,
+              const SizedBox(height: 12),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Slika hotela',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(height: 8),
+              _buildImagePreview(),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: isLoading ? null : _pickImage,
+                    icon: const Icon(Icons.upload_file),
+                    label: const Text('Odaberi sliku'),
+                  ),
+                  const SizedBox(width: 8),
+                  if ((_currentImageUrl?.isNotEmpty ?? false) ||
+                      _selectedImage != null)
+                    TextButton(
+                      onPressed: isLoading
+                          ? null
+                          : () => setState(() {
+                                _selectedImage = null;
+                                _removeExistingImage = true;
+                              }),
+                      child: const Text('Ukloni sliku'),
+                    ),
+                ],
               ),
               if (error != null)
                 Padding(

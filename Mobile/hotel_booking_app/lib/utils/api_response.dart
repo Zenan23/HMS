@@ -36,6 +36,11 @@ class ApiResponseParser {
     return {'data': decoded};
   }
 
+  static String formatErrorMessage(String message, List<String> errors) {
+    if (errors.isEmpty) return message;
+    return '$message\n${errors.join('\n')}';
+  }
+
   static void ensureSuccess(http.Response response) {
     if (response.statusCode == 403) {
       throw ApiException('Nemate dozvolu za ovu akciju.', statusCode: 403);
@@ -49,7 +54,7 @@ class ApiResponseParser {
               ?.map((e) => e.toString())
               .toList() ??
           [];
-      throw ApiException(message.toString(),
+      throw ApiException(formatErrorMessage(message.toString(), errors),
           statusCode: response.statusCode, errors: errors);
     }
   }

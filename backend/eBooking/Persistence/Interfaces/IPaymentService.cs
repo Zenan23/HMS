@@ -8,6 +8,18 @@ namespace Persistence.Interfaces
         /// <summary>Hosted checkout (Stripe ili PayPal). Vraća URL za redirect.</summary>
         Task<HostedCheckoutResponseDto> StartHostedCheckoutAsync(CreateHostedCheckoutDto dto, string? userAgent = null, string? ipAddress = null);
 
+        /// <summary>Konfiguracija za in-app checkout (publishable key, feature flags).</summary>
+        PaymentConfigDto GetPaymentConfig();
+
+        /// <summary>Stripe PaymentIntent za in-app Payment Sheet.</summary>
+        Task<StripeIntentResponseDto> StartStripeIntentAsync(CreateHostedCheckoutDto dto, string? userAgent = null, string? ipAddress = null);
+
+        /// <summary>Potvrda Stripe PaymentIntent-a nakon Payment Sheet-a (polling / webhook fallback).</summary>
+        Task<bool> TryConfirmStripePaymentIntentAsync(string paymentIntentId);
+
+        /// <summary>PayPal order za in-app WebView.</summary>
+        Task<PayPalNativeOrderResponseDto> StartPayPalNativeOrderAsync(CreateHostedCheckoutDto dto, string? userAgent = null, string? ipAddress = null);
+
         /// <summary>Ponovno učitavanje Stripe sesije nakon povratka korisnika (polling).</summary>
         Task<bool> TryFinalizeStripeFromSessionIdAsync(string checkoutSessionId);
 

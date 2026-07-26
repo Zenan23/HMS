@@ -9,6 +9,7 @@ class ApiException implements Exception {
   ApiException(this.message, {this.statusCode = 0, this.errors = const []});
 
   bool get isForbidden => statusCode == 403;
+  bool get isUnauthorized => statusCode == 401;
 
   @override
   String toString() => message;
@@ -38,7 +39,18 @@ class ApiResponseParser {
     return {'data': decoded};
   }
 
+  static String formatErrorMessage(String message, List<String> errors) {
+    if (errors.isEmpty) return message;
+    return '$message\n${errors.join('\n')}';
+  }
+
   static void ensureSuccess(http.Response response) {
+    if (response.statusCode == 401) {
+      throw ApiException(
+        'Sesija je istekla ili token nije važeći. Prijavite se ponovo.',
+        statusCode: 401,
+      );
+    }
     if (response.statusCode == 403) {
       throw ApiException('Nemate dozvolu za ovu akciju.', statusCode: 403);
     }
@@ -51,7 +63,7 @@ class ApiResponseParser {
               ?.map((e) => e.toString())
               .toList() ??
           [];
-      throw ApiException(message.toString(),
+      throw ApiException(formatErrorMessage(message.toString(), errors),
           statusCode: response.statusCode, errors: errors);
     }
   }

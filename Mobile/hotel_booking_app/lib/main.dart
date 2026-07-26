@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'services/auth_service.dart';
 import 'services/hotels_service.dart';
+import 'services/stripe_platform.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
@@ -12,7 +13,9 @@ import 'screens/notifications_screen.dart';
 import 'screens/support_tickets_screen.dart';
 import 'services/notifications_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initStripePlatform();
   runApp(const MyApp());
 }
 

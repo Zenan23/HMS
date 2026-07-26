@@ -19,6 +19,7 @@ namespace Application.Services
     public class PaymentService : BaseDtoService<Payment, PaymentDto, CreatePaymentDto, UpdatePaymentDto>, IPaymentService
     {
         private readonly IEnumerable<IPaymentGatewayProvider> _paymentProviders;
+        private readonly StripePaymentProvider _stripePaymentProvider;
         private readonly PayPalPaymentProvider _payPalPaymentProvider;
         private readonly IPaymentAuditLogService _auditLogService;
         private readonly IBookingQueries _bookingQueries;
@@ -31,6 +32,7 @@ namespace Application.Services
             IMapper mapper,
             ILogger<PaymentService> logger,
             IEnumerable<IPaymentGatewayProvider> paymentProviders,
+            StripePaymentProvider stripePaymentProvider,
             PayPalPaymentProvider payPalPaymentProvider,
             IPaymentAuditLogService auditLogService,
             IBookingQueries bookingQueries,
@@ -40,6 +42,7 @@ namespace Application.Services
             : base(repository, mapper, logger)
         {
             _paymentProviders = paymentProviders;
+            _stripePaymentProvider = stripePaymentProvider;
             _payPalPaymentProvider = payPalPaymentProvider;
             _auditLogService = auditLogService;
             _bookingQueries = bookingQueries;
@@ -115,6 +118,130 @@ namespace Application.Services
             };
         }
 
+        public PaymentConfigDto GetPaymentConfig()
+        {
+            var stripeOk = !string.IsNullOrWhiteSpace(_paymentOptions.Stripe.SecretKey)
+                && !string.IsNullOrWhiteSpace(_paymentOptions.Stripe.PublishableKey);
+            var payPalOk = !string.IsNullOrWhiteSpace(_paymentOptions.PayPal.ClientId)
+                && !string.IsNullOrWhiteSpace(_paymentOptions.PayPal.ClientSecret);
+
+            return new PaymentConfigDto
+            {
+                EnableNativeCheckout = _paymentOptions.EnableNativeCheckout,
+                UseHostedCheckout = _paymentOptions.UseHostedCheckout,
+                StripePublishableKey = stripeOk ? _paymentOptions.Stripe.PublishableKey : null,
+                StripeConfigured = stripeOk,
+                PayPalConfigured = payPalOk,
+            };
+        }
+
+        public async Task<StripeIntentResponseDto> StartStripeIntentAsync(CreateHostedCheckoutDto dto, string? userAgent = null, string? ipAddress = null)
+        {
+            if (!_paymentOptions.EnableNativeCheckout)
+                throw new InvalidOperationException("In-app checkout je onemogućen (Payments:EnableNativeCheckout).");
+
+            if (dto.PaymentMethod != DomainPaymentMethod.Stripe)
+                throw new InvalidOperationException("Ovaj endpoint podržava samo Stripe.");
+
+            if (string.IsNullOrWhiteSpace(_paymentOptions.Stripe.SecretKey) || string.IsNullOrWhiteSpace(_paymentOptions.Stripe.PublishableKey))
+                throw new InvalidOperationException("Stripe SecretKey ili PublishableKey nisu konfigurisani.");
+
+            var paymentEntity = _mapper.Map<Payment>(dto);
+            paymentEntity = await _repository.AddAsync(paymentEntity);
+
+            await LogPaymentActionAsync(paymentEntity.Id, PaymentStatus.Pending, PaymentStatus.Processing,
+                "StripeIntent", $"Kreiranje PaymentIntent-a za {dto.Amount:C}",
+                null, userAgent, ipAddress, dto.UserId);
+
+            var intentResult = await _stripePaymentProvider.CreatePaymentIntentAsync(paymentEntity);
+            if (!intentResult.IsSuccess || string.IsNullOrEmpty(intentResult.ClientSecret) || string.IsNullOrEmpty(intentResult.PaymentIntentId))
+            {
+                await UpdatePaymentStatus(paymentEntity.Id, PaymentStatus.Failed, intentResult.ErrorMessage, userAgent, ipAddress, dto.UserId);
+                throw new InvalidOperationException(intentResult.ErrorMessage ?? "PaymentIntent nije kreiran.");
+            }
+
+            paymentEntity.Status = PaymentStatus.Processing;
+            paymentEntity.CheckoutId = intentResult.PaymentIntentId;
+            paymentEntity.PaymentProviderResponse = "payment_intent_created";
+            paymentEntity.UpdatedAt = DateTime.UtcNow;
+            await _repository.UpdateAsync(paymentEntity);
+
+            await LogPaymentActionAsync(paymentEntity.Id, PaymentStatus.Processing, PaymentStatus.Processing,
+                "StripeIntent", $"PaymentIntent kreiran. Id={intentResult.PaymentIntentId}",
+                null, userAgent, ipAddress, dto.UserId);
+
+            return new StripeIntentResponseDto
+            {
+                PaymentId = paymentEntity.Id,
+                ClientSecret = intentResult.ClientSecret,
+                PaymentIntentId = intentResult.PaymentIntentId,
+                Currency = dto.Currency,
+            };
+        }
+
+        public async Task<PayPalNativeOrderResponseDto> StartPayPalNativeOrderAsync(CreateHostedCheckoutDto dto, string? userAgent = null, string? ipAddress = null)
+        {
+            if (!_paymentOptions.EnableNativeCheckout)
+                throw new InvalidOperationException("In-app checkout je onemogućen (Payments:EnableNativeCheckout).");
+
+            if (dto.PaymentMethod != DomainPaymentMethod.PayPal)
+                throw new InvalidOperationException("Ovaj endpoint podržava samo PayPal.");
+
+            var paymentEntity = _mapper.Map<Payment>(dto);
+            paymentEntity = await _repository.AddAsync(paymentEntity);
+
+            await LogPaymentActionAsync(paymentEntity.Id, PaymentStatus.Pending, PaymentStatus.Processing,
+                "PayPalNativeOrder", $"Kreiranje PayPal narudžbe za {dto.Amount:C}",
+                null, userAgent, ipAddress, dto.UserId);
+
+            var orderResult = await _payPalPaymentProvider.CreateNativeOrderAsync(
+                paymentEntity,
+                paymentEntity.Id,
+                dto.ReturnUrl,
+                dto.CancelUrl);
+            if (!orderResult.IsSuccess || string.IsNullOrEmpty(orderResult.OrderId) || string.IsNullOrEmpty(orderResult.ApproveUrl))
+            {
+                await UpdatePaymentStatus(paymentEntity.Id, PaymentStatus.Failed, orderResult.ErrorMessage, userAgent, ipAddress, dto.UserId);
+                throw new InvalidOperationException(orderResult.ErrorMessage ?? "PayPal narudžba nije kreirana.");
+            }
+
+            paymentEntity.Status = PaymentStatus.Processing;
+            paymentEntity.CheckoutId = orderResult.OrderId;
+            paymentEntity.PaymentProviderResponse = "paypal_order_created";
+            paymentEntity.UpdatedAt = DateTime.UtcNow;
+            await _repository.UpdateAsync(paymentEntity);
+
+            await LogPaymentActionAsync(paymentEntity.Id, PaymentStatus.Processing, PaymentStatus.Processing,
+                "PayPalNativeOrder", $"Order kreiran. Id={orderResult.OrderId}",
+                null, userAgent, ipAddress, dto.UserId);
+
+            return new PayPalNativeOrderResponseDto
+            {
+                PaymentId = paymentEntity.Id,
+                OrderId = orderResult.OrderId,
+                ApproveUrl = orderResult.ApproveUrl,
+            };
+        }
+
+        public async Task<bool> TryConfirmStripePaymentIntentAsync(string paymentIntentId)
+        {
+            if (string.IsNullOrWhiteSpace(_paymentOptions.Stripe.SecretKey) || string.IsNullOrWhiteSpace(paymentIntentId))
+                return false;
+
+            try
+            {
+                var client = new StripeClient(_paymentOptions.Stripe.SecretKey);
+                var service = new PaymentIntentService(client);
+                var intent = await service.GetAsync(paymentIntentId);
+                return await FinalizeStripePaymentIntentInternalAsync(intent);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "TryConfirmStripePaymentIntent nije uspio za {PaymentIntentId}", paymentIntentId);
+                return false;
+            }
+        }
+
         public async Task<bool> TryFinalizeStripeFromSessionIdAsync(string checkoutSessionId)
         {
             if (string.IsNullOrWhiteSpace(_paymentOptions.Stripe.SecretKey) || string.IsNullOrWhiteSpace(checkoutSessionId))
@@ -160,6 +287,12 @@ namespace Application.Services
             {
                 if (stripeEvent.Data.Object is Session session)
                     return await FinalizeStripeSessionInternalAsync(session);
+            }
+
+            if (stripeEvent.Type == Stripe.Events.PaymentIntentSucceeded)
+            {
+                if (stripeEvent.Data.Object is PaymentIntent intent)
+                    return await FinalizeStripePaymentIntentInternalAsync(intent);
             }
 
             return true;
@@ -231,7 +364,7 @@ namespace Application.Services
             if (!result.IsSuccess || string.IsNullOrEmpty(result.CaptureId))
             {
                 _logger.LogWarning("PayPal capture nije uspio: {Msg}", result.ErrorMessage);
-                return false;
+                throw new InvalidOperationException(result.ErrorMessage ?? "PayPal capture nije uspio.");
             }
 
             var payments = await _repository.FindAsync(p => p.CheckoutId == orderId && !p.IsDeleted);
@@ -239,7 +372,7 @@ namespace Application.Services
             if (paymentEntity == null)
             {
                 _logger.LogWarning("Nije pronađen Payment za PayPal order {OrderId}", orderId);
-                return false;
+                throw new InvalidOperationException("Nije pronađeno plaćanje za PayPal narudžbu.");
             }
 
             return await MarkPayPalPaymentCompletedAsync(paymentEntity.Id, result.CaptureId, $"capture_status:{result.OrderStatus}");
@@ -606,6 +739,36 @@ namespace Application.Services
             }
 
             return await MarkPaymentCompletedCoreAsync(payment, intentId, $"stripe_session:{session.Id}");
+        }
+
+        private async Task<bool> FinalizeStripePaymentIntentInternalAsync(PaymentIntent intent)
+        {
+            if (!string.Equals(intent.Status, "succeeded", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation("Stripe PaymentIntent {IntentId} status: {Status}", intent.Id, intent.Status);
+                return false;
+            }
+
+            if (intent.Metadata == null || !intent.Metadata.ContainsKey("payment_id") || !int.TryParse(intent.Metadata["payment_id"], out var paymentId))
+            {
+                var payments = await _repository.FindAsync(p => p.CheckoutId == intent.Id && !p.IsDeleted);
+                var byCheckout = payments.OrderByDescending(p => p.Id).FirstOrDefault();
+                if (byCheckout == null)
+                {
+                    _logger.LogWarning("Stripe PaymentIntent bez payment_id metapodatka.");
+                    return false;
+                }
+                paymentId = byCheckout.Id;
+            }
+
+            var payment = await _repository.GetByIdAsync(paymentId);
+            if (payment == null || payment.PaymentMethod != DomainPaymentMethod.Stripe)
+                return false;
+
+            if (payment.Status == PaymentStatus.Completed)
+                return true;
+
+            return await MarkPaymentCompletedCoreAsync(payment, intent.Id, $"stripe_payment_intent:{intent.Id}");
         }
 
         private async Task<bool> MarkPayPalPaymentCompletedAsync(int paymentId, string? captureId, string? providerResponse)

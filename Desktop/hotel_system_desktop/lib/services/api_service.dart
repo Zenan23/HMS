@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/dashboard_statistics.dart';
@@ -52,6 +53,29 @@ class ApiService {
     final response = await http.delete(Uri.parse('$baseUrl$endpoint'), headers: headers);
     _handleError(response);
     return response;
+  }
+
+  Future<void> uploadHotelImage(int hotelId, PlatformFile file) async {
+    final uri = Uri.parse('$baseUrl/api/hotels/$hotelId/image');
+    final request = http.MultipartRequest('POST', uri);
+    final token = await getToken();
+    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+
+    if (file.bytes != null) {
+      request.files.add(http.MultipartFile.fromBytes(
+        'file',
+        file.bytes!,
+        filename: file.name,
+      ));
+    } else if (file.path != null) {
+      request.files.add(await http.MultipartFile.fromPath('file', file.path!, filename: file.name));
+    } else {
+      throw ApiException('Odabrana slika nije dostupna.');
+    }
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+    _handleError(response);
   }
 
   void _handleError(http.Response response) {

@@ -23,6 +23,83 @@ namespace Application.Services.PaymentProviders
 
         public DomainPaymentMethod SupportedMethod => DomainPaymentMethod.Stripe;
 
+        public async Task<PaymentIntentSessionResult> CreatePaymentIntentAsync(
+            Payment pendingPayment,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(_stripe.SecretKey))
+                {
+                    return new PaymentIntentSessionResult
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "Stripe SecretKey nije konfigurisan."
+                    };
+                }
+
+                var unitAmount = (long)Math.Round(pendingPayment.Amount * 100m, MidpointRounding.AwayFromZero);
+                if (unitAmount <= 0)
+                {
+                    return new PaymentIntentSessionResult
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "Iznos mora biti veći od 0."
+                    };
+                }
+
+                var client = new StripeClient(_stripe.SecretKey);
+                var service = new PaymentIntentService(client);
+                var options = new PaymentIntentCreateOptions
+                {
+                    Amount = unitAmount,
+                    Currency = pendingPayment.Currency.ToLowerInvariant(),
+                    // Eksplicitno kartica — pouzdanije za Payment Sheet nego automatic_payment_methods.
+                    PaymentMethodTypes = new List<string> { "card" },
+                    Metadata = new Dictionary<string, string>
+                    {
+                        ["payment_id"] = pendingPayment.Id.ToString(),
+                        ["booking_id"] = pendingPayment.BookingId.ToString(),
+                        ["user_id"] = pendingPayment.UserId.ToString(),
+                    },
+                    Description = string.IsNullOrWhiteSpace(pendingPayment.Description)
+                        ? $"Rezervacija #{pendingPayment.BookingId}"
+                        : pendingPayment.Description,
+                };
+
+                var intent = await service.CreateAsync(options, requestOptions: null, cancellationToken);
+                if (string.IsNullOrEmpty(intent.ClientSecret))
+                {
+                    return new PaymentIntentSessionResult
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "Stripe nije vratio client secret."
+                    };
+                }
+
+                return new PaymentIntentSessionResult
+                {
+                    IsSuccess = true,
+                    ClientSecret = intent.ClientSecret,
+                    PaymentIntentId = intent.Id,
+                };
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogError(ex, "Stripe PaymentIntent greška");
+                return new PaymentIntentSessionResult { IsSuccess = false, ErrorMessage = ex.Message };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Neočekivana greška pri Stripe PaymentIntent-u");
+                return new PaymentIntentSessionResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Greška pri kreiranju Stripe PaymentIntent-a."
+                };
+            }
+        }
+
         public async Task<HostedCheckoutSessionResult> CreateHostedCheckoutAsync(
             Payment pendingPayment,
             HostedCheckoutUrls urls,

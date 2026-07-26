@@ -46,6 +46,14 @@ namespace Contracts.DTOs
 
         [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
         public string? Description { get; set; }
+
+        /// <summary>Opciono: HTTP return URL za in-app WebView (npr. http://10.0.2.2:8080/payment-return).</summary>
+        [StringLength(500)]
+        public string? ReturnUrl { get; set; }
+
+        /// <summary>Opciono: HTTP cancel URL za in-app WebView.</summary>
+        [StringLength(500)]
+        public string? CancelUrl { get; set; }
     }
 
     public class HostedCheckoutResponseDto
@@ -53,6 +61,33 @@ namespace Contracts.DTOs
         public int PaymentId { get; set; }
         public string RedirectUrl { get; set; } = string.Empty;
         public PaymentMethod PaymentMethod { get; set; }
+    }
+
+    /// <summary>Client config for in-app checkout (Stripe publishable key, feature flags).</summary>
+    public class PaymentConfigDto
+    {
+        public bool EnableNativeCheckout { get; set; }
+        public bool UseHostedCheckout { get; set; }
+        public string? StripePublishableKey { get; set; }
+        public bool StripeConfigured { get; set; }
+        public bool PayPalConfigured { get; set; }
+    }
+
+    /// <summary>Stripe PaymentIntent for in-app Payment Sheet.</summary>
+    public class StripeIntentResponseDto
+    {
+        public int PaymentId { get; set; }
+        public string ClientSecret { get; set; } = string.Empty;
+        public string PaymentIntentId { get; set; } = string.Empty;
+        public string Currency { get; set; } = string.Empty;
+    }
+
+    /// <summary>PayPal order for in-app WebView approval.</summary>
+    public class PayPalNativeOrderResponseDto
+    {
+        public int PaymentId { get; set; }
+        public string OrderId { get; set; } = string.Empty;
+        public string ApproveUrl { get; set; } = string.Empty;
     }
 
     /// <summary>Legacy DTO kept for API compatibility; prefer <see cref="CreateHostedCheckoutDto"/>.</summary>

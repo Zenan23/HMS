@@ -6,6 +6,7 @@ import '../models/user.dart';
 import '../services/api_service.dart';
 import '../models/service.dart';
 import '../utils/validation_utils.dart';
+import '../utils/date_format_utils.dart';
 
 class BookingFormDialog extends StatefulWidget {
   final Booking? booking;
@@ -182,7 +183,9 @@ class _BookingFormDialogState extends State<BookingFormDialog> {
                       decoration:
                           const InputDecoration(labelText: 'Check-in datum'),
                       controller: TextEditingController(
-                          text: checkInDate?.toString().split(' ').first ?? ''),
+                          text: checkInDate != null
+                              ? formatDisplayDate(checkInDate)
+                              : ''),
                       onTap: () => _pickDate(isCheckIn: true),
                       validator: (_) => checkInDate == null ? 'Obavezno' : null,
                     ),
@@ -194,8 +197,9 @@ class _BookingFormDialogState extends State<BookingFormDialog> {
                       decoration:
                           const InputDecoration(labelText: 'Check-out datum'),
                       controller: TextEditingController(
-                          text:
-                              checkOutDate?.toString().split(' ').first ?? ''),
+                          text: checkOutDate != null
+                              ? formatDisplayDate(checkOutDate)
+                              : ''),
                       onTap: () => _pickDate(isCheckIn: false),
                       validator: (_) =>
                           checkOutDate == null ? 'Obavezno' : null,

@@ -212,8 +212,6 @@ class _RoomsScreenState extends State<RoomsScreen> {
                     DataColumn(label: Text('Opis')),
                     DataColumn(label: Text('Dostupna')),
                     DataColumn(label: Text('Hotel')),
-                    DataColumn(label: Text('Kreiran')),
-                    DataColumn(label: Text('Ažuriran')),
                     DataColumn(label: Text('Uredi')),
                     DataColumn(label: Text('Obriši')),
                   ],
@@ -231,8 +229,6 @@ class _RoomsScreenState extends State<RoomsScreen> {
                                 color:
                                     r.isAvailable ? Colors.green : Colors.red)),
                             DataCell(Text(r.hotelName ?? r.hotelId.toString())),
-                            DataCell(Text(r.createdAt.toString())),
-                            DataCell(Text(r.updatedAt.toString())),
                             DataCell(
                               IconButton(
                                 icon: const Icon(Icons.edit),
