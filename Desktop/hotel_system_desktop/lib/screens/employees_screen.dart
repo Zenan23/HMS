@@ -4,6 +4,7 @@ import '../widgets/employee_form.dart';
 import '../utils/date_format_utils.dart';
 import '../utils/display_labels.dart';
 import '../services/api_service.dart';
+import '../services/pdf_report_service.dart';
 import 'dart:convert';
 
 class EmployeesScreen extends StatefulWidget {
@@ -159,10 +160,21 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                   ),
                 ],
               ),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text('Dodaj uposlenika'),
-                onPressed: () => _openEmployeeForm(),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.picture_as_pdf),
+                    label: const Text('PDF'),
+                    onPressed: () =>
+                        PdfReportService.exportEmployees(context, _employees),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Dodaj uposlenika'),
+                    onPressed: () => _openEmployeeForm(),
+                  ),
+                ],
               ),
             ],
           ),

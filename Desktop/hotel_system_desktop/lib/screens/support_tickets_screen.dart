@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/support_ticket.dart';
+import '../services/pdf_report_service.dart';
 import '../services/support_ticket_service.dart';
 import '../utils/error_helper.dart';
 import '../widgets/support_ticket_form.dart';
@@ -70,7 +71,17 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Tiketi podrške')),
+      appBar: AppBar(
+        title: const Text('Tiketi podrške'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'PDF izvještaj',
+            onPressed: () =>
+                PdfReportService.exportSupportTickets(context, _tickets),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openForm(),
         child: const Icon(Icons.add),

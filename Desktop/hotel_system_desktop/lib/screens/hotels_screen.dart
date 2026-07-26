@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/hotel.dart';
 import '../services/api_service.dart';
+import '../services/pdf_report_service.dart';
 import '../widgets/hotel_form.dart';
 import '../utils/api_response.dart';
 import '../utils/image_utils.dart';
@@ -151,10 +152,21 @@ class _HotelsScreenState extends State<HotelsScreen> {
                     ),
                   ],
                 ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add),
-                  label: const Text('Dodaj hotel'),
-                  onPressed: () => _openHotelForm(),
+                Row(
+                  children: [
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text('PDF'),
+                      onPressed: () =>
+                          PdfReportService.exportHotels(context, _hotels),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Dodaj hotel'),
+                      onPressed: () => _openHotelForm(),
+                    ),
+                  ],
                 ),
               ],
             ),

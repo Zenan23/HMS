@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hotel_system_desktop/widgets/user_form.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../services/pdf_report_service.dart';
 import '../utils/date_format_utils.dart';
 import '../utils/display_labels.dart';
 import 'dart:convert';
@@ -158,10 +159,21 @@ class _UsersScreenState extends State<UsersScreen> {
                   ),
                 ],
               ),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text('Dodaj korisnika'),
-                onPressed: () => _openUserForm(),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.picture_as_pdf),
+                    label: const Text('PDF'),
+                    onPressed: () =>
+                        PdfReportService.exportUsers(context, _users),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Dodaj korisnika'),
+                    onPressed: () => _openUserForm(),
+                  ),
+                ],
               ),
             ],
           ),

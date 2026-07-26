@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/loyalty_points_redemption.dart';
 import '../services/loyalty_points_redemption_service.dart';
+import '../services/pdf_report_service.dart';
 import '../utils/date_format_utils.dart';
 import '../utils/error_helper.dart';
 import '../widgets/loyalty_redemption_form.dart';
@@ -66,7 +67,17 @@ class _LoyaltyRedemptionsScreenState extends State<LoyaltyRedemptionsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Iskorištenja bodova vjernosti')),
+      appBar: AppBar(
+        title: const Text('Iskorištenja bodova vjernosti'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'PDF izvještaj',
+            onPressed: () => PdfReportService.exportLoyaltyRedemptions(
+                context, _redemptions),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openForm(),
         tooltip: 'Novo iskorištenje',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/room_maintenance_log.dart';
+import '../services/pdf_report_service.dart';
 import '../services/room_maintenance_log_service.dart';
 import '../utils/date_format_utils.dart';
 import '../utils/error_helper.dart';
@@ -109,7 +110,17 @@ class _RoomMaintenanceLogsScreenState extends State<RoomMaintenanceLogsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Održavanje soba')),
+      appBar: AppBar(
+        title: const Text('Održavanje soba'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'PDF izvještaj',
+            onPressed: () =>
+                PdfReportService.exportMaintenanceLogs(context, _logs),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openForm(),
         tooltip: 'Novi zapis',

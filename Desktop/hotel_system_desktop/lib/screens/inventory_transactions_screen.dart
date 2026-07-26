@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/inventory_transaction.dart';
 import '../services/inventory_transaction_service.dart';
+import '../services/pdf_report_service.dart';
 import '../utils/date_format_utils.dart';
 import '../utils/error_helper.dart';
 import '../widgets/inventory_transaction_form.dart';
@@ -67,7 +68,17 @@ class _InventoryTransactionsScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Skladišne transakcije')),
+      appBar: AppBar(
+        title: const Text('Skladišne transakcije'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'PDF izvještaj',
+            onPressed: () => PdfReportService.exportInventoryTransactions(
+                context, _transactions),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openForm(),
         tooltip: 'Nova transakcija',

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
+import '../services/pdf_report_service.dart';
 import '../models/dashboard_statistics.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -98,6 +99,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ElevatedButton(
                 onPressed: _loadStatistics,
                 child: const Text('Osvježi'),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton.icon(
+                onPressed: _statistics == null
+                    ? null
+                    : () => PdfReportService.exportDashboard(
+                          context,
+                          _statistics!,
+                          fromDate: _fromDate,
+                          toDate: _toDate,
+                        ),
+                icon: const Icon(Icons.picture_as_pdf),
+                label: const Text('PDF'),
               ),
               const SizedBox(width: 16),
             ],

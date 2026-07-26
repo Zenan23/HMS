@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/price_adjustment.dart';
+import '../services/pdf_report_service.dart';
 import '../services/price_adjustment_service.dart';
 import '../utils/date_format_utils.dart';
 import '../utils/error_helper.dart';
@@ -87,7 +88,17 @@ class _PriceAdjustmentsScreenState extends State<PriceAdjustmentsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Upravljanje cijenama')),
+      appBar: AppBar(
+        title: const Text('Upravljanje cijenama'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'PDF izvještaj',
+            onPressed: () => PdfReportService.exportPriceAdjustments(
+                context, _adjustments),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openForm(),
         tooltip: 'Novo pravilo',

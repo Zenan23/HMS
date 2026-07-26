@@ -4,6 +4,7 @@ import '../models/booking.dart';
 import '../widgets/booking_form.dart';
 import '../utils/date_format_utils.dart';
 import '../services/api_service.dart';
+import '../services/pdf_report_service.dart';
 
 class BookingsScreen extends StatefulWidget {
   const BookingsScreen({super.key});
@@ -171,10 +172,21 @@ class _BookingsScreenState extends State<BookingsScreen> {
                   ),
                 ],
               ),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text('Dodaj rezervaciju'),
-                onPressed: () => _openBookingForm(),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.picture_as_pdf),
+                    label: const Text('PDF'),
+                    onPressed: () =>
+                        PdfReportService.exportBookings(context, _bookings),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Dodaj rezervaciju'),
+                    onPressed: () => _openBookingForm(),
+                  ),
+                ],
               ),
             ],
           ),

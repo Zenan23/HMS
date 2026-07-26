@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/room.dart';
 import '../services/api_service.dart';
+import '../services/pdf_report_service.dart';
 import '../utils/display_labels.dart';
 import '../widgets/room_form.dart';
 
@@ -158,10 +159,21 @@ class _RoomsScreenState extends State<RoomsScreen> {
                     ),
                   ],
                 ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add),
-                  label: const Text('Dodaj sobu'),
-                  onPressed: _openRoomForm,
+                Row(
+                  children: [
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text('PDF'),
+                      onPressed: () =>
+                          PdfReportService.exportRooms(context, _rooms),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Dodaj sobu'),
+                      onPressed: _openRoomForm,
+                    ),
+                  ],
                 ),
               ],
             ),
