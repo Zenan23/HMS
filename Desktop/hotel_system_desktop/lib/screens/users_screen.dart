@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hotel_system_desktop/widgets/user_form.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../utils/date_format_utils.dart';
 import 'dart:convert';
 
 class UsersScreen extends StatefulWidget {
@@ -212,8 +213,6 @@ class _UsersScreenState extends State<UsersScreen> {
                           DataColumn(label: Text('Uloga')),
                           DataColumn(label: Text('Aktivan')),
                           DataColumn(label: Text('Zadnja prijava')),
-                          DataColumn(label: Text('Kreiran')),
-                          DataColumn(label: Text('Ažuriran')),
                           DataColumn(label: Text('Akcije')),
                         ],
                         rows: _users
@@ -225,9 +224,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                   DataCell(Text(emp.phoneNumber)),
                                   DataCell(Text(emp.role.name)),
                                   DataCell(Text(emp.isActive ? 'Da' : 'Ne')),
-                                  DataCell(Text(emp.lastLoginDate?.toString() ?? '-')),
-                                  DataCell(Text(emp.createdAt.toString())),
-                                  DataCell(Text(emp.updatedAt.toString())),
+                                  DataCell(Text(formatDisplayDate(emp.lastLoginDate))),
                                   DataCell(Row(
                                     children: [
                                       IconButton(

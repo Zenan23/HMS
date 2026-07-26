@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/booking.dart';
 import '../widgets/booking_form.dart';
+import '../utils/date_format_utils.dart';
 import '../services/api_service.dart';
 
 class BookingsScreen extends StatefulWidget {
@@ -221,18 +222,16 @@ class _BookingsScreenState extends State<BookingsScreen> {
                   DataColumn(label: Text('BrGostiju')),
                   DataColumn(label: Text('Zahtjevi')),
                   DataColumn(label: Text('Cijena')),
-                  DataColumn(label: Text('Ažurirano')),
                   DataColumn(label: Text('Uredi')),
                   DataColumn(label: Text('Obriši')),
                 ],
                 rows: _bookings
                     .map((booking) => DataRow(cells: [
-                          DataCell(Text(booking.checkInDate.toString())),
-                          DataCell(Text(booking.checkOutDate.toString())),
+                          DataCell(Text(formatDisplayDate(booking.checkInDate))),
+                          DataCell(Text(formatDisplayDate(booking.checkOutDate))),
                           DataCell(Text(booking.numberOfGuests.toString())),
                           DataCell(Text(booking.specialRequests)),
                           DataCell(Text(booking.totalPrice.toStringAsFixed(2))),
-                          DataCell(Text(booking.updatedAt.toString())),
                           DataCell(
                             IconButton(
                               icon: const Icon(Icons.edit),

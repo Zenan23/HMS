@@ -15,6 +15,7 @@ namespace Application.Services
         private readonly IBookingService _bookingService;
         private readonly IRepository<Room> _roomRepository;
         private readonly IRepository<Booking> _bookingRepository;
+        private readonly IFileStorageService _fileStorage;
 
         public HotelService(
             IHotelRepository hotelRepository,
@@ -23,6 +24,7 @@ namespace Application.Services
             IBookingService bookingService,
             IRepository<Room> roomRepository,
             IRepository<Booking> bookingRepository,
+            IFileStorageService fileStorage,
             IMapper mapper,
             ILogger<HotelService> logger)
             : base(hotelRepository, mapper, logger)
@@ -33,6 +35,7 @@ namespace Application.Services
             _bookingService = bookingService;
             _roomRepository = roomRepository;
             _bookingRepository = bookingRepository;
+            _fileStorage = fileStorage;
         }
 
         public async Task<IEnumerable<HotelDto>> GetAllHotelsAsync(int? rating = null, string city = null, string name = null)
@@ -217,7 +220,40 @@ namespace Application.Services
             if (!await _hotelRepository.ExistsAsync(id))
                 return false;
 
+            var hotel = await _hotelRepository.GetByIdAsync(id);
+            if (hotel != null && !string.IsNullOrWhiteSpace(hotel.ImageUrl))
+                await _fileStorage.DeleteHotelImageAsync(hotel.ImageUrl);
+
             await _hotelRepository.DeleteAsync(id);
+            return true;
+        }
+
+        public async Task<HotelDto?> SetHotelImageAsync(int hotelId, Stream fileStream, string fileName, CancellationToken cancellationToken = default)
+        {
+            var hotel = await _hotelRepository.GetByIdAsync(hotelId);
+            if (hotel == null)
+                return null;
+
+            if (!string.IsNullOrWhiteSpace(hotel.ImageUrl))
+                await _fileStorage.DeleteHotelImageAsync(hotel.ImageUrl);
+
+            hotel.ImageUrl = await _fileStorage.SaveHotelImageAsync(hotelId, fileStream, fileName, cancellationToken);
+            hotel.UpdatedAt = DateTime.UtcNow;
+            await _hotelRepository.UpdateAsync(hotel);
+
+            return await GetHotelByIdAsync(hotelId);
+        }
+
+        public async Task<bool> RemoveHotelImageAsync(int hotelId, CancellationToken cancellationToken = default)
+        {
+            var hotel = await _hotelRepository.GetByIdAsync(hotelId);
+            if (hotel == null)
+                return false;
+
+            await _fileStorage.DeleteHotelImageAsync(hotel.ImageUrl);
+            hotel.ImageUrl = string.Empty;
+            hotel.UpdatedAt = DateTime.UtcNow;
+            await _hotelRepository.UpdateAsync(hotel);
             return true;
         }
 

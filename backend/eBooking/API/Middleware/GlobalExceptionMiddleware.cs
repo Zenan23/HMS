@@ -37,7 +37,7 @@ namespace API.Middleware
             {
                 case ArgumentNullException:
                     response.StatusCode = (int)HttpStatusCode.BadRequest;
-                    response.Message = "Invalid request data";
+                    response.Message = "Neispravni podaci u zahtjevu.";
                     break;
                 case ArgumentException:
                     response.StatusCode = (int)HttpStatusCode.BadRequest;
@@ -45,11 +45,11 @@ namespace API.Middleware
                     break;
                 case KeyNotFoundException:
                     response.StatusCode = (int)HttpStatusCode.NotFound;
-                    response.Message = "Resource not found";
+                    response.Message = "Resurs nije pronađen.";
                     break;
                 case UnauthorizedAccessException:
                     response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                    response.Message = "Unauthorized access";
+                    response.Message = "Nemate pristup ovom resursu.";
                     break;
                 case InvalidOperationException:
                     response.StatusCode = (int)HttpStatusCode.Conflict;
@@ -57,7 +57,7 @@ namespace API.Middleware
                     break;
                 default:
                     response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                    response.Message = "An internal server error occurred";
+                    response.Message = "Došlo je do interne greške servera.";
                     break;
             }
 

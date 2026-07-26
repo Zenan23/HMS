@@ -35,4 +35,14 @@ class RoomsService {
     if (data is num) return data.toDouble();
     return double.parse(data.toString());
   }
+
+  Future<Room?> getRoomById(int roomId) async {
+    final response = await ApiService.get('/Rooms/$roomId');
+    if (response.statusCode != 200) return null;
+    try {
+      return ApiResponseParser.parseObject(response, Room.fromJson);
+    } catch (_) {
+      return null;
+    }
+  }
 }

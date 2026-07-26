@@ -210,8 +210,6 @@ class _ServicesScreenState extends State<ServicesScreen> {
                     DataColumn(label: Text('Dostupno')),
                     DataColumn(label: Text('Aktivno')),
                     DataColumn(label: Text('Hotel')),
-                    DataColumn(label: Text('Kreiran')),
-                    DataColumn(label: Text('Ažuriran')),
                     DataColumn(label: Text('Uredi')),
                     DataColumn(label: Text('Obriši')),
                   ],
@@ -231,8 +229,6 @@ class _ServicesScreenState extends State<ServicesScreen> {
                                 s.isActive ? Icons.check : Icons.close,
                                 color: s.isActive ? Colors.green : Colors.red)),
                             DataCell(Text(s.hotelId.toString())),
-                            DataCell(Text(s.createdAt.toString())),
-                            DataCell(Text(s.updatedAt.toString())),
                             DataCell(
                               IconButton(
                                 icon: const Icon(Icons.edit),

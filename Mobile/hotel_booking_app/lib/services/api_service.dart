@@ -22,6 +22,9 @@ class ApiService {
     return 'http://localhost:8080/api';
   }();
 
+  /// Korijen API servera bez /api — za static uploads (/uploads/...).
+  static String get apiOrigin => Uri.parse(baseUrl).origin;
+
   static Future<String?> getToken() async {
     // Primarni ključ: usklađeno sa desktop klijentom
     final directToken = await _storage.read(key: 'jwt_token');

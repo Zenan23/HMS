@@ -23,6 +23,36 @@ namespace API.Controllers
             _logger = logger;
         }
 
+        protected ActionResult<ApiResponse<TDto>>? MapServiceException(Exception ex, string operation)
+        {
+            switch (ex)
+            {
+                case ArgumentException:
+                    return BadRequest(ApiResponse<TDto>.ErrorResult(ex.Message));
+                case InvalidOperationException:
+                    return Conflict(ApiResponse<TDto>.ErrorResult(ex.Message));
+                case KeyNotFoundException:
+                    return NotFound(ApiResponse<TDto>.ErrorResult(ex.Message));
+                default:
+                    return null;
+            }
+        }
+
+        protected ActionResult<ApiResponse<bool>>? MapBoolServiceException(Exception ex)
+        {
+            switch (ex)
+            {
+                case ArgumentException:
+                    return BadRequest(ApiResponse<bool>.ErrorResult(ex.Message));
+                case InvalidOperationException:
+                    return Conflict(ApiResponse<bool>.ErrorResult(ex.Message));
+                case KeyNotFoundException:
+                    return NotFound(ApiResponse<bool>.ErrorResult(ex.Message));
+                default:
+                    return null;
+            }
+        }
+
         /// <summary>
         /// Get entity by ID
         /// </summary>
@@ -35,21 +65,21 @@ namespace API.Controllers
             {
                 if (id <= 0)
                 {
-                    return BadRequest(ApiResponse<TDto>.ErrorResult("Invalid ID. ID must be greater than 0."));
+                    return BadRequest(ApiResponse<TDto>.ErrorResult("Neispravan ID. ID mora biti veći od 0."));
                 }
 
                 var dto = await _service.GetByIdAsync(id);
                 if (dto == null)
                 {
-                    return NotFound(ApiResponse<TDto>.ErrorResult($"Entity with ID {id} not found."));
+                    return NotFound(ApiResponse<TDto>.ErrorResult($"Zapis sa ID {id} nije pronađen."));
                 }
 
-                return Ok(ApiResponse<TDto>.SuccessResult(dto, "Entity retrieved successfully."));
+                return Ok(ApiResponse<TDto>.SuccessResult(dto, "Zapis je uspješno učitan."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving entity with ID: {Id}", id);
-                return StatusCode(500, ApiResponse<TDto>.ErrorResult("An error occurred while retrieving the entity."));
+                return StatusCode(500, ApiResponse<TDto>.ErrorResult("Došlo je do greške pri učitavanju zapisa."));
             }
         }
 
@@ -83,12 +113,12 @@ namespace API.Controllers
 
                 return Ok(ApiResponse<PaginatedResult<TDto>>.SuccessResult(
                     paginatedResult,
-                    "Entities retrieved successfully."));
+                    "Zapisi su uspješno učitani."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving entities");
-                return StatusCode(500, ApiResponse<PaginatedResult<TDto>>.ErrorResult("An error occurred while retrieving entities."));
+                return StatusCode(500, ApiResponse<PaginatedResult<TDto>>.ErrorResult("Došlo je do greške pri učitavanju zapisa."));
             }
         }
 
@@ -106,7 +136,7 @@ namespace API.Controllers
                 {
                     var errors = ModelState.Values.SelectMany(v => v.Errors)
                                                   .Select(e => e.ErrorMessage);
-                    return BadRequest(ApiResponse<TDto>.ErrorResult("Validation failed.", errors));
+                    return BadRequest(ApiResponse<TDto>.ErrorResult("Validacija nije uspjela.", errors));
                 }
 
                 var dto = await _service.CreateAsync(createDto);
@@ -114,12 +144,16 @@ namespace API.Controllers
                 return CreatedAtAction(
                     nameof(GetById),
                     new { id = dto.Id },
-                    ApiResponse<TDto>.SuccessResult(dto, "Entity created successfully."));
+                    ApiResponse<TDto>.SuccessResult(dto, "Zapis je uspješno kreiran."));
             }
             catch (Exception ex)
             {
+                var mapped = MapServiceException(ex, "create");
+                if (mapped != null)
+                    return mapped;
+
                 _logger.LogError(ex, "Error creating entity");
-                return StatusCode(500, ApiResponse<TDto>.ErrorResult("An error occurred while creating the entity."));
+                return StatusCode(500, ApiResponse<TDto>.ErrorResult("Došlo je do greške pri kreiranju zapisa."));
             }
         }
 
@@ -136,34 +170,38 @@ namespace API.Controllers
             {
                 if (id <= 0)
                 {
-                    return BadRequest(ApiResponse<TDto>.ErrorResult("Invalid ID. ID must be greater than 0."));
+                    return BadRequest(ApiResponse<TDto>.ErrorResult("Neispravan ID. ID mora biti veći od 0."));
                 }
 
                 if (id != updateDto.Id)
                 {
-                    return BadRequest(ApiResponse<TDto>.ErrorResult("ID in URL does not match ID in request body."));
+                    return BadRequest(ApiResponse<TDto>.ErrorResult("ID u URL-u se ne poklapa sa ID-om u tijelu zahtjeva."));
                 }
 
                 if (!ModelState.IsValid)
                 {
                     var errors = ModelState.Values.SelectMany(v => v.Errors)
                                                   .Select(e => e.ErrorMessage);
-                    return BadRequest(ApiResponse<TDto>.ErrorResult("Validation failed.", errors));
+                    return BadRequest(ApiResponse<TDto>.ErrorResult("Validacija nije uspjela.", errors));
                 }
 
                 var result = await _service.UpdateAsync(id, updateDto);
                 if (!result)
                 {
-                    return NotFound(ApiResponse<TDto>.ErrorResult($"Entity with ID {id} not found."));
+                    return NotFound(ApiResponse<TDto>.ErrorResult($"Zapis sa ID {id} nije pronađen."));
                 }
 
                 var updatedDto = await _service.GetByIdAsync(id);
-                return Ok(ApiResponse<TDto>.SuccessResult(updatedDto!, "Entity updated successfully."));
+                return Ok(ApiResponse<TDto>.SuccessResult(updatedDto!, "Zapis je uspješno ažuriran."));
             }
             catch (Exception ex)
             {
+                var mapped = MapServiceException(ex, "update");
+                if (mapped != null)
+                    return mapped;
+
                 _logger.LogError(ex, "Error updating entity with ID: {Id}", id);
-                return StatusCode(500, ApiResponse<TDto>.ErrorResult("An error occurred while updating the entity."));
+                return StatusCode(500, ApiResponse<TDto>.ErrorResult("Došlo je do greške pri ažuriranju zapisa."));
             }
         }
 
@@ -179,22 +217,26 @@ namespace API.Controllers
             {
                 if (id <= 0)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Invalid ID. ID must be greater than 0."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Neispravan ID. ID mora biti veći od 0."));
                 }
 
                 var exists = await _service.ExistsAsync(id);
                 if (!exists)
                 {
-                    return NotFound(ApiResponse<bool>.ErrorResult($"Entity with ID {id} not found."));
+                    return NotFound(ApiResponse<bool>.ErrorResult($"Zapis sa ID {id} nije pronađen."));
                 }
 
                 var result = await _service.DeleteAsync(id);
-                return Ok(ApiResponse<bool>.SuccessResult(result, "Entity deleted successfully."));
+                return Ok(ApiResponse<bool>.SuccessResult(result, "Zapis je uspješno obrisan."));
             }
             catch (Exception ex)
             {
+                var mapped = MapBoolServiceException(ex);
+                if (mapped != null)
+                    return mapped;
+
                 _logger.LogError(ex, "Error deleting entity with ID: {Id}", id);
-                return StatusCode(500, ApiResponse<bool>.ErrorResult("An error occurred while deleting the entity."));
+                return StatusCode(500, ApiResponse<bool>.ErrorResult("Došlo je do greške pri brisanju zapisa."));
             }
         }
 

@@ -1,6 +1,7 @@
 using API.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using System.Reflection;
 using System.Text;
@@ -81,6 +82,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // Add services
 builder.Services.AddScoped<IHotelService, HotelService>();
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
@@ -193,6 +195,9 @@ builder.Services.AddSignalR();
 
 var app = builder.Build();
 
+var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "uploads");
+Directory.CreateDirectory(uploadsPath);
+
 app.Use(async (context, next) =>
 {
     context.Request.EnableBuffering();
@@ -221,6 +226,31 @@ if (enableHttpsRedirection)
 }
 app.UseRouting();
 app.UseCors("AllowWeb");
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads",
+    OnPrepareResponse = ctx =>
+    {
+        var origin = ctx.Context.Request.Headers.Origin.ToString();
+        if (string.IsNullOrEmpty(origin))
+            return;
+
+        try
+        {
+            var host = new Uri(origin).Host;
+            if (host is "localhost" or "127.0.0.1")
+            {
+                ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", origin);
+                ctx.Context.Response.Headers.Append("Access-Control-Allow-Credentials", "true");
+            }
+        }
+        catch
+        {
+            // ignore invalid Origin
+        }
+    }
+});
 
 // vidi gore - opciono kroz UseHttpsRedirection flag
 app.UseAuthentication();

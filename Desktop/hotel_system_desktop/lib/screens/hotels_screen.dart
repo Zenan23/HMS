@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/hotel.dart';
 import '../services/api_service.dart';
 import '../widgets/hotel_form.dart';
+import '../utils/api_response.dart';
+import '../utils/image_utils.dart';
 
 class HotelsScreen extends StatefulWidget {
   const HotelsScreen({super.key});
@@ -16,13 +18,19 @@ class _HotelsScreenState extends State<HotelsScreen> {
   int _totalPages = 1;
   bool _isLoading = false;
   List<Hotel> _hotels = [];
-  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
   bool _isSearchMode = false;
 
   @override
   void initState() {
     super.initState();
     _fetchHotels(_page);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchHotels(int page) async {
@@ -52,22 +60,19 @@ class _HotelsScreenState extends State<HotelsScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await ApiService().get('/api/hotels/by-city/$name');
-      final Map<String, dynamic> decoded = jsonDecode(response.body);
-      final data = decoded['data'] ?? {};
-      final List items = data['items'] ?? [];
-      final hotels = items.map((e) => Hotel.fromJson(e)).toList();
-      
+      final hotels = ApiResponseParser.parseList(response, Hotel.fromJson);
+
       setState(() {
         _hotels = hotels;
         _page = 1;
         _totalPages = 1;
         _isSearchMode = true;
       });
-      
+
       if (hotels.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Hotel sa tim nazivom nije pronađen.'),
+            content: Text('Nema hotela u traženom gradu.'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -80,13 +85,19 @@ class _HotelsScreenState extends State<HotelsScreen> {
         _isSearchMode = true;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Hotel sa tim nazivom nije pronađen.'),
-          backgroundColor: Colors.orange,
-        ),
+        SnackBar(content: Text(e.toString())),
       );
     }
     setState(() => _isLoading = false);
+  }
+
+  void _applyCityFilter() {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) {
+      _fetchHotels(1);
+    } else {
+      _fetchHotelsByName(query);
+    }
   }
 
   void _openHotelForm({Hotel? hotel}) async {
@@ -116,38 +127,24 @@ class _HotelsScreenState extends State<HotelsScreen> {
                     SizedBox(
                       width: 200,
                       child: TextField(
+                        controller: _searchController,
                         decoration: const InputDecoration(
                           labelText: 'Pretraži po nazivu grada',
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.search),
                         ),
-                        onChanged: (value) {
-                          setState(() {
-                            _searchQuery = value;
-                          });
-                        },
-                        onSubmitted: (value) {
-                          if (value.isNotEmpty) {
-                            _fetchHotelsByName(value);
-                          }
-                        },
+                        onSubmitted: (_) => _applyCityFilter(),
                       ),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
-                      onPressed: () {
-                        if (_searchQuery.isNotEmpty) {
-                          _fetchHotelsByName(_searchQuery);
-                        }
-                      },
+                      onPressed: _applyCityFilter,
                       child: const Text('Filtriraj'),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
                       onPressed: () {
-                        setState(() {
-                          _searchQuery = '';
-                        });
+                        _searchController.clear();
                         _fetchHotels(1);
                       },
                       child: const Text('Očisti filtere'),
@@ -209,8 +206,6 @@ class _HotelsScreenState extends State<HotelsScreen> {
                     DataColumn(label: Text('Email')),
                     DataColumn(label: Text('Opis')),
                     DataColumn(label: Text('Zvjezdice')),
-                    DataColumn(label: Text('Kreiran')),
-                    DataColumn(label: Text('Ažuriran')),
                     DataColumn(label: Text('Akcije')),
                   ],
                   rows: _hotels
@@ -218,7 +213,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
                             DataCell(
                               hotel.imageUrl.isNotEmpty
                                   ? Image.network(
-                                      hotel.imageUrl,
+                                      resolveImageUrl(hotel.imageUrl),
                                       width: 60,
                                       height: 40,
                                       fit: BoxFit.cover,
@@ -234,8 +229,6 @@ class _HotelsScreenState extends State<HotelsScreen> {
                             DataCell(Text(hotel.email)),
                             DataCell(Text(hotel.description)),
                             DataCell(Text(hotel.averageRating.toString())),
-                            DataCell(Text(hotel.createdAt.toString())),
-                            DataCell(Text(hotel.updatedAt.toString())),
                             DataCell(Row(
                               children: [
                                 IconButton(

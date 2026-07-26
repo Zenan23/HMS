@@ -1,3 +1,5 @@
+import '../utils/image_utils.dart';
+
 class Hotel {
   final int id;
   final String name;
@@ -31,6 +33,9 @@ class Hotel {
     required this.imageUrl,
   });
 
+  /// Puni URL slike (npr. /uploads/hotels/... → http://host:8080/uploads/...).
+  String get displayImageUrl => resolveImageUrl(imageUrl);
+
   factory Hotel.fromJson(Map<String, dynamic> json) {
     return Hotel(
       id: json['id'],
@@ -46,7 +51,7 @@ class Hotel {
       reviewsCount: json['reviewsCount'] as int?,
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
-      imageUrl: json['imageUrl'],
+      imageUrl: json['imageUrl']?.toString() ?? '',
     );
   }
 

@@ -222,7 +222,7 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
       } catch (e) {
         Navigator.pop(context); // zatvori loading
         setState(() {
-          _error = 'Greška pri kreiranju rezervacije.';
+          _error = e.toString();
         });
       }
     }

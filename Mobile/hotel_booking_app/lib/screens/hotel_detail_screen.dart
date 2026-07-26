@@ -103,7 +103,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                           final dpr = MediaQuery.of(context).devicePixelRatio;
                           final targetWidth = (constraints.maxWidth * dpr).clamp(480, 1600).round();
                           return Image.network(
-                            widget.hotel.imageUrl,
+                            widget.hotel.displayImageUrl,
                             fit: BoxFit.cover,
                             gaplessPlayback: true,
                             cacheWidth: targetWidth,
@@ -152,7 +152,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.network(
-                widget.hotel.imageUrl,
+                widget.hotel.displayImageUrl,
                 height: 180,
                 width: double.infinity,
                 fit: BoxFit.cover,

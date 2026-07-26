@@ -115,6 +115,67 @@ namespace API.Controllers
         }
 
         /// <summary>
+        /// Upload hotel image (Admin/Manager only)
+        /// </summary>
+        [HttpPost("{id}/image")]
+        [AuthorizeRole(UserRole.Employee)]
+        public async Task<ActionResult<ApiResponse<HotelDto>>> UploadImage([FromRoute] int id, IFormFile file)
+        {
+            try
+            {
+                if (id <= 0)
+                    return BadRequest(ApiResponse<HotelDto>.ErrorResult("Neispravan ID hotela."));
+
+                if (file == null || file.Length == 0)
+                    return BadRequest(ApiResponse<HotelDto>.ErrorResult("Slika nije poslana."));
+
+                if (file.Length > 5 * 1024 * 1024)
+                    return BadRequest(ApiResponse<HotelDto>.ErrorResult("Slika ne smije biti veća od 5 MB."));
+
+                await using var stream = file.OpenReadStream();
+                var updated = await _hotelService.SetHotelImageAsync(id, stream, file.FileName);
+                if (updated == null)
+                    return NotFound(ApiResponse<HotelDto>.ErrorResult($"Hotel sa ID {id} nije pronađen."));
+
+                return Ok(ApiResponse<HotelDto>.SuccessResult(updated, "Slika hotela je uspješno uploadovana."));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<HotelDto>.ErrorResult(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Greška pri uploadu slike za hotel {HotelId}", id);
+                return StatusCode(500, ApiResponse<HotelDto>.ErrorResult("Došlo je do greške pri uploadu slike."));
+            }
+        }
+
+        /// <summary>
+        /// Remove hotel image (Admin/Manager only)
+        /// </summary>
+        [HttpDelete("{id}/image")]
+        [AuthorizeRole(UserRole.Employee)]
+        public async Task<ActionResult<ApiResponse<bool>>> DeleteImage([FromRoute] int id)
+        {
+            try
+            {
+                if (id <= 0)
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Neispravan ID hotela."));
+
+                var removed = await _hotelService.RemoveHotelImageAsync(id);
+                if (!removed)
+                    return NotFound(ApiResponse<bool>.ErrorResult($"Hotel sa ID {id} nije pronađen."));
+
+                return Ok(ApiResponse<bool>.SuccessResult(true, "Slika hotela je uklonjena."));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Greška pri brisanju slike za hotel {HotelId}", id);
+                return StatusCode(500, ApiResponse<bool>.ErrorResult("Došlo je do greške pri brisanju slike."));
+            }
+        }
+
+        /// <summary>
         /// Create a new hotel (Admin/Manager only)
         /// </summary>
         /// <param name="createDto">Hotel creation data</param>

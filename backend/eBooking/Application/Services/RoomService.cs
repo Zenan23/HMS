@@ -141,15 +141,15 @@ namespace Application.Services
         {
             var room = await _repository.GetByIdAsync(roomId);
             if (room == null)
-                throw new InvalidOperationException("Room not found.");
+                throw new InvalidOperationException("Soba nije pronađena.");
             if (checkIn >= checkOut)
-                throw new ArgumentException("Check-in date must be before check-out date.");
+                throw new ArgumentException("Datum dolaska mora biti prije datuma odlaska.");
             if (guests <= 0)
-                throw new ArgumentException("Number of guests must be at least 1.");
+                throw new ArgumentException("Broj gostiju mora biti najmanje 1.");
 
             var nights = (checkOut.Date - checkIn.Date).Days;
             if (nights <= 0)
-                throw new ArgumentException("Stay must be at least one night.");
+                throw new ArgumentException("Boravak mora trajati najmanje jednu noć.");
 
             decimal total = nights * room.PricePerNight;
             return await _priceAdjustmentService.ApplyActiveAdjustmentsAsync(total, checkIn);
@@ -157,15 +157,15 @@ namespace Application.Services
 
         public async Task<decimal> CalculatePriceAsync(int roomId, DateTime checkIn, DateTime checkOut, int guests, IEnumerable<(int ServiceId, int Quantity)> services)
         {
-            var room = await _repository.GetByIdAsync(roomId) ?? throw new InvalidOperationException("Room not found.");
+            var room = await _repository.GetByIdAsync(roomId) ?? throw new InvalidOperationException("Soba nije pronađena.");
             if (checkIn >= checkOut)
-                throw new ArgumentException("Check-in date must be before check-out date.");
+                throw new ArgumentException("Datum dolaska mora biti prije datuma odlaska.");
             if (guests <= 0)
-                throw new ArgumentException("Number of guests must be at least 1.");
+                throw new ArgumentException("Broj gostiju mora biti najmanje 1.");
 
             var nights = (checkOut.Date - checkIn.Date).Days;
             if (nights <= 0)
-                throw new ArgumentException("Stay must be at least one night.");
+                throw new ArgumentException("Boravak mora trajati najmanje jednu noć.");
 
             decimal total = nights * room.PricePerNight;
 
@@ -177,7 +177,7 @@ namespace Application.Services
                     if (svc == null || !svc.IsAvailable)
                         continue;
                     if (svc.HotelId != room.HotelId)
-                        throw new InvalidOperationException("Service does not belong to the room's hotel.");
+                        throw new InvalidOperationException("Usluga ne pripada hotelu ove sobe.");
                     var qty = item.Quantity <= 0 ? 1 : item.Quantity;
                     total += svc.Price * qty;
                 }

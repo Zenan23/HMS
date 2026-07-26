@@ -41,4 +41,20 @@ namespace Persistence.Interfaces
         public decimal RefundedAmount { get; set; }
         public DateTime ProcessedAt { get; set; }
     }
+
+    public class PaymentIntentSessionResult
+    {
+        public bool IsSuccess { get; set; }
+        public string? ClientSecret { get; set; }
+        public string? PaymentIntentId { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    public class PayPalNativeOrderResult
+    {
+        public bool IsSuccess { get; set; }
+        public string? OrderId { get; set; }
+        public string? ApproveUrl { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
 }

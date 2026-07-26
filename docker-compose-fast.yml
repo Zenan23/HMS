@@ -72,21 +72,25 @@ services:
       - Payments__SkipPayPalWebhookVerification=${PAYMENTS_SKIP_PAYPAL_WEBHOOK_VERIFICATION:-false}
       - Payments__Stripe__SecretKey=${STRIPE_SECRET_KEY:-}
       - Payments__Stripe__WebhookSecret=${STRIPE_WEBHOOK_SECRET:-}
-      - Payments__Stripe__SuccessUrl=${STRIPE_SUCCESS_URL:-http://localhost:8080/payment-return}
-      - Payments__Stripe__CancelUrl=${STRIPE_CANCEL_URL:-http://localhost:8080/payment-cancel}
+      - Payments__Stripe__SuccessUrl=${STRIPE_SUCCESS_URL:-ebooking://payment-return}
+      - Payments__Stripe__CancelUrl=${STRIPE_CANCEL_URL:-ebooking://payment-cancel}
       - Payments__PayPal__ClientId=${PAYPAL_CLIENT_ID:-}
       - Payments__PayPal__ClientSecret=${PAYPAL_CLIENT_SECRET:-}
       - Payments__PayPal__BaseUrl=${PAYPAL_API_BASE_URL:-https://api-m.sandbox.paypal.com}
       - Payments__PayPal__WebhookId=${PAYPAL_WEBHOOK_ID:-}
-      - Payments__PayPal__ReturnUrl=${PAYPAL_RETURN_URL:-http://localhost:8080/payment-return}
-      - Payments__PayPal__CancelUrl=${PAYPAL_CANCEL_URL:-http://localhost:8080/payment-cancel}
+      - Payments__PayPal__ReturnUrl=${PAYPAL_RETURN_URL:-ebooking://payment-return}
+      - Payments__PayPal__CancelUrl=${PAYPAL_CANCEL_URL:-ebooking://payment-cancel}
     ports:
       - "8080:8080"
+    volumes:
+      - hotel_uploads:/app/uploads
     restart: unless-stopped
 
 volumes:
   mssql_data:
     driver: local
   rabbitmq_data:
+    driver: local
+  hotel_uploads:
     driver: local
 

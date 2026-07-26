@@ -23,6 +23,96 @@ namespace API.Controllers
         }
 
         /// <summary>
+        /// Konfiguracija plaćanja za mobilnu aplikaciju (publishable key, feature flags).
+        /// </summary>
+        [HttpGet("config")]
+        public ActionResult<ApiResponse<PaymentConfigDto>> GetConfig()
+        {
+            var config = _paymentService.GetPaymentConfig();
+            return Ok(ApiResponse<PaymentConfigDto>.SuccessResult(config, "Konfiguracija plaćanja."));
+        }
+
+        /// <summary>
+        /// Stripe PaymentIntent za in-app Payment Sheet.
+        /// </summary>
+        [HttpPost("stripe/intent")]
+        public async Task<ActionResult<ApiResponse<StripeIntentResponseDto>>> StripeIntent([FromBody] CreateHostedCheckoutDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                    return BadRequest(ApiResponse<StripeIntentResponseDto>.ErrorResult("Validation failed.", errors));
+                }
+
+                var userAgent = Request.Headers["User-Agent"].ToString();
+                var ipAddress = GetClientIpAddress();
+                var result = await _paymentService.StartStripeIntentAsync(dto, userAgent, ipAddress);
+                return Ok(ApiResponse<StripeIntentResponseDto>.SuccessResult(result, "PaymentIntent kreiran."));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<StripeIntentResponseDto>.ErrorResult(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Stripe intent greška");
+                return StatusCode(500, ApiResponse<StripeIntentResponseDto>.ErrorResult("Greška pri kreiranju PaymentIntent-a."));
+            }
+        }
+
+        /// <summary>
+        /// Potvrda Stripe PaymentIntent-a nakon Payment Sheet-a (ako webhook nije stigao).
+        /// </summary>
+        [HttpPost("stripe/confirm")]
+        public async Task<ActionResult<ApiResponse<bool>>> StripeConfirm([FromQuery] string payment_intent_id)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(payment_intent_id))
+                    return BadRequest(ApiResponse<bool>.ErrorResult("payment_intent_id je obavezan."));
+                var ok = await _paymentService.TryConfirmStripePaymentIntentAsync(payment_intent_id);
+                return Ok(ApiResponse<bool>.SuccessResult(ok, ok ? "Plaćanje potvrđeno." : "Plaćanje još nije završeno ili je već obrađeno."));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Stripe confirm greška");
+                return StatusCode(500, ApiResponse<bool>.ErrorResult("Greška."));
+            }
+        }
+
+        /// <summary>
+        /// PayPal narudžba za in-app WebView (approve URL).
+        /// </summary>
+        [HttpPost("paypal/order")]
+        public async Task<ActionResult<ApiResponse<PayPalNativeOrderResponseDto>>> PayPalOrder([FromBody] CreateHostedCheckoutDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                    return BadRequest(ApiResponse<PayPalNativeOrderResponseDto>.ErrorResult("Validation failed.", errors));
+                }
+
+                var userAgent = Request.Headers["User-Agent"].ToString();
+                var ipAddress = GetClientIpAddress();
+                var result = await _paymentService.StartPayPalNativeOrderAsync(dto, userAgent, ipAddress);
+                return Ok(ApiResponse<PayPalNativeOrderResponseDto>.SuccessResult(result, "PayPal narudžba kreirana."));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<PayPalNativeOrderResponseDto>.ErrorResult(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "PayPal order greška");
+                return StatusCode(500, ApiResponse<PayPalNativeOrderResponseDto>.ErrorResult("Greška pri kreiranju PayPal narudžbe."));
+            }
+        }
+
+        /// <summary>
         /// Započinje hosted checkout (Stripe ili PayPal). Vraća URL za redirect u preglednik.
         /// </summary>
         [HttpPost("hosted-checkout")]
@@ -75,6 +165,10 @@ namespace API.Controllers
                 if (!ok)
                     return BadRequest(ApiResponse<bool>.ErrorResult("PayPal capture nije uspio."));
                 return Ok(ApiResponse<bool>.SuccessResult(true, "Plaćanje potvrđeno."));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<bool>.ErrorResult(ex.Message));
             }
             catch (Exception ex)
             {

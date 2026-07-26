@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
 import '../utils/role_utils.dart';
 
@@ -22,16 +23,49 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> _checkAuth() async {
     isLoading = true;
-    isAuthenticated = await AuthService().hasToken();
-    if (isAuthenticated) {
-      email = await AuthService().getEmail();
-      username = await AuthService().getUsername();
-      firstName = await AuthService().getFirstName();
-      lastName = await AuthService().getLastName();
-      role = await AuthService().getRoleInt();
+    final hasToken = await AuthService().hasToken();
+    if (!hasToken) {
+      isAuthenticated = false;
+      isLoading = false;
+      notifyListeners();
+      return;
     }
+
+    // Validacija tokena — stari JWT nakon restarta API-ja inače daje 401 na sve.
+    final tokenValid = await _validateToken();
+    if (!tokenValid) {
+      await AuthService().logout();
+      isAuthenticated = false;
+      isLoading = false;
+      notifyListeners();
+      return;
+    }
+
+    isAuthenticated = true;
+    email = await AuthService().getEmail();
+    username = await AuthService().getUsername();
+    firstName = await AuthService().getFirstName();
+    lastName = await AuthService().getLastName();
+    role = await AuthService().getRoleInt();
     isLoading = false;
     notifyListeners();
+  }
+
+  Future<bool> _validateToken() async {
+    try {
+      final token = await AuthService().getToken();
+      if (token == null || token.isEmpty) return false;
+      final response = await http.get(
+        Uri.parse('http://localhost:8080/api/auth/profile'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> login(String emailInput, String password) async {

@@ -4,6 +4,25 @@ import '../models/payment.dart';
 import 'api_service.dart';
 
 class PaymentsService {
+  PaymentConfig? _cachedConfig;
+
+  /// Konfiguracija plaćanja (native vs hosted, Stripe publishable key).
+  Future<PaymentConfig?> getPaymentConfig({bool forceRefresh = false}) async {
+    if (_cachedConfig != null && !forceRefresh) return _cachedConfig;
+
+    final response = await ApiService.get('/Payments/config');
+    if (response.statusCode != 200) return null;
+    try {
+      final map = jsonDecode(response.body) as Map<String, dynamic>;
+      final data = map['data'] as Map<String, dynamic>?;
+      if (data == null) return null;
+      _cachedConfig = PaymentConfig.fromJson(data);
+      return _cachedConfig;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Vraća [HostedCheckoutResponse] ili null ako API nije uspio.
   Future<HostedCheckoutResponse?> startHostedCheckout(CreateHostedCheckoutDto dto) async {
     final response = await ApiService.post('/Payments/hosted-checkout', dto.toJson());
@@ -20,15 +39,97 @@ class PaymentsService {
     }
   }
 
-  /// Provjera statusa plaćanja (polling). Vraća true ako je completed (3).
-  Future<bool> isPaymentCompleted(int paymentId) async {
-    final response = await ApiService.get('/Payments/$paymentId');
-    if (response.statusCode != 200) return false;
+  /// Stripe PaymentIntent za in-app Payment Sheet.
+  Future<StripeIntentResponse?> startStripeIntent(CreateHostedCheckoutDto dto) async {
+    final response = await ApiService.post('/Payments/stripe/intent', dto.toJson());
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      return null;
+    }
     try {
       final map = jsonDecode(response.body) as Map<String, dynamic>;
       final data = map['data'] as Map<String, dynamic>?;
-      final status = (data?['status'] as num?)?.toInt();
-      return status == PaymentStatusApi.completed.value;
+      if (data == null) return null;
+      return StripeIntentResponse.fromJson(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// PayPal narudžba za in-app WebView.
+  Future<PayPalNativeOrderResponse?> startPayPalOrder(CreateHostedCheckoutDto dto) async {
+    final response = await ApiService.post('/Payments/paypal/order', dto.toJson());
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      return null;
+    }
+    try {
+      final map = jsonDecode(response.body) as Map<String, dynamic>;
+      final data = map['data'] as Map<String, dynamic>?;
+      if (data == null) return null;
+      return PayPalNativeOrderResponse.fromJson(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<PaymentDetails?> getPaymentDetails(int paymentId) async {
+    final response = await ApiService.get('/Payments/$paymentId');
+    if (response.statusCode != 200) return null;
+    try {
+      final map = jsonDecode(response.body) as Map<String, dynamic>;
+      final data = map['data'] as Map<String, dynamic>?;
+      if (data == null) return null;
+      return PaymentDetails.fromJson(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Provjera statusa plaćanja (polling). Vraća true ako je completed (3).
+  Future<bool> isPaymentCompleted(int paymentId) async {
+    final details = await getPaymentDetails(paymentId);
+    return details?.isCompleted ?? false;
+  }
+
+  /// Nakon povratka iz preglednika: PayPal capture ili Stripe finalize preko checkoutId.
+  Future<void> confirmPaymentAfterReturn(int paymentId, PaymentMethod method) async {
+    if (await isPaymentCompleted(paymentId)) return;
+
+    final details = await getPaymentDetails(paymentId);
+    if (details == null || !details.isPendingConfirmation) return;
+
+    final checkoutId = details.checkoutId?.trim();
+    if (checkoutId == null || checkoutId.isEmpty) return;
+
+    switch (method) {
+      case PaymentMethod.paypal:
+        await capturePayPalOrder(checkoutId);
+        break;
+      case PaymentMethod.stripe:
+        if (checkoutId.startsWith('pi_')) {
+          await confirmStripePaymentIntent(checkoutId);
+        } else {
+          await finalizeStripeSession(checkoutId);
+        }
+        break;
+    }
+  }
+
+  /// Potvrda Stripe PaymentIntent-a nakon Payment Sheet-a.
+  Future<bool> confirmStripePaymentIntent(String paymentIntentId) async {
+    final uri = Uri.parse(
+      '${ApiService.baseUrl}/Payments/stripe/confirm?payment_intent_id=${Uri.encodeQueryComponent(paymentIntentId)}',
+    );
+    final token = await ApiService.getToken();
+    final headers = {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+    final response = await http.post(uri, headers: headers);
+    if (response.statusCode != 200) return false;
+    try {
+      final map = jsonDecode(response.body) as Map<String, dynamic>;
+      final data = map['data'];
+      return data == true;
     } catch (_) {
       return false;
     }
@@ -55,19 +156,38 @@ class PaymentsService {
     }
   }
 
-  /// PayPal: nakon odobrenja u browseru (token = order id iz query parametra).
-  Future<bool> capturePayPalOrder(String orderId) async {
+  /// PayPal: nakon odobrenja (token = order id). Vraća null ako je OK, inače poruku greške.
+  Future<String?> capturePayPalOrder(String orderId) async {
     final response = await ApiService.post('/Payments/paypal/capture', {
       'token': orderId,
     });
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      return false;
-    }
     try {
       final map = jsonDecode(response.body) as Map<String, dynamic>;
-      return map['data'] == true;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (map['data'] == true) return null;
+      }
+      return map['message']?.toString() ?? 'PayPal capture nije uspio.';
     } catch (_) {
-      return false;
+      return 'PayPal capture nije uspio.';
     }
+  }
+
+  /// Čeka da backend potvrdi plaćanje (polling).
+  Future<bool> waitForPaymentCompletion(
+    int paymentId, {
+    PaymentMethod? method,
+    int maxAttempts = 30,
+    Duration interval = const Duration(seconds: 2),
+  }) async {
+    final svc = this;
+    for (var i = 0; i < maxAttempts; i++) {
+      if (await svc.isPaymentCompleted(paymentId)) return true;
+
+      if (method != null && i > 0 && i % 5 == 0) {
+        await svc.confirmPaymentAfterReturn(paymentId, method);
+      }
+      await Future.delayed(interval);
+    }
+    return await svc.isPaymentCompleted(paymentId);
   }
 }
