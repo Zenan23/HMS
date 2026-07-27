@@ -25,7 +25,10 @@ class Booking {
   final BookingStatus status;
   final String specialRequests;
   final int roomId;
+  final String roomNumber;
+  final String? hotelName;
   final int userId;
+  final String userName;
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<BookingServiceItem> services;
@@ -43,7 +46,21 @@ class Booking {
     required this.createdAt,
     required this.updatedAt,
     required this.services,
+    this.roomNumber = '',
+    this.hotelName,
+    this.userName = '',
   });
+
+  String get roomDisplayLabel {
+    if (roomNumber.isEmpty) return 'Soba #$roomId';
+    if (hotelName != null && hotelName!.isNotEmpty) {
+      return '$roomNumber ($hotelName)';
+    }
+    return roomNumber;
+  }
+
+  String get userDisplayLabel =>
+      userName.isNotEmpty ? userName : 'Korisnik #$userId';
 
   factory Booking.fromJson(Map<String, dynamic> json) => Booking(
         id: json['id'] ?? 0,
@@ -56,7 +73,10 @@ class Booking {
         status: bookingStatusFromInt(json['status'] ?? 0),
         specialRequests: json['specialRequests'] ?? '',
         roomId: json['roomId'] ?? 0,
+        roomNumber: json['roomNumber'] ?? '',
+        hotelName: json['hotelName'],
         userId: json['userId'] ?? 0,
+        userName: json['userName'] ?? '',
         createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime(1900),
         updatedAt: DateTime.tryParse(json['updatedAt'] ?? '') ?? DateTime(1900),
         services: ((json['services'] ?? []) as List)
@@ -82,6 +102,6 @@ class BookingServiceItem {
         serviceId: json['serviceId'] ?? 0,
         unitPrice: (json['unitPrice'] ?? 0).toDouble(),
         quantity: json['quantity'] ?? 1,
-        serviceName: json['service']?['name'],
+        serviceName: json['service']?['name'] ?? json['serviceName'],
       );
 }

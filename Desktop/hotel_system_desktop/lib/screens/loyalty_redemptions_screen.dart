@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/loyalty_points_redemption.dart';
+import '../models/user.dart';
+import '../services/api_service.dart';
 import '../services/loyalty_points_redemption_service.dart';
 import '../services/pdf_report_service.dart';
 import '../utils/date_format_utils.dart';
@@ -20,29 +23,39 @@ class _LoyaltyRedemptionsScreenState extends State<LoyaltyRedemptionsScreen> {
   final int _pageSize = 10;
   bool _isLoading = false;
   List<LoyaltyPointsRedemption> _redemptions = [];
-  final _userIdController = TextEditingController();
+  int? _selectedUserId;
   final _bookingIdController = TextEditingController();
+  List<Employee> _users = [];
 
   @override
   void initState() {
     super.initState();
+    _fetchUsers();
     _fetchRedemptions();
   }
 
   @override
   void dispose() {
-    _userIdController.dispose();
     _bookingIdController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchUsers() async {
+    try {
+      final resp = await ApiService().get('/api/Users/role/0');
+      final decoded = jsonDecode(resp.body);
+      final List items = (decoded['data'] ?? []) as List;
+      _users = items.map((e) => Employee.fromJson(e)).toList().cast<Employee>();
+    } catch (_) {}
+    if (mounted) setState(() {});
   }
 
   Future<void> _fetchRedemptions() async {
     setState(() => _isLoading = true);
     try {
-      final userId = int.tryParse(_userIdController.text);
       final bookingId = int.tryParse(_bookingIdController.text);
-      if (userId != null) {
-        _redemptions = await _service.getByUserId(userId);
+      if (_selectedUserId != null) {
+        _redemptions = await _service.getByUserId(_selectedUserId!);
       } else if (bookingId != null) {
         _redemptions = await _service.getByBookingId(bookingId);
       } else {
@@ -62,6 +75,11 @@ class _LoyaltyRedemptionsScreenState extends State<LoyaltyRedemptionsScreen> {
       builder: (_) => LoyaltyRedemptionFormDialog(redemption: redemption),
     );
     if (result == true) _fetchRedemptions();
+  }
+
+  String _userLabel(Employee u) {
+    final name = u.fullName.isNotEmpty ? u.fullName : u.username;
+    return name;
   }
 
   @override
@@ -90,12 +108,22 @@ class _LoyaltyRedemptionsScreenState extends State<LoyaltyRedemptionsScreen> {
             Row(
               children: [
                 SizedBox(
-                  width: 140,
-                  child: TextField(
-                    controller: _userIdController,
+                  width: 220,
+                  child: DropdownButtonFormField<int?>(
+                    value: _selectedUserId,
                     decoration:
-                        const InputDecoration(labelText: 'ID korisnika'),
-                    keyboardType: TextInputType.number,
+                        const InputDecoration(labelText: 'Korisnik'),
+                    items: [
+                      const DropdownMenuItem<int?>(
+                        value: null,
+                        child: Text('Svi korisnici'),
+                      ),
+                      ..._users.map((u) => DropdownMenuItem<int?>(
+                            value: u.id,
+                            child: Text(_userLabel(u)),
+                          )),
+                    ],
+                    onChanged: (v) => setState(() => _selectedUserId = v),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -125,12 +153,15 @@ class _LoyaltyRedemptionsScreenState extends State<LoyaltyRedemptionsScreen> {
                           itemCount: _redemptions.length,
                           itemBuilder: (context, i) {
                             final r = _redemptions[i];
+                            final user = r.userName.isNotEmpty
+                                ? r.userName
+                                : 'Korisnik #${r.userId}';
                             return Card(
                               child: ListTile(
                                 title: Text(
-                                    '${r.userName} – ${r.pointsUsed} bodova'),
+                                    '$user – ${r.pointsUsed} bodova'),
                                 subtitle: Text(
-                                    'Rezervacija #${r.bookingId} • ${r.equivalentValueAmount.toStringAsFixed(2)} EUR\n'
+                                    '${r.bookingDisplayLabel} • ${r.equivalentValueAmount.toStringAsFixed(2)} EUR\n'
                                     '${formatDisplayDate(r.redeemedAt)}'),
                                 isThreeLine: true,
                                 trailing: IconButton(

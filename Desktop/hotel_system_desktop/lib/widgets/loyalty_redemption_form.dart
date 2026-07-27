@@ -1,6 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../models/booking.dart';
 import '../models/loyalty_points_redemption.dart';
+import '../models/user.dart';
+import '../services/api_service.dart';
 import '../services/loyalty_points_redemption_service.dart';
+import '../utils/date_format_utils.dart';
 import 'date_picker_field.dart';
 
 class LoyaltyRedemptionFormDialog extends StatefulWidget {
@@ -23,16 +28,51 @@ class _LoyaltyRedemptionFormDialogState
   late double equivalentValueAmount;
   bool isLoading = false;
   String? error;
+  List<Employee> _users = [];
+  List<Booking> _bookings = [];
 
   @override
   void initState() {
     super.initState();
     final r = widget.redemption;
-    userId = r?.userId ?? 1;
-    bookingId = r?.bookingId ?? 1;
+    userId = r?.userId ?? 0;
+    bookingId = r?.bookingId ?? 0;
     pointsUsed = r?.pointsUsed ?? 100;
     redeemedAt = r?.redeemedAt ?? DateTime.now();
     equivalentValueAmount = r?.equivalentValueAmount ?? 0;
+    _fetchLookups();
+  }
+
+  Future<void> _fetchLookups() async {
+    try {
+      final guestsResp =
+          await ApiService().get('/api/Users/role/0');
+      final guestsDecoded = jsonDecode(guestsResp.body);
+      final List guestItems = (guestsDecoded['data'] ?? []) as List;
+      _users = guestItems.map((e) => Employee.fromJson(e)).toList().cast<Employee>();
+    } catch (_) {}
+    try {
+      final bookingsResp =
+          await ApiService().get('/api/Bookings?pageNumber=1&pageSize=100');
+      final bookingsDecoded = jsonDecode(bookingsResp.body) as Map<String, dynamic>;
+      final items = (bookingsDecoded['data']?['items'] as List?) ?? [];
+      _bookings = items.map((e) => Booking.fromJson(e)).toList().cast<Booking>();
+    } catch (_) {}
+    if (mounted) setState(() {});
+  }
+
+  String _userLabel(Employee u) {
+    final name = u.fullName.isNotEmpty ? u.fullName : u.username;
+    return '$name (${u.email})';
+  }
+
+  String _bookingLabel(Booking b) {
+    if (b.roomNumber.isNotEmpty || b.userName.isNotEmpty) {
+      final room = b.roomNumber.isNotEmpty ? b.roomNumber : '#${b.roomId}';
+      final user = b.userName.isNotEmpty ? b.userName : 'Korisnik #${b.userId}';
+      return 'BK-${b.id.toString().padLeft(6, '0')} · $room · $user';
+    }
+    return 'BK-${b.id.toString().padLeft(6, '0')} (${formatDisplayDate(b.checkInDate)})';
   }
 
   Future<void> _submit() async {
@@ -69,25 +109,38 @@ class _LoyaltyRedemptionFormDialogState
           ? 'Novo iskorištenje bodova'
           : 'Uredi iskorištenje'),
       content: SizedBox(
-        width: 420,
+        width: 480,
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextFormField(
-                  initialValue: userId.toString(),
-                  decoration: const InputDecoration(labelText: 'ID korisnika'),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) => userId = int.tryParse(v) ?? userId,
+                DropdownButtonFormField<int>(
+                  value: _users.any((u) => u.id == userId) ? userId : null,
+                  decoration: const InputDecoration(labelText: 'Korisnik'),
+                  items: _users
+                      .map((u) => DropdownMenuItem<int>(
+                            value: u.id,
+                            child: Text(_userLabel(u)),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() => userId = v ?? 0),
+                  validator: (v) =>
+                      (v == null || v == 0) ? 'Odaberite korisnika' : null,
                 ),
-                TextFormField(
-                  initialValue: bookingId.toString(),
-                  decoration:
-                      const InputDecoration(labelText: 'ID rezervacije'),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) => bookingId = int.tryParse(v) ?? bookingId,
+                DropdownButtonFormField<int>(
+                  value: _bookings.any((b) => b.id == bookingId) ? bookingId : null,
+                  decoration: const InputDecoration(labelText: 'Rezervacija'),
+                  items: _bookings
+                      .map((b) => DropdownMenuItem<int>(
+                            value: b.id,
+                            child: Text(_bookingLabel(b)),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() => bookingId = v ?? 0),
+                  validator: (v) =>
+                      (v == null || v == 0) ? 'Odaberite rezervaciju' : null,
                 ),
                 TextFormField(
                   initialValue: pointsUsed.toString(),

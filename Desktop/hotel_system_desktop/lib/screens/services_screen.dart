@@ -240,7 +240,11 @@ class _ServicesScreenState extends State<ServicesScreen> {
                             DataCell(Icon(
                                 s.isActive ? Icons.check : Icons.close,
                                 color: s.isActive ? Colors.green : Colors.red)),
-                            DataCell(Text(s.hotelId.toString())),
+                            DataCell(Text(
+                              s.hotelName?.isNotEmpty == true
+                                  ? s.hotelName!
+                                  : 'Hotel #${s.hotelId}',
+                            )),
                             DataCell(
                               IconButton(
                                 icon: const Icon(Icons.edit),

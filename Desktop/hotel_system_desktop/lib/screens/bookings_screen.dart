@@ -231,6 +231,8 @@ class _BookingsScreenState extends State<BookingsScreen> {
                 columns: const [
                   DataColumn(label: Text('Prijava')),
                   DataColumn(label: Text('Odjava')),
+                  DataColumn(label: Text('Soba')),
+                  DataColumn(label: Text('Gost')),
                   DataColumn(label: Text('Br. gostiju')),
                   DataColumn(label: Text('Zahtjevi')),
                   DataColumn(label: Text('Cijena')),
@@ -241,6 +243,8 @@ class _BookingsScreenState extends State<BookingsScreen> {
                     .map((booking) => DataRow(cells: [
                           DataCell(Text(formatDisplayDate(booking.checkInDate))),
                           DataCell(Text(formatDisplayDate(booking.checkOutDate))),
+                          DataCell(Text(booking.roomDisplayLabel)),
+                          DataCell(Text(booking.userDisplayLabel)),
                           DataCell(Text(booking.numberOfGuests.toString())),
                           DataCell(Text(booking.specialRequests)),
                           DataCell(Text(booking.totalPrice.toStringAsFixed(2))),

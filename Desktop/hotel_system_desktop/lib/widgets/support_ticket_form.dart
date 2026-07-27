@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/support_ticket.dart';
+import '../models/user.dart';
+import '../services/api_service.dart';
 import '../services/support_ticket_service.dart';
 import '../utils/display_labels.dart';
 
@@ -22,16 +25,40 @@ class _SupportTicketFormDialogState extends State<SupportTicketFormDialog> {
   late SupportTicketPriority priority;
   bool isLoading = false;
   String? error;
+  List<Employee> _users = [];
 
   @override
   void initState() {
     super.initState();
     final t = widget.ticket;
-    userId = t?.userId ?? 1;
+    userId = t?.userId ?? 0;
     subject = t?.subject ?? '';
     messageBody = t?.messageBody ?? '';
     status = t?.status ?? SupportTicketStatus.open;
     priority = t?.priority ?? SupportTicketPriority.medium;
+    _fetchUsers();
+  }
+
+  Future<void> _fetchUsers() async {
+    try {
+      // Gosti (0) + uposlenici (1) — tiketi mogu biti od oba tipa
+      final guestsResp = await ApiService().get('/api/Users/role/0');
+      final employeesResp = await ApiService().get('/api/Users/role/1');
+      final guestsDecoded = jsonDecode(guestsResp.body);
+      final employeesDecoded = jsonDecode(employeesResp.body);
+      final List guestItems = (guestsDecoded['data'] ?? []) as List;
+      final List employeeItems = (employeesDecoded['data'] ?? []) as List;
+      _users = [
+        ...guestItems.map((e) => Employee.fromJson(e)),
+        ...employeeItems.map((e) => Employee.fromJson(e)),
+      ];
+    } catch (_) {}
+    if (mounted) setState(() {});
+  }
+
+  String _userLabel(Employee u) {
+    final name = u.fullName.isNotEmpty ? u.fullName : u.username;
+    return '$name (${u.email})';
   }
 
   Future<void> _submit() async {
@@ -71,13 +98,18 @@ class _SupportTicketFormDialogState extends State<SupportTicketFormDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextFormField(
-                initialValue: userId.toString(),
-                decoration: const InputDecoration(labelText: 'ID korisnika'),
-                keyboardType: TextInputType.number,
-                onChanged: (v) => userId = int.tryParse(v) ?? userId,
+              DropdownButtonFormField<int>(
+                value: _users.any((u) => u.id == userId) ? userId : null,
+                decoration: const InputDecoration(labelText: 'Korisnik'),
+                items: _users
+                    .map((u) => DropdownMenuItem<int>(
+                          value: u.id,
+                          child: Text(_userLabel(u)),
+                        ))
+                    .toList(),
+                onChanged: (v) => setState(() => userId = v ?? 0),
                 validator: (v) =>
-                    int.tryParse(v ?? '') == null ? 'Obavezno' : null,
+                    (v == null || v == 0) ? 'Odaberite korisnika' : null,
               ),
               TextFormField(
                 initialValue: subject,

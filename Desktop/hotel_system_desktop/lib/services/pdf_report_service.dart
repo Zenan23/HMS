@@ -126,8 +126,8 @@ class PdfReportService {
                 formatDisplayDate(b.checkInDate),
                 formatDisplayDate(b.checkOutDate),
                 '${b.numberOfGuests}',
-                '${b.roomId}',
-                '${b.userId}',
+                b.roomDisplayLabel,
+                b.userDisplayLabel,
                 bookingStatusLabel(b.status),
                 _currency.format(b.totalPrice),
                 b.specialRequests,
@@ -177,7 +177,7 @@ class PdfReportService {
         'Naziv',
         'Kategorija',
         'Cijena',
-        'Hotel ID',
+        'Hotel',
         'Dostupan',
         'Aktivan',
       ],
@@ -187,7 +187,9 @@ class PdfReportService {
                 s.name,
                 s.category,
                 _currency.format(s.price),
-                '${s.hotelId}',
+                s.hotelName?.isNotEmpty == true
+                    ? s.hotelName!
+                    : 'Hotel #${s.hotelId}',
                 s.isAvailable ? 'Da' : 'Ne',
                 s.isActive ? 'Da' : 'Ne',
               ])
@@ -338,7 +340,7 @@ class PdfReportService {
       rows: logs
           .map((l) => [
                 '${l.id}',
-                '${l.roomId}',
+                l.roomDisplayLabel,
                 formatDisplayDate(l.reportedAt),
                 formatDisplayDate(l.resolvedAt),
                 l.technicianName,
@@ -398,7 +400,7 @@ class PdfReportService {
           .map((r) => [
                 '${r.id}',
                 r.userName.isNotEmpty ? r.userName : 'Korisnik #${r.userId}',
-                '${r.bookingId}',
+                r.bookingDisplayLabel,
                 '${r.pointsUsed}',
                 _currency.format(r.equivalentValueAmount),
                 formatDisplayDate(r.redeemedAt),

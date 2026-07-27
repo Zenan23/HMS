@@ -235,7 +235,7 @@ class _BookingFormDialogState extends State<BookingFormDialog> {
                     .map((r) => DropdownMenuItem<int>(
                           value: r.id,
                           child: Text(
-                              '${r.roomNumber} - ${r.hotelName ?? 'Hotel ' + r.hotelId.toString()}'),
+                              '${r.roomNumber} - ${r.hotelName?.isNotEmpty == true ? r.hotelName! : 'Hotel'}'),
                         ))
                     .toList(),
                 onChanged: (v) async {

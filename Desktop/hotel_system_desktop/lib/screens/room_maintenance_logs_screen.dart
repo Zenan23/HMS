@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../models/room.dart';
 import '../models/room_maintenance_log.dart';
+import '../services/api_service.dart';
 import '../services/pdf_report_service.dart';
 import '../services/room_maintenance_log_service.dart';
 import '../utils/date_format_utils.dart';
@@ -22,18 +25,25 @@ class _RoomMaintenanceLogsScreenState extends State<RoomMaintenanceLogsScreen> {
   bool _isLoading = false;
   bool _filterByRoom = false;
   List<RoomMaintenanceLog> _logs = [];
-  final _roomIdController = TextEditingController();
+  List<Room> _rooms = [];
+  int? _selectedRoomId;
 
   @override
   void initState() {
     super.initState();
+    _fetchRooms();
     _fetchLogs();
   }
 
-  @override
-  void dispose() {
-    _roomIdController.dispose();
-    super.dispose();
+  Future<void> _fetchRooms() async {
+    try {
+      final resp =
+          await ApiService().get('/api/Rooms?pageNumber=1&pageSize=100');
+      final decoded = jsonDecode(resp.body) as Map<String, dynamic>;
+      final items = (decoded['data']?['items'] as List?) ?? [];
+      _rooms = items.map((e) => Room.fromJson(e)).toList().cast<Room>();
+    } catch (_) {}
+    if (mounted) setState(() {});
   }
 
   Future<void> _fetchLogs({int? roomId}) async {
@@ -68,9 +78,8 @@ class _RoomMaintenanceLogsScreenState extends State<RoomMaintenanceLogsScreen> {
       builder: (_) => RoomMaintenanceLogFormDialog(log: log),
     );
     if (result == true) {
-      final roomId = int.tryParse(_roomIdController.text);
-      if (_filterByRoom && roomId != null) {
-        _fetchLogs(roomId: roomId);
+      if (_filterByRoom && _selectedRoomId != null) {
+        _fetchLogs(roomId: _selectedRoomId);
       } else {
         _fetchLogs();
       }
@@ -82,7 +91,7 @@ class _RoomMaintenanceLogsScreenState extends State<RoomMaintenanceLogsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Potvrda brisanja'),
-        content: Text('Obrisati zapis za sobu ${log.roomId}?'),
+        content: Text('Obrisati zapis za sobu ${log.roomDisplayLabel}?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -96,9 +105,8 @@ class _RoomMaintenanceLogsScreenState extends State<RoomMaintenanceLogsScreen> {
     if (confirm != true) return;
     try {
       await _service.delete(log.id);
-      final roomId = int.tryParse(_roomIdController.text);
-      if (_filterByRoom && roomId != null) {
-        _fetchLogs(roomId: roomId);
+      if (_filterByRoom && _selectedRoomId != null) {
+        _fetchLogs(roomId: _selectedRoomId);
       } else {
         _fetchLogs();
       }
@@ -133,19 +141,30 @@ class _RoomMaintenanceLogsScreenState extends State<RoomMaintenanceLogsScreen> {
             Row(
               children: [
                 SizedBox(
-                  width: 140,
-                  child: TextField(
-                    controller: _roomIdController,
-                    decoration: const InputDecoration(labelText: 'ID sobe'),
-                    keyboardType: TextInputType.number,
+                  width: 260,
+                  child: DropdownButtonFormField<int?>(
+                    value: _selectedRoomId,
+                    decoration: const InputDecoration(labelText: 'Soba'),
+                    items: [
+                      const DropdownMenuItem<int?>(
+                        value: null,
+                        child: Text('Sve sobe'),
+                      ),
+                      ..._rooms.map((r) => DropdownMenuItem<int?>(
+                            value: r.id,
+                            child: Text(
+                              '${r.roomNumber}${r.hotelName != null && r.hotelName!.isNotEmpty ? ' – ${r.hotelName}' : ''}',
+                            ),
+                          )),
+                    ],
+                    onChanged: (v) => setState(() => _selectedRoomId = v),
                   ),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () {
-                    final roomId = int.tryParse(_roomIdController.text);
-                    if (roomId != null) {
-                      _fetchLogs(roomId: roomId);
+                    if (_selectedRoomId != null) {
+                      _fetchLogs(roomId: _selectedRoomId);
                     } else {
                       setState(() => _page = 1);
                       _fetchLogs();
@@ -156,8 +175,10 @@ class _RoomMaintenanceLogsScreenState extends State<RoomMaintenanceLogsScreen> {
                 const SizedBox(width: 8),
                 TextButton(
                   onPressed: () {
-                    _roomIdController.clear();
-                    setState(() => _page = 1);
+                    setState(() {
+                      _selectedRoomId = null;
+                      _page = 1;
+                    });
                     _fetchLogs();
                   },
                   child: const Text('Očisti'),
@@ -205,7 +226,7 @@ class _RoomMaintenanceLogsScreenState extends State<RoomMaintenanceLogsScreen> {
                             return Card(
                               child: ListTile(
                                 title: Text(
-                                    'Soba ${log.roomId} – ${log.description}'),
+                                    'Soba ${log.roomDisplayLabel} – ${log.description}'),
                                 subtitle: Text(
                                   'Prijavljeno: ${formatDisplayDate(log.reportedAt)}\n'
                                   'Riješeno: $resolved\n'

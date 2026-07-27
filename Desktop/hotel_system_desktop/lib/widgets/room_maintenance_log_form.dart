@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../models/room.dart';
 import '../models/room_maintenance_log.dart';
+import '../services/api_service.dart';
 import '../services/room_maintenance_log_service.dart';
 import 'date_picker_field.dart';
 
@@ -24,17 +27,30 @@ class _RoomMaintenanceLogFormDialogState
   late String technicianName;
   bool isLoading = false;
   String? error;
+  List<Room> _rooms = [];
 
   @override
   void initState() {
     super.initState();
     final l = widget.log;
-    roomId = l?.roomId ?? 1;
+    roomId = l?.roomId ?? 0;
     reportedAt = l?.reportedAt ?? DateTime.now();
     resolvedAt = l?.resolvedAt;
     description = l?.description ?? '';
     cost = l?.cost ?? 0;
     technicianName = l?.technicianName ?? '';
+    _fetchRooms();
+  }
+
+  Future<void> _fetchRooms() async {
+    try {
+      final resp =
+          await ApiService().get('/api/Rooms?pageNumber=1&pageSize=100');
+      final decoded = jsonDecode(resp.body) as Map<String, dynamic>;
+      final items = (decoded['data']?['items'] as List?) ?? [];
+      _rooms = items.map((e) => Room.fromJson(e)).toList().cast<Room>();
+    } catch (_) {}
+    if (mounted) setState(() {});
   }
 
   Future<void> _submit() async {
@@ -82,13 +98,20 @@ class _RoomMaintenanceLogFormDialogState
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextFormField(
-                  initialValue: roomId.toString(),
-                  decoration: const InputDecoration(labelText: 'ID sobe'),
-                  keyboardType: TextInputType.number,
+                DropdownButtonFormField<int>(
+                  value: _rooms.any((r) => r.id == roomId) ? roomId : null,
+                  decoration: const InputDecoration(labelText: 'Soba'),
+                  items: _rooms
+                      .map((r) => DropdownMenuItem<int>(
+                            value: r.id,
+                            child: Text(
+                              '${r.roomNumber}${r.hotelName != null && r.hotelName!.isNotEmpty ? ' – ${r.hotelName}' : ''}',
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() => roomId = v ?? 0),
                   validator: (v) =>
-                      int.tryParse(v ?? '') == null ? 'Unesite ID sobe' : null,
-                  onChanged: (v) => roomId = int.tryParse(v) ?? roomId,
+                      (v == null || v == 0) ? 'Odaberite sobu' : null,
                 ),
                 TextFormField(
                   initialValue: description,

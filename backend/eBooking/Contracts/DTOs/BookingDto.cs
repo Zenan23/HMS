@@ -12,7 +12,10 @@ namespace Contracts.DTOs
         public BookingStatus Status { get; set; }
         public string SpecialRequests { get; set; } = string.Empty;
         public int RoomId { get; set; }
+        public string RoomNumber { get; set; } = string.Empty;
+        public string? HotelName { get; set; }
         public int UserId { get; set; }
+        public string UserName { get; set; } = string.Empty;
         public IEnumerable<BookingServiceItemDto>? Services { get; set; }
     }
 

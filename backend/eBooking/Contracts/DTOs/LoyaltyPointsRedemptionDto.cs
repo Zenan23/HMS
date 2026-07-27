@@ -7,6 +7,7 @@ namespace Contracts.DTOs
         public int UserId { get; set; }
         public string UserName { get; set; } = string.Empty;
         public int BookingId { get; set; }
+        public string BookingLabel { get; set; } = string.Empty;
         public int PointsUsed { get; set; }
         public DateTime RedeemedAt { get; set; }
         public decimal EquivalentValueAmount { get; set; }
