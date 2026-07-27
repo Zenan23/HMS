@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 import '../models/booking.dart';
 import '../models/dashboard_statistics.dart';
@@ -20,6 +19,7 @@ import '../models/support_ticket.dart';
 import '../models/user.dart';
 import '../utils/date_format_utils.dart';
 import '../utils/display_labels.dart';
+import '../widgets/pdf_report_preview_dialog.dart';
 
 class PdfReportService {
   static final _currency = NumberFormat('#,##0.00', 'bs');
@@ -45,11 +45,18 @@ class PdfReportService {
     }
 
     try {
-      await _layoutTableReport(
+      final result = await _buildTableReport(
         title: title,
         headers: headers,
         rows: rows,
         subtitle: subtitle,
+      );
+      if (!context.mounted) return;
+      await PdfReportPreviewDialog.show(
+        context: context,
+        title: title,
+        fileName: result.fileName,
+        pdfBytes: result.bytes,
       );
     } catch (e) {
       if (context.mounted) {
@@ -492,9 +499,13 @@ class PdfReportService {
         ),
       );
 
-      await Printing.layoutPdf(
-        name: 'pregled_izvjestaj',
-        onLayout: (_) async => pdf.save(),
+      final bytes = await pdf.save();
+      if (!context.mounted) return;
+      await PdfReportPreviewDialog.show(
+        context: context,
+        title: 'Izvještaj — Pregled',
+        fileName: 'pregled_izvjestaj.pdf',
+        pdfBytes: bytes,
       );
     } catch (e) {
       if (context.mounted) {
@@ -508,7 +519,7 @@ class PdfReportService {
     }
   }
 
-  static Future<void> _layoutTableReport({
+  static Future<_BuiltPdf> _buildTableReport({
     required String title,
     required List<String> headers,
     required List<List<String>> rows,
@@ -544,9 +555,9 @@ class PdfReportService {
         .replaceAll(RegExp(r'[^a-z0-9čćšžđ]+', caseSensitive: false), '_')
         .replaceAll(RegExp(r'^_|_$'), '');
 
-    await Printing.layoutPdf(
-      name: safeName.isEmpty ? 'izvjestaj' : safeName,
-      onLayout: (_) async => pdf.save(),
+    return _BuiltPdf(
+      bytes: await pdf.save(),
+      fileName: '${safeName.isEmpty ? 'izvjestaj' : safeName}.pdf',
     );
   }
 
@@ -724,6 +735,13 @@ class PdfReportService {
     '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
     '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
   ];
+}
+
+class _BuiltPdf {
+  final Uint8List bytes;
+  final String fileName;
+
+  const _BuiltPdf({required this.bytes, required this.fileName});
 }
 
 class _PdfFonts {
