@@ -4,6 +4,7 @@ import '../models/booking.dart';
 import '../widgets/booking_form.dart';
 import '../utils/date_format_utils.dart';
 import '../services/api_service.dart';
+import '../services/pdf_report_service.dart';
 
 class BookingsScreen extends StatefulWidget {
   const BookingsScreen({super.key});
@@ -132,8 +133,8 @@ class _BookingsScreenState extends State<BookingsScreen> {
                         }
                       }
                     },
-                    child: Text(_startDate != null 
-                      ? 'Od: ${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
+                    child: Text(_startDate != null
+                      ? 'Od: ${formatDisplayDate(_startDate)}'
                       : 'Od datuma'),
                   ),
                   const SizedBox(width: 8),
@@ -154,8 +155,8 @@ class _BookingsScreenState extends State<BookingsScreen> {
                         }
                       }
                     },
-                    child: Text(_endDate != null 
-                      ? 'Do: ${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
+                    child: Text(_endDate != null
+                      ? 'Do: ${formatDisplayDate(_endDate)}'
                       : 'Do datuma'),
                   ),
                   const SizedBox(width: 8),
@@ -171,10 +172,21 @@ class _BookingsScreenState extends State<BookingsScreen> {
                   ),
                 ],
               ),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text('Dodaj rezervaciju'),
-                onPressed: () => _openBookingForm(),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.picture_as_pdf),
+                    label: const Text('PDF'),
+                    onPressed: () =>
+                        PdfReportService.exportBookings(context, _bookings),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Dodaj rezervaciju'),
+                    onPressed: () => _openBookingForm(),
+                  ),
+                ],
               ),
             ],
           ),
@@ -217,9 +229,11 @@ class _BookingsScreenState extends State<BookingsScreen> {
                     scrollDirection: Axis.vertical,
                     child: DataTable(
                 columns: const [
-                  DataColumn(label: Text('Check in')),
-                  DataColumn(label: Text('Check out')),
-                  DataColumn(label: Text('BrGostiju')),
+                  DataColumn(label: Text('Prijava')),
+                  DataColumn(label: Text('Odjava')),
+                  DataColumn(label: Text('Soba')),
+                  DataColumn(label: Text('Gost')),
+                  DataColumn(label: Text('Br. gostiju')),
                   DataColumn(label: Text('Zahtjevi')),
                   DataColumn(label: Text('Cijena')),
                   DataColumn(label: Text('Uredi')),
@@ -229,6 +243,8 @@ class _BookingsScreenState extends State<BookingsScreen> {
                     .map((booking) => DataRow(cells: [
                           DataCell(Text(formatDisplayDate(booking.checkInDate))),
                           DataCell(Text(formatDisplayDate(booking.checkOutDate))),
+                          DataCell(Text(booking.roomDisplayLabel)),
+                          DataCell(Text(booking.userDisplayLabel)),
                           DataCell(Text(booking.numberOfGuests.toString())),
                           DataCell(Text(booking.specialRequests)),
                           DataCell(Text(booking.totalPrice.toStringAsFixed(2))),

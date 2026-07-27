@@ -5,6 +5,7 @@ namespace Contracts.DTOs
     public class RoomMaintenanceLogDto : BaseEntityDto
     {
         public int RoomId { get; set; }
+        public string RoomNumber { get; set; } = string.Empty;
         public DateTime ReportedAt { get; set; }
         public DateTime? ResolvedAt { get; set; }
         public string Description { get; set; } = string.Empty;

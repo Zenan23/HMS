@@ -7,6 +7,7 @@ class Service {
   final bool isAvailable;
   final bool isActive;
   final int hotelId;
+  final String? hotelName;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -19,6 +20,7 @@ class Service {
     required this.isAvailable,
     required this.isActive,
     required this.hotelId,
+    this.hotelName,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -32,6 +34,7 @@ class Service {
         isAvailable: json['isAvailable'] ?? true,
         isActive: json['isActive'] ?? true,
         hotelId: json['hotelId'],
+        hotelName: json['hotelName'],
         createdAt: DateTime.parse(json['createdAt']),
         updatedAt: DateTime.parse(json['updatedAt']),
       );

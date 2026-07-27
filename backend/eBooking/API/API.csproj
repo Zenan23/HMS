@@ -33,4 +33,12 @@
     <ProjectReference Include="..\Persistence\Persistence.csproj" />
   </ItemGroup>
 
+  <!-- Seed slike hotela (kopiraju se u output/publish radi lokalnog i Docker seeda) -->
+  <ItemGroup>
+    <Content Include="SeedAssets\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

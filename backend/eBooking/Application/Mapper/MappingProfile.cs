@@ -18,7 +18,14 @@ namespace Application.Mapper
 
             // Booking mappings
             CreateMap<Booking, BookingDto>()
-                .ForMember(dest => dest.Services, opt => opt.MapFrom(src => src.BookingServices));
+                .ForMember(dest => dest.Services, opt => opt.MapFrom(src => src.BookingServices))
+                .ForMember(dest => dest.RoomNumber, opt => opt.MapFrom(src => src.Room != null ? src.Room.RoomNumber : string.Empty))
+                .ForMember(dest => dest.HotelName, opt => opt.MapFrom(src => src.Room != null && src.Room.Hotel != null ? src.Room.Hotel.Name : null))
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null
+                    ? (!string.IsNullOrWhiteSpace(src.User.FirstName) || !string.IsNullOrWhiteSpace(src.User.LastName)
+                        ? $"{src.User.FirstName} {src.User.LastName}".Trim()
+                        : src.User.Username)
+                    : string.Empty));
             CreateMap<BookingService, BookingServiceItemDto>()
                 .ForMember(dest => dest.ServiceId, opt => opt.MapFrom(src => src.ServiceId))
                 .ForMember(dest => dest.Quantity, opt => opt.MapFrom(src => src.Quantity))
@@ -121,7 +128,8 @@ namespace Application.Mapper
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
             // RoomMaintenanceLog mappings
-            CreateMap<RoomMaintenanceLog, RoomMaintenanceLogDto>();
+            CreateMap<RoomMaintenanceLog, RoomMaintenanceLogDto>()
+                .ForMember(dest => dest.RoomNumber, opt => opt.MapFrom(src => src.Room != null ? src.Room.RoomNumber : string.Empty));
             CreateMap<CreateRoomMaintenanceLogDto, RoomMaintenanceLog>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
@@ -138,7 +146,11 @@ namespace Application.Mapper
 
             // InventoryTransaction mappings
             CreateMap<InventoryTransaction, InventoryTransactionDto>()
-                .ForMember(dest => dest.StaffUserName, opt => opt.MapFrom(src => src.StaffUser.Username));
+                .ForMember(dest => dest.StaffUserName, opt => opt.MapFrom(src => src.StaffUser != null
+                    ? (!string.IsNullOrWhiteSpace(src.StaffUser.FirstName) || !string.IsNullOrWhiteSpace(src.StaffUser.LastName)
+                        ? $"{src.StaffUser.FirstName} {src.StaffUser.LastName}".Trim()
+                        : src.StaffUser.Username)
+                    : string.Empty));
             CreateMap<CreateInventoryTransactionDto, InventoryTransaction>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
@@ -147,7 +159,15 @@ namespace Application.Mapper
 
             // LoyaltyPointsRedemption mappings
             CreateMap<LoyaltyPointsRedemption, LoyaltyPointsRedemptionDto>()
-                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.Username));
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null
+                    ? (!string.IsNullOrWhiteSpace(src.User.FirstName) || !string.IsNullOrWhiteSpace(src.User.LastName)
+                        ? $"{src.User.FirstName} {src.User.LastName}".Trim()
+                        : src.User.Username)
+                    : string.Empty))
+                .ForMember(dest => dest.BookingLabel, opt => opt.MapFrom(src =>
+                    src.Booking != null && src.Booking.Room != null
+                        ? $"BK-{src.Booking.Id:D6} · Soba {src.Booking.Room.RoomNumber}"
+                        : $"BK-{src.BookingId:D6}"));
             CreateMap<CreateLoyaltyPointsRedemptionDto, LoyaltyPointsRedemption>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
@@ -156,7 +176,11 @@ namespace Application.Mapper
 
             // SupportTicket mappings
             CreateMap<SupportTicket, SupportTicketDto>()
-                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.Username));
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null
+                    ? (!string.IsNullOrWhiteSpace(src.User.FirstName) || !string.IsNullOrWhiteSpace(src.User.LastName)
+                        ? $"{src.User.FirstName} {src.User.LastName}".Trim()
+                        : src.User.Username)
+                    : string.Empty));
             CreateMap<CreateSupportTicketDto, SupportTicket>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));

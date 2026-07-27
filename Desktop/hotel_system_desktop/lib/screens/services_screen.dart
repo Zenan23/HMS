@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/service.dart';
 import '../services/api_service.dart';
+import '../services/pdf_report_service.dart';
 import '../widgets/service_form.dart';
 
 class ServicesScreen extends StatefulWidget {
@@ -157,10 +158,21 @@ class _ServicesScreenState extends State<ServicesScreen> {
                     ),
                   ],
                 ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add),
-                  label: const Text('Dodaj servis'),
-                  onPressed: _openServiceForm,
+                Row(
+                  children: [
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text('PDF'),
+                      onPressed: () =>
+                          PdfReportService.exportServices(context, _services),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Dodaj servis'),
+                      onPressed: _openServiceForm,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -228,7 +240,11 @@ class _ServicesScreenState extends State<ServicesScreen> {
                             DataCell(Icon(
                                 s.isActive ? Icons.check : Icons.close,
                                 color: s.isActive ? Colors.green : Colors.red)),
-                            DataCell(Text(s.hotelId.toString())),
+                            DataCell(Text(
+                              s.hotelName?.isNotEmpty == true
+                                  ? s.hotelName!
+                                  : 'Hotel #${s.hotelId}',
+                            )),
                             DataCell(
                               IconButton(
                                 icon: const Icon(Icons.edit),

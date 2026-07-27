@@ -3,6 +3,7 @@ class LoyaltyPointsRedemption {
   final int userId;
   final String userName;
   final int bookingId;
+  final String bookingLabel;
   final int pointsUsed;
   final DateTime redeemedAt;
   final double equivalentValueAmount;
@@ -15,7 +16,11 @@ class LoyaltyPointsRedemption {
     required this.pointsUsed,
     required this.redeemedAt,
     required this.equivalentValueAmount,
+    this.bookingLabel = '',
   });
+
+  String get bookingDisplayLabel =>
+      bookingLabel.isNotEmpty ? bookingLabel : 'Rezervacija #$bookingId';
 
   factory LoyaltyPointsRedemption.fromJson(Map<String, dynamic> json) =>
       LoyaltyPointsRedemption(
@@ -23,6 +28,7 @@ class LoyaltyPointsRedemption {
         userId: json['userId'] ?? 0,
         userName: json['userName'] ?? '',
         bookingId: json['bookingId'] ?? 0,
+        bookingLabel: json['bookingLabel'] ?? '',
         pointsUsed: json['pointsUsed'] ?? 0,
         redeemedAt:
             DateTime.tryParse(json['redeemedAt'] ?? '') ?? DateTime.now(),

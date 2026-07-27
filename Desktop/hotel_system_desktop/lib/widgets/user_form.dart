@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import '../utils/validation_utils.dart';
+import '../utils/display_labels.dart';
 import 'dart:convert';
 
 class UserFormDialog extends StatefulWidget {
@@ -129,7 +130,7 @@ class _UserFormDialogState extends State<UserFormDialog> {
                 items: UserRole.values
                     .map((r) => DropdownMenuItem(
                           value: r,
-                          child: Text(r.name),
+                          child: Text(userRoleLabel(r)),
                         ))
                     .toList(),
                 onChanged: (v) => setState(() {

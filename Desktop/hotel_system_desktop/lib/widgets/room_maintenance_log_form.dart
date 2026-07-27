@@ -1,6 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../models/room.dart';
 import '../models/room_maintenance_log.dart';
+import '../services/api_service.dart';
 import '../services/room_maintenance_log_service.dart';
+import 'date_picker_field.dart';
 
 class RoomMaintenanceLogFormDialog extends StatefulWidget {
   final RoomMaintenanceLog? log;
@@ -23,21 +27,39 @@ class _RoomMaintenanceLogFormDialogState
   late String technicianName;
   bool isLoading = false;
   String? error;
+  List<Room> _rooms = [];
 
   @override
   void initState() {
     super.initState();
     final l = widget.log;
-    roomId = l?.roomId ?? 1;
+    roomId = l?.roomId ?? 0;
     reportedAt = l?.reportedAt ?? DateTime.now();
     resolvedAt = l?.resolvedAt;
     description = l?.description ?? '';
     cost = l?.cost ?? 0;
     technicianName = l?.technicianName ?? '';
+    _fetchRooms();
+  }
+
+  Future<void> _fetchRooms() async {
+    try {
+      final resp =
+          await ApiService().get('/api/Rooms?pageNumber=1&pageSize=100');
+      final decoded = jsonDecode(resp.body) as Map<String, dynamic>;
+      final items = (decoded['data']?['items'] as List?) ?? [];
+      _rooms = items.map((e) => Room.fromJson(e)).toList().cast<Room>();
+    } catch (_) {}
+    if (mounted) setState(() {});
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (resolvedAt != null && resolvedAt!.isBefore(reportedAt)) {
+      setState(
+          () => error = 'Datum rješavanja mora biti nakon datuma prijave.');
+      return;
+    }
     setState(() {
       isLoading = true;
       error = null;
@@ -68,38 +90,71 @@ class _RoomMaintenanceLogFormDialogState
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(widget.log == null ? 'Novi zapis' : 'Uredi zapis'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                initialValue: roomId.toString(),
-                decoration: const InputDecoration(labelText: 'Room ID'),
-                keyboardType: TextInputType.number,
-                onChanged: (v) => roomId = int.tryParse(v) ?? roomId,
-              ),
-              TextFormField(
-                initialValue: description,
-                decoration: const InputDecoration(labelText: 'Opis'),
-                onChanged: (v) => description = v,
-              ),
-              TextFormField(
-                initialValue: cost.toString(),
-                decoration: const InputDecoration(labelText: 'Trošak'),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                onChanged: (v) => cost = double.tryParse(v) ?? 0,
-              ),
-              TextFormField(
-                initialValue: technicianName,
-                decoration: const InputDecoration(labelText: 'Tehničar'),
-                onChanged: (v) => technicianName = v,
-              ),
-              if (error != null)
-                Text(error!, style: const TextStyle(color: Colors.red)),
-            ],
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<int>(
+                  value: _rooms.any((r) => r.id == roomId) ? roomId : null,
+                  decoration: const InputDecoration(labelText: 'Soba'),
+                  items: _rooms
+                      .map((r) => DropdownMenuItem<int>(
+                            value: r.id,
+                            child: Text(
+                              '${r.roomNumber}${r.hotelName != null && r.hotelName!.isNotEmpty ? ' – ${r.hotelName}' : ''}',
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() => roomId = v ?? 0),
+                  validator: (v) =>
+                      (v == null || v == 0) ? 'Odaberite sobu' : null,
+                ),
+                TextFormField(
+                  initialValue: description,
+                  decoration: const InputDecoration(labelText: 'Opis'),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Unesite opis' : null,
+                  onChanged: (v) => description = v,
+                ),
+                TextFormField(
+                  initialValue: cost.toString(),
+                  decoration: const InputDecoration(labelText: 'Trošak (EUR)'),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (v) => cost = double.tryParse(v) ?? 0,
+                ),
+                TextFormField(
+                  initialValue: technicianName,
+                  decoration: const InputDecoration(labelText: 'Tehničar'),
+                  onChanged: (v) => technicianName = v,
+                ),
+                const SizedBox(height: 8),
+                DatePickerField(
+                  label: 'Datum prijave',
+                  value: reportedAt,
+                  onChanged: (d) {
+                    if (d != null) setState(() => reportedAt = d);
+                  },
+                ),
+                const SizedBox(height: 8),
+                DatePickerField(
+                  label: 'Datum rješavanja',
+                  value: resolvedAt,
+                  allowClear: true,
+                  onChanged: (d) => setState(() => resolvedAt = d),
+                ),
+                if (error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(error!,
+                        style: const TextStyle(color: Colors.red)),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

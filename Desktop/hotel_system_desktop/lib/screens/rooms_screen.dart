@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/room.dart';
 import '../services/api_service.dart';
+import '../services/pdf_report_service.dart';
+import '../utils/display_labels.dart';
 import '../widgets/room_form.dart';
 
 class RoomsScreen extends StatefulWidget {
@@ -130,7 +132,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
                           ),
                           ...RoomType.values.map((roomType) => DropdownMenuItem(
                             value: roomType.name,
-                            child: Text(roomType.name),
+                            child: Text(roomTypeLabel(roomType)),
                           )),
                         ],
                         onChanged: (value) {
@@ -157,10 +159,21 @@ class _RoomsScreenState extends State<RoomsScreen> {
                     ),
                   ],
                 ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add),
-                  label: const Text('Dodaj sobu'),
-                  onPressed: _openRoomForm,
+                Row(
+                  children: [
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text('PDF'),
+                      onPressed: () =>
+                          PdfReportService.exportRooms(context, _rooms),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Dodaj sobu'),
+                      onPressed: _openRoomForm,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -220,7 +233,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
                         (r) => DataRow(
                           cells: [
                             DataCell(Text(r.roomNumber)),
-                            DataCell(Text(r.roomType.name)),
+                            DataCell(Text(roomTypeLabel(r.roomType))),
                             DataCell(Text(r.pricePerNight.toStringAsFixed(2))),
                             DataCell(Text(r.maxOccupancy.toString())),
                             DataCell(Text(r.description)),

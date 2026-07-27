@@ -11,6 +11,7 @@ using Persistence.Data;
 using Application.Messaging.Configuration;
 using Persistence.Interfaces;
 using Persistence.Repositories;
+using Persistence.Models;
 using Application.Services;
 using Application.Services.PaymentProviders;
 using Application.Configuration;
@@ -79,6 +80,12 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IHotelRepository, HotelRepository>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRepository<RoomMaintenanceLog>, RoomMaintenanceLogRepository>();
+builder.Services.AddScoped<IRepository<SupportTicket>, SupportTicketRepository>();
+builder.Services.AddScoped<IRepository<InventoryTransaction>, InventoryTransactionRepository>();
+builder.Services.AddScoped<IRepository<LoyaltyPointsRedemption>, LoyaltyPointsRedemptionRepository>();
+builder.Services.AddScoped<IRepository<Service>, ServiceRepository>();
+builder.Services.AddScoped<IRepository<Room>, RoomRepository>();
 
 // Add services
 builder.Services.AddScoped<IHotelService, HotelService>();
