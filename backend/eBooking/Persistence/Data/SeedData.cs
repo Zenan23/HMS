@@ -8,6 +8,19 @@ namespace Persistence.Data
 {
     public static class SeedData
     {
+        /// <summary>
+        /// Redoslijed odgovara seed hotelima (1-based index u imenu fajla).
+        /// Fajlovi žive u API/SeedAssets/hotels/ i kopiraju se u uploads/hotels/ preko IFileStorageService.
+        /// </summary>
+        private static readonly string[] HotelSeedImageFiles =
+        {
+            "hotel_1.jpg",
+            "hotel_2.jpg",
+            "hotel_3.jpg",
+            "hotel_4.jpg",
+            "hotel_5.jpg",
+        };
+
         public static async Task InitializeAsync(ApplicationDbContext context, IServiceProvider services)
         {
             // Hoteli + sobe + servisi (osnovni seed)
@@ -15,14 +28,17 @@ namespace Persistence.Data
             {
                 var hotels = new List<Hotel>
                 {
-                    new Hotel { Name = "Blue Sea Hotel", Address = "Riviera 1", City = "Split", Country = "HR", PhoneNumber = "+385 21 123 456", Email = "info@bluesea.hr", Description = "Hotel uz more sa predivnim pogledom", ImageUrl = "https://i.postimg.cc/0NVL5tbt/hotel2.jpg" },
-                    new Hotel { Name = "Alpine Lodge", Address = "Dolomiti 12", City = "Bled", Country = "SI", PhoneNumber = "+386 4 987 654", Email = "info@alpinelodge.si", Description = "Planinski ugođaj i wellness", ImageUrl = "https://i.postimg.cc/y8qp7Mn6/hotel1.webp" },
-                    new Hotel { Name = "City Center Inn", Address = "King St 10", City = "Sarajevo", Country = "BA", PhoneNumber = "+387 33 111 222", Email = "info@citycenter.ba", Description = "U srcu grada, blizu svih atrakcija", ImageUrl = "https://i.postimg.cc/yYCrKqL1/hotel3.jpg" },
-                    new Hotel { Name = "Riverside Retreat", Address = "Obala 5", City = "Mostar", Country = "BA", PhoneNumber = "+387 36 555 777", Email = "hello@riverside.ba", Description = "Ugodan boravak uz rijeku", ImageUrl = "https://i.postimg.cc/HnD3T54Z/hotel4.jpg" },
-                    new Hotel { Name = "Metropolis Hotel", Address = "Main Ave 44", City = "Zagreb", Country = "HR", PhoneNumber = "+385 1 222 333", Email = "contact@metropolis.hr", Description = "Moderan gradski hotel", ImageUrl = "https://i.postimg.cc/bNPLMxvd/hotel5.png" },
+                    new Hotel { Name = "Blue Sea Hotel", Address = "Riviera 1", City = "Split", Country = "HR", PhoneNumber = "+385 21 123 456", Email = "info@bluesea.hr", Description = "Hotel uz more sa predivnim pogledom", ImageUrl = string.Empty },
+                    new Hotel { Name = "Alpine Lodge", Address = "Dolomiti 12", City = "Bled", Country = "SI", PhoneNumber = "+386 4 987 654", Email = "info@alpinelodge.si", Description = "Planinski ugođaj i wellness", ImageUrl = string.Empty },
+                    new Hotel { Name = "City Center Inn", Address = "King St 10", City = "Sarajevo", Country = "BA", PhoneNumber = "+387 33 111 222", Email = "info@citycenter.ba", Description = "U srcu grada, blizu svih atrakcija", ImageUrl = string.Empty },
+                    new Hotel { Name = "Riverside Retreat", Address = "Obala 5", City = "Mostar", Country = "BA", PhoneNumber = "+387 36 555 777", Email = "hello@riverside.ba", Description = "Ugodan boravak uz rijeku", ImageUrl = string.Empty },
+                    new Hotel { Name = "Metropolis Hotel", Address = "Main Ave 44", City = "Zagreb", Country = "HR", PhoneNumber = "+385 1 222 333", Email = "contact@metropolis.hr", Description = "Moderan gradski hotel", ImageUrl = string.Empty },
                 };
                 context.Hotels.AddRange(hotels);
                 await context.SaveChangesAsync();
+
+                // Slike: isti mehanizam kao upload endpoint (uploads/hotels + relativni ImageUrl)
+                await AssignSeedHotelImagesAsync(context, services, hotels);
 
                 // Sobe (više po hotelu)
                 var rooms = new List<Room>();
@@ -223,7 +239,87 @@ namespace Persistence.Data
                 await context.SaveChangesAsync();
             }
 
+            // Za već postojeće baze sa starim vanjskim URL-ovima — zamijeni lokalnim upload putanjama
+            await MigrateExternalHotelImagesAsync(context, services);
+
             await SeedOperationalDataAsync(context);
+        }
+
+        private static async Task AssignSeedHotelImagesAsync(
+            ApplicationDbContext context,
+            IServiceProvider services,
+            IReadOnlyList<Hotel> hotels)
+        {
+            var fileStorage = services.GetService<IFileStorageService>();
+            if (fileStorage == null)
+                return;
+
+            var seedDir = ResolveSeedHotelsDirectory();
+            if (seedDir == null)
+                return;
+
+            for (var i = 0; i < hotels.Count && i < HotelSeedImageFiles.Length; i++)
+            {
+                var fileName = HotelSeedImageFiles[i];
+                var sourcePath = Path.Combine(seedDir, fileName);
+                if (!File.Exists(sourcePath))
+                    continue;
+
+                await using var stream = File.OpenRead(sourcePath);
+                hotels[i].ImageUrl = await fileStorage.SaveHotelImageAsync(hotels[i].Id, stream, fileName);
+            }
+
+            await context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Jednokratno: hoteli čiji ImageUrl nije managed /uploads/... putanja dobiju seed fajl.
+        /// </summary>
+        private static async Task MigrateExternalHotelImagesAsync(ApplicationDbContext context, IServiceProvider services)
+        {
+            var fileStorage = services.GetService<IFileStorageService>();
+            if (fileStorage == null)
+                return;
+
+            var hotels = await context.Hotels.OrderBy(h => h.Id).ToListAsync();
+            var needsMigration = hotels
+                .Where(h => !fileStorage.IsManagedPath(h.ImageUrl))
+                .ToList();
+            if (needsMigration.Count == 0)
+                return;
+
+            var seedDir = ResolveSeedHotelsDirectory();
+            if (seedDir == null)
+                return;
+
+            var ordered = hotels.ToList();
+            foreach (var hotel in needsMigration)
+            {
+                var index = ordered.FindIndex(h => h.Id == hotel.Id);
+                if (index < 0 || index >= HotelSeedImageFiles.Length)
+                    continue;
+
+                var fileName = HotelSeedImageFiles[index];
+                var sourcePath = Path.Combine(seedDir, fileName);
+                if (!File.Exists(sourcePath))
+                    continue;
+
+                await using var stream = File.OpenRead(sourcePath);
+                hotel.ImageUrl = await fileStorage.SaveHotelImageAsync(hotel.Id, stream, fileName);
+            }
+
+            await context.SaveChangesAsync();
+        }
+
+        private static string? ResolveSeedHotelsDirectory()
+        {
+            var candidates = new[]
+            {
+                Path.Combine(AppContext.BaseDirectory, "SeedAssets", "hotels"),
+                Path.Combine(Directory.GetCurrentDirectory(), "SeedAssets", "hotels"),
+            };
+
+            return candidates.FirstOrDefault(Directory.Exists);
         }
 
         private static async Task SeedOperationalDataAsync(ApplicationDbContext context)
