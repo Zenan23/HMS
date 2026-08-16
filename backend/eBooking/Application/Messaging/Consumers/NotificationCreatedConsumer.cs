@@ -4,8 +4,11 @@ using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
-namespace API.Messaging.Consumers
+namespace Application.Messaging.Consumers
 {
+    // Ostaje u API procesu (registrovan preko AddApiMessaging): treba IHubContext<NotificationsHub>
+    // da bi mogao realtime pushati notifikacije klijentima koji su već WebSocket-om povezani na API.
+    // Worker (odvojen proces) nema pristup tim konekcijama, zato ovaj konzument NIJE premješten.
     public class NotificationCreatedConsumer : IConsumer<NotificationCreated>
     {
         private readonly ILogger<NotificationCreatedConsumer> _logger;

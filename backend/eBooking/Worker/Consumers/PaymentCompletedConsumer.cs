@@ -3,7 +3,7 @@ using MassTransit;
 using Microsoft.Extensions.Logging;
 using Persistence.Interfaces;
 
-namespace API.Messaging.Consumers
+namespace Worker.Consumers
 {
     public class PaymentCompletedConsumer : IConsumer<PaymentCompleted>
     {
@@ -12,7 +12,7 @@ namespace API.Messaging.Consumers
         private readonly IBookingService _bookingService;
 
         public PaymentCompletedConsumer(
-            ILogger<PaymentCompletedConsumer> logger, 
+            ILogger<PaymentCompletedConsumer> logger,
             INotificationService notificationService,
             IBookingService bookingService)
         {
@@ -30,7 +30,7 @@ namespace API.Messaging.Consumers
             {
                 // Confirm the booking after successful payment
                 var bookingConfirmed = await _bookingService.ConfirmBookingAfterPaymentAsync(msg.BookingId, msg.PaymentId);
-                
+
                 if (bookingConfirmed)
                 {
                     _logger.LogInformation("Booking {BookingId} successfully confirmed after payment {PaymentId}", msg.BookingId, msg.PaymentId);
@@ -62,5 +62,3 @@ namespace API.Messaging.Consumers
         }
     }
 }
-
-
