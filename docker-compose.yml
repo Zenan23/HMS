@@ -54,6 +54,13 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    # Plaćanja: env.docker (commitano) → zero-config nakon clone-a.
+    # Opcioni .env override-a iste ključeve (ne commituj .env).
+    env_file:
+      - path: env.docker
+        required: true
+      - path: .env
+        required: false
     environment:
       - ASPNETCORE_URLS=http://+:8080
       - ASPNETCORE_ENVIRONMENT=Development
@@ -64,21 +71,8 @@ services:
       - Rabbit__Host=rabbitmq
       - Rabbit__User=${RABBIT_USER:-guest}
       - Rabbit__Pass=${RABBIT_PASS:-guest}
-      # Payments (Stripe / PayPal) – vrijednosti iz .env ili shell okruženja; vidi .env.example
-      - Payments__UseHostedCheckout=${PAYMENTS_USE_HOSTED_CHECKOUT:-true}
-      - Payments__EnableNativeCheckout=${PAYMENTS_ENABLE_NATIVE_CHECKOUT:-true}
-      - Payments__SkipPayPalWebhookVerification=${PAYMENTS_SKIP_PAYPAL_WEBHOOK_VERIFICATION:-false}
-      - Payments__Stripe__SecretKey=${STRIPE_SECRET_KEY:-}
-      - Payments__Stripe__PublishableKey=${STRIPE_PUBLISHABLE_KEY:-}
-      - Payments__Stripe__WebhookSecret=${STRIPE_WEBHOOK_SECRET:-}
-      - Payments__Stripe__SuccessUrl=${STRIPE_SUCCESS_URL:-ebooking://payment-return}
-      - Payments__Stripe__CancelUrl=${STRIPE_CANCEL_URL:-ebooking://payment-cancel}
-      - Payments__PayPal__ClientId=${PAYPAL_CLIENT_ID:-}
-      - Payments__PayPal__ClientSecret=${PAYPAL_CLIENT_SECRET:-}
-      - Payments__PayPal__BaseUrl=${PAYPAL_API_BASE_URL:-https://api-m.sandbox.paypal.com}
-      - Payments__PayPal__WebhookId=${PAYPAL_WEBHOOK_ID:-}
-      - Payments__PayPal__ReturnUrl=${PAYPAL_RETURN_URL:-ebooking://payment-return}
-      - Payments__PayPal__CancelUrl=${PAYPAL_CANCEL_URL:-ebooking://payment-cancel}
+      # Payments* dolaze iz env.docker / .env — ne stavljati ovdje prazne ${VAR:-}
+      # jer bi environment pregazio env_file i ugasio Stripe/PayPal.
     ports:
       - "8080:8080"
     volumes:

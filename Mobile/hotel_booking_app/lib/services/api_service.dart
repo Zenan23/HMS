@@ -1,26 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter/foundation.dart';
+import '../config/app_config.dart';
 
 class ApiService {
   static const _storage = FlutterSecureStorage();
-  static final String baseUrl = () {
-    if (kIsWeb) {
-      final host = Uri.base.host;
-      // Lokalno web dev okruženje
-      if (host == 'localhost' || host == '127.0.0.1') {
-        return 'http://localhost:8080/api';
-      }
-      // Docker okruženje: API servis je 'api' na 8080
-      return 'http://localhost:8080/api';
-    }
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8080/api';
-    }
-    // iOS simulator/desktop
-    return 'http://localhost:8080/api';
-  }();
+  static const String baseUrl = AppConfig.baseUrl;
 
   /// Korijen API servera bez /api — za static uploads (/uploads/...).
   static String get apiOrigin => Uri.parse(baseUrl).origin;

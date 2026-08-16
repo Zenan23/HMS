@@ -2,11 +2,12 @@ import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../config/app_config.dart';
 import '../models/dashboard_statistics.dart';
 import '../utils/api_response.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:8080';
+  static const String baseUrl = AppConfig.baseUrl;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<String?> getToken() async => await _storage.read(key: 'jwt_token');
