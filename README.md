@@ -4,10 +4,19 @@ docker-compose up --build -d
 docker-compose up -d
 
 
-LOGIN PODACI:
+LOGIN PODACI
 
-USERS:
+Prijava se vrši putem email adrese (login endpoint zahtijeva validan email format).
 
+ADMIN
+email: admin@demo.com
+pw: Admin123!
+
+EMPLOYEE
+email: leo@demo.com
+pw: Leo123!
+
+USER (gost)
 email: marko@demo.com
 pw: Marko123!
 
@@ -17,12 +26,14 @@ pw: Ana123!
 email: ivan@demo.com
 pw: Ivan123!
 
-ADMIN:
 
-email: admin@demo.com
-pw: Admin123!
+TEST PLAĆANJA
 
-EMPLOYEE:
+Stripe (test mode) — kartica:
+broj: 4242 4242 4242 4242
+datum isteka: bilo koji budući datum (npr. 12/34)
+CVC: bilo koja 3 cifre (npr. 123)
 
-email: leo@demo.com
-pw: Leo123!
+PayPal (sandbox nalog):
+email: buyerbooking@demo.com
+pw: Booking123!

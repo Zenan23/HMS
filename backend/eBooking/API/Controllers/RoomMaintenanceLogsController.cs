@@ -1,4 +1,6 @@
+using API.Attributes;
 using Contracts.DTOs;
+using Contracts.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Persistence.Interfaces;
@@ -19,6 +21,21 @@ namespace API.Controllers
         {
             _roomMaintenanceLogService = roomMaintenanceLogService;
         }
+
+        [HttpPost]
+        [AuthorizeRole(UserRole.Employee)]
+        public override Task<ActionResult<ApiResponse<RoomMaintenanceLogDto>>> Create([FromBody] CreateRoomMaintenanceLogDto createDto)
+            => base.Create(createDto);
+
+        [HttpPut("{id}")]
+        [AuthorizeRole(UserRole.Employee)]
+        public override Task<ActionResult<ApiResponse<RoomMaintenanceLogDto>>> Update([FromRoute] int id, [FromBody] UpdateRoomMaintenanceLogDto updateDto)
+            => base.Update(id, updateDto);
+
+        [HttpDelete("{id}")]
+        [AuthorizeRole(UserRole.Employee)]
+        public override Task<ActionResult<ApiResponse<bool>>> Delete([FromRoute] int id)
+            => base.Delete(id);
 
         [HttpGet("room/{roomId}")]
         public async Task<ActionResult<ApiResponse<IEnumerable<RoomMaintenanceLogDto>>>> GetByRoomId([FromRoute] int roomId)

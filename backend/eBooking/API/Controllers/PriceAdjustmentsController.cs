@@ -1,5 +1,7 @@
 using System.Security.Claims;
+using API.Attributes;
 using Contracts.DTOs;
+using Contracts.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Persistence.Interfaces;
@@ -31,6 +33,7 @@ namespace API.Controllers
 
         // Server-side postavljanje CreatedByUserId iz JWT-a — klijent ga ne šalje/ne može falsifikovati.
         [HttpPost]
+        [AuthorizeRole(UserRole.Employee, UserRole.Admin)]
         public override async Task<ActionResult<ApiResponse<PriceAdjustmentDto>>> Create([FromBody] CreatePriceAdjustmentDto createDto)
         {
             var uidClaim = User.FindFirst("userId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
@@ -41,5 +44,15 @@ namespace API.Controllers
 
             return await base.Create(createDto);
         }
+
+        [HttpPut("{id}")]
+        [AuthorizeRole(UserRole.Employee, UserRole.Admin)]
+        public override Task<ActionResult<ApiResponse<PriceAdjustmentDto>>> Update([FromRoute] int id, [FromBody] UpdatePriceAdjustmentDto updateDto)
+            => base.Update(id, updateDto);
+
+        [HttpDelete("{id}")]
+        [AuthorizeRole(UserRole.Employee, UserRole.Admin)]
+        public override Task<ActionResult<ApiResponse<bool>>> Delete([FromRoute] int id)
+            => base.Delete(id);
     }
 }

@@ -21,6 +21,13 @@ class ReservationsService {
     return ApiResponseParser.parseList(response, Reservation.fromJson);
   }
 
+  /// Rezervacije koje imaju bar jedan pokušaj plaćanja koji nije uspio
+  /// (pending/failed/cancelled) — koristi se za "Plati ponovo" opciju.
+  Future<List<Reservation>> fetchUnpaidReservations(int userId) async {
+    final response = await ApiService.get('/Bookings/user/$userId/nopaid');
+    return ApiResponseParser.parseList(response, Reservation.fromJson);
+  }
+
   Future<Reservation?> getReservationById(int id) async {
     final response = await ApiService.get('/Bookings/$id');
     if (response.statusCode != 200) return null;

@@ -92,6 +92,40 @@ class _HotelsScreenState extends State<HotelsScreen> {
     setState(() => _isLoading = false);
   }
 
+  // Izvještaj mora obuhvatiti cijeli dataset, ne samo trenutno prikazanu
+  // stranicu — dohvati sve stranice prije generisanja PDF-a.
+  Future<List<Hotel>> _fetchAllHotelsForExport() async {
+    final List<Hotel> all = [];
+    int page = 1;
+    const int size = 100;
+    while (true) {
+      final response = await ApiService()
+          .get('/api/hotels?pageNumber=$page&pageSize=$size');
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      final data = decoded['data'] ?? {};
+      final List items = data['items'] ?? [];
+      all.addAll(items.map((e) => Hotel.fromJson(e)));
+      final int totalCount = data['totalCount'] ?? 0;
+      if (all.length >= totalCount || items.isEmpty) break;
+      page++;
+    }
+    return all;
+  }
+
+  Future<void> _exportHotelsPdf() async {
+    setState(() => _isLoading = true);
+    try {
+      final all = await _fetchAllHotelsForExport();
+      if (mounted) PdfReportService.exportHotels(context, all);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Greška: $e')));
+      }
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
   void _applyCityFilter() {
     final query = _searchController.text.trim();
     if (query.isEmpty) {
@@ -157,8 +191,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
                     ElevatedButton.icon(
                       icon: const Icon(Icons.picture_as_pdf),
                       label: const Text('PDF'),
-                      onPressed: () =>
-                          PdfReportService.exportHotels(context, _hotels),
+                      onPressed: _exportHotelsPdf,
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(

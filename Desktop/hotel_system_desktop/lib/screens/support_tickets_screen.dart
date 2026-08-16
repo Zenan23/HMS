@@ -51,6 +51,36 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     setState(() => _isLoading = false);
   }
 
+  // Izvještaj mora obuhvatiti cijeli dataset, ne samo trenutno prikazanu
+  // stranicu — ako je aktivan filter po statusu, taj poziv već vraća sve
+  // rezultate; u suprotnom dohvati sve stranice.
+  Future<List<SupportTicket>> _fetchAllTicketsForExport() async {
+    if (_statusFilter != null) {
+      return _service.getByStatus(_statusFilter!);
+    }
+    final List<SupportTicket> all = [];
+    int page = 1;
+    const int size = 100;
+    while (true) {
+      final result = await _service.getPaged(pageNumber: page, pageSize: size);
+      all.addAll(result.items);
+      if (all.length >= result.totalCount || result.items.isEmpty) break;
+      page++;
+    }
+    return all;
+  }
+
+  Future<void> _exportTicketsPdf() async {
+    setState(() => _isLoading = true);
+    try {
+      final all = await _fetchAllTicketsForExport();
+      if (mounted) PdfReportService.exportSupportTickets(context, all);
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
   Future<void> _openForm({SupportTicket? ticket}) async {
     final result = await showDialog<bool>(
       context: context,
@@ -77,8 +107,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
             tooltip: 'PDF izvještaj',
-            onPressed: () =>
-                PdfReportService.exportSupportTickets(context, _tickets),
+            onPressed: _exportTicketsPdf,
           ),
         ],
       ),

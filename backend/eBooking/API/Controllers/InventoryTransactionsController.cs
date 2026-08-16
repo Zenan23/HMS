@@ -1,4 +1,6 @@
+using API.Attributes;
 using Contracts.DTOs;
+using Contracts.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Persistence.Interfaces;
@@ -19,6 +21,21 @@ namespace API.Controllers
         {
             _inventoryTransactionService = inventoryTransactionService;
         }
+
+        [HttpPost]
+        [AuthorizeRole(UserRole.Employee)]
+        public override Task<ActionResult<ApiResponse<InventoryTransactionDto>>> Create([FromBody] CreateInventoryTransactionDto createDto)
+            => base.Create(createDto);
+
+        [HttpPut("{id}")]
+        [AuthorizeRole(UserRole.Employee)]
+        public override Task<ActionResult<ApiResponse<InventoryTransactionDto>>> Update([FromRoute] int id, [FromBody] UpdateInventoryTransactionDto updateDto)
+            => base.Update(id, updateDto);
+
+        [HttpDelete("{id}")]
+        [AuthorizeRole(UserRole.Employee)]
+        public override Task<ActionResult<ApiResponse<bool>>> Delete([FromRoute] int id)
+            => base.Delete(id);
 
         [HttpGet("item/{inventoryItemId}")]
         public async Task<ActionResult<ApiResponse<IEnumerable<InventoryTransactionDto>>>> GetByInventoryItemId([FromRoute] int inventoryItemId)

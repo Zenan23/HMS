@@ -53,6 +53,42 @@ class _RoomsScreenState extends State<RoomsScreen> {
     setState(() => _isLoading = false);
   }
 
+  // Izvještaj mora obuhvatiti cijeli dataset, ne samo trenutno prikazanu
+  // stranicu — ako je aktivan filter po tipu sobe, taj poziv već vraća sve
+  // rezultate; u suprotnom dohvati sve stranice.
+  Future<List<Room>> _fetchAllRoomsForExport() async {
+    if (_isSearchMode) return _rooms;
+    final List<Room> all = [];
+    int page = 1;
+    const int size = 100;
+    while (true) {
+      final response = await ApiService()
+          .get('/api/Rooms?pageNumber=$page&pageSize=$size');
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      final data = decoded['data'] ?? {};
+      final List items = data['items'] ?? [];
+      all.addAll(items.map((e) => Room.fromJson(e)));
+      final int totalCount = data['totalCount'] ?? 0;
+      if (all.length >= totalCount || items.isEmpty) break;
+      page++;
+    }
+    return all;
+  }
+
+  Future<void> _exportRoomsPdf() async {
+    setState(() => _isLoading = true);
+    try {
+      final all = await _fetchAllRoomsForExport();
+      if (mounted) PdfReportService.exportRooms(context, all);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Greška: $e')));
+      }
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
   Future<void> _fetchRoomsByType(String roomType) async {
     setState(() => _isLoading = true);
     try {
@@ -164,8 +200,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
                     ElevatedButton.icon(
                       icon: const Icon(Icons.picture_as_pdf),
                       label: const Text('PDF'),
-                      onPressed: () =>
-                          PdfReportService.exportRooms(context, _rooms),
+                      onPressed: _exportRoomsPdf,
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(

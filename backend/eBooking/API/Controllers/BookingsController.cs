@@ -23,9 +23,37 @@ namespace API.Controllers
             _bookingService = bookingService;
         }
 
+        // Lista SVIH rezervacija (bez filtera po korisniku) — samo za osoblje, inače bi bilo koji
+        // ulogovani gost mogao vidjeti tuđe rezervacije.
+        [HttpGet]
+        [AuthorizeRole(UserRole.Employee)]
+        public override Task<ActionResult<ApiResponse<PaginatedResult<BookingDto>>>> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+            => base.GetAll(pageNumber, pageSize);
+
+        // Pojedinačna rezervacija po ID-u — spriječi da gost pogodi/enumeriše tuđi bookingId
+        // i vidi detalje (datumi, cijena) tuđe rezervacije.
+        [HttpGet("{id}")]
+        public override async Task<ActionResult<ApiResponse<BookingDto>>> GetById([FromRoute] int id)
+        {
+            var result = await base.GetById(id);
+            if (result.Result is OkObjectResult ok && ok.Value is ApiResponse<BookingDto> resp && resp.Data != null)
+            {
+                if (!IsSelfOrElevated(resp.Data.UserId))
+                {
+                    return Forbid();
+                }
+            }
+            return result;
+        }
+
         [HttpGet("user/{userId}/paid")]
         public async Task<ActionResult<ApiResponse<IEnumerable<BookingDto>>>> GetPaidBookingsByUserId([FromRoute] int userId)
         {
+            if (!IsSelfOrElevated(userId))
+            {
+                return Forbid();
+            }
+
             var bookings = await _bookingService.GetPaidBookingsByUserIdAsync(userId);
             return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Paid bookings retrieved successfully."));
         }
@@ -33,6 +61,11 @@ namespace API.Controllers
         [HttpGet("user/{userId}/nopaid")]
         public async Task<ActionResult<ApiResponse<IEnumerable<BookingDto>>>> GetNoPaidBookingsByUserId([FromRoute] int userId)
         {
+            if (!IsSelfOrElevated(userId))
+            {
+                return Forbid();
+            }
+
             var bookings = await _bookingService.GetNoPaidBookingsByUserIdAsync(userId);
             return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Paid bookings retrieved successfully."));
         }
@@ -50,6 +83,11 @@ namespace API.Controllers
                 if (guestId <= 0)
                 {
                     return BadRequest(ApiResponse<IEnumerable<BookingDto>>.ErrorResult("Invalid guest ID."));
+                }
+
+                if (!IsSelfOrElevated(guestId))
+                {
+                    return Forbid();
                 }
 
                 var bookings = await _bookingService.GetByGuestIdAsync(guestId);
@@ -77,6 +115,11 @@ namespace API.Controllers
                     return BadRequest(ApiResponse<IEnumerable<BookingDto>>.ErrorResult("Invalid user ID."));
                 }
 
+                if (!IsSelfOrElevated(userId))
+                {
+                    return Forbid();
+                }
+
                 var bookings = await _bookingService.GetByUserIdAsync(userId);
                 return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Bookings retrieved successfully."));
             }
@@ -93,6 +136,7 @@ namespace API.Controllers
         /// <param name="roomId">Room ID</param>
         /// <returns>List of bookings</returns>
         [HttpGet("room/{roomId}")]
+        [AuthorizeRole(UserRole.Employee)]
         public async Task<ActionResult<ApiResponse<IEnumerable<BookingDto>>>> GetByRoomId([FromRoute] int roomId)
         {
             try
@@ -118,6 +162,7 @@ namespace API.Controllers
         /// <param name="status">Booking status</param>
         /// <returns>List of bookings</returns>
         [HttpGet("status/{status}")]
+        [AuthorizeRole(UserRole.Employee)]
         public async Task<ActionResult<ApiResponse<IEnumerable<BookingDto>>>> GetByStatus([FromRoute] BookingStatus status)
         {
             try
@@ -139,6 +184,7 @@ namespace API.Controllers
         /// <param name="endDate">End date</param>
         /// <returns>List of bookings</returns>
         [HttpGet("date-range")]
+        [AuthorizeRole(UserRole.Employee)]
         public async Task<ActionResult<ApiResponse<IEnumerable<BookingDto>>>> GetByDateRange(
             [FromQuery][Required] DateTime startDate,
             [FromQuery][Required] DateTime endDate)

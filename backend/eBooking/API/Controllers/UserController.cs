@@ -1,8 +1,11 @@
-﻿using Contracts.DTOs;
+﻿using API.Attributes;
+using Contracts.DTOs;
+using Contracts.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Persistence.Interfaces;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 
 namespace API.Controllers
 {
@@ -21,12 +24,71 @@ namespace API.Controllers
             _userService = userService;
         }
 
+        // Lista SVIH korisnika / pojedinačan korisnik po ID-u — samo osoblje/admin (PII).
+        // Sopstveni profil se dohvata iz AuthService (JWT), ne preko ovih endpoint-a.
+        [HttpGet]
+        [AuthorizeRole(UserRole.Employee, UserRole.Admin)]
+        public override Task<ActionResult<ApiResponse<PaginatedResult<UserDto>>>> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+            => base.GetAll(pageNumber, pageSize);
+
+        [HttpGet("{id}")]
+        public override async Task<ActionResult<ApiResponse<UserDto>>> GetById([FromRoute] int id)
+        {
+            if (!IsSelfOrElevated(id))
+            {
+                return Forbid();
+            }
+            return await base.GetById(id);
+        }
+
+        /// <summary>
+        /// Ažuriranje korisnika — admin može ažurirati bilo kog korisnika (uključujući rolu/status).
+        /// Ne-admin korisnik smije ažurirati samo svoj profil i ne može mijenjati vlastitu rolu/status.
+        /// </summary>
+        [HttpPut("{id}")]
+        public override async Task<ActionResult<ApiResponse<UserDto>>> Update([FromRoute] int id, [FromBody] UpdateUserDto updateDto)
+        {
+            var roleClaim = User.FindFirst(ClaimTypes.Role);
+            var isAdmin = roleClaim != null && roleClaim.Value == UserRole.Admin.ToString();
+
+            if (!isAdmin)
+            {
+                var uidClaim = User.FindFirst("userId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
+                if (uidClaim == null || !int.TryParse(uidClaim.Value, out var callerId) || callerId != id)
+                {
+                    return Forbid();
+                }
+
+                // Spriječi da korisnik sam sebi promijeni rolu ili status aktivnosti kroz svoj profil.
+                var existing = await _userService.GetByIdAsync(id);
+                if (existing == null)
+                {
+                    return NotFound(ApiResponse<UserDto>.ErrorResult($"User with ID {id} not found."));
+                }
+                updateDto.Role = existing.Role;
+                updateDto.IsActive = existing.IsActive;
+            }
+
+            return await base.Update(id, updateDto);
+        }
+
+        /// <summary>
+        /// Brisanje korisnika — samo Admin.
+        /// </summary>
+        [HttpDelete("{id}")]
+        [AuthorizeRole(UserRole.Admin)]
+        public override async Task<ActionResult<ApiResponse<bool>>> Delete([FromRoute] int id)
+        {
+            return await base.Delete(id);
+        }
+
         /// <summary>
         /// Get user by username
         /// </summary>
         /// <param name="username">Username</param>
         /// <returns>User if found</returns>
         [HttpGet("username/{username}")]
+        [AuthorizeRole(UserRole.Employee, UserRole.Admin)]
         public async Task<ActionResult<ApiResponse<UserDto>>> GetByUsername([FromRoute] string username)
         {
             try
@@ -58,6 +120,7 @@ namespace API.Controllers
         /// <param name="username">Username</param>
         /// <returns>User if found</returns>
         [HttpGet("employee/username/{username}")]
+        [AuthorizeRole(UserRole.Employee, UserRole.Admin)]
         public async Task<ActionResult<ApiResponse<UserDto>>> GetEmployeeByUsername([FromRoute] string username)
         {
             try
@@ -88,6 +151,7 @@ namespace API.Controllers
         /// <param name="email">Email address</param>
         /// <returns>User if found</returns>
         [HttpGet("email/{email}")]
+        [AuthorizeRole(UserRole.Employee, UserRole.Admin)]
         public async Task<ActionResult<ApiResponse<UserDto>>> GetByEmail([FromRoute] string email)
         {
             try
@@ -118,6 +182,7 @@ namespace API.Controllers
         /// <param name="role">User role</param>
         /// <returns>List of users</returns>
         [HttpGet("role/{role}")]
+        [AuthorizeRole(UserRole.Employee, UserRole.Admin)]
         public async Task<ActionResult<ApiResponse<IEnumerable<UserDto>>>> GetByRole([FromRoute] int role)
         {
             try
@@ -137,6 +202,7 @@ namespace API.Controllers
         /// </summary>
         /// <returns>List of active users</returns>
         [HttpGet("active")]
+        [AuthorizeRole(UserRole.Employee, UserRole.Admin)]
         public async Task<ActionResult<ApiResponse<IEnumerable<UserDto>>>> GetActiveUsers()
         {
             try
@@ -165,6 +231,11 @@ namespace API.Controllers
                 if (id <= 0)
                 {
                     return BadRequest(ApiResponse<bool>.ErrorResult("Invalid user ID."));
+                }
+
+                if (!IsSelfOrElevated(id))
+                {
+                    return Forbid();
                 }
 
                 if (!ModelState.IsValid)
