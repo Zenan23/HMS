@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/city.dart';
 import '../models/hotel.dart';
+import '../services/city_service.dart';
 import '../services/hotels_service.dart';
 import '../services/auth_service.dart';
 import 'hotel_detail_screen.dart';
@@ -13,7 +15,9 @@ class HotelsScreen extends StatefulWidget {
 }
 
 class _HotelsScreenState extends State<HotelsScreen> {
-  final TextEditingController _cityController = TextEditingController();
+  final _cityService = CityService();
+  List<City> _cities = [];
+  String? _selectedCityName;
   int? _selectedRating;
   bool _isFiltering = false;
 
@@ -22,11 +26,21 @@ class _HotelsScreenState extends State<HotelsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadHotels();
+      _loadCities();
       final auth = context.read<AuthService>();
       if (auth.user != null) {
         context.read<HotelsService>().fetchRecommended(auth.user!.userId);
       }
     });
+  }
+
+  Future<void> _loadCities() async {
+    try {
+      final cities = await _cityService.fetchAll();
+      if (mounted) setState(() => _cities = cities);
+    } catch (_) {
+      // ignore, filter po gradu ostaje nedostupan ako ovo ne uspije
+    }
   }
 
   Future<void> _loadHotels() async {
@@ -45,9 +59,9 @@ class _HotelsScreenState extends State<HotelsScreen> {
     }
   }
 
-  Future<void> _filterByCity() async {
-    final city = _cityController.text.trim();
-    if (city.isEmpty) {
+  Future<void> _filterByCity(String? city) async {
+    setState(() { _selectedCityName = city; });
+    if (city == null || city.isEmpty) {
       await _loadHotels();
       return;
     }
@@ -86,7 +100,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
   }
 
   void _resetFilters() {
-    _cityController.clear();
+    _selectedCityName = null;
     _selectedRating = null;
     _loadHotels();
   }
@@ -105,18 +119,24 @@ class _HotelsScreenState extends State<HotelsScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: _cityController,
+                  child: DropdownButtonFormField<String?>(
+                    value: _selectedCityName,
                     decoration: const InputDecoration(
                       labelText: 'Grad',
                       border: OutlineInputBorder(),
                     ),
+                    items: [
+                      const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('Svi gradovi'),
+                      ),
+                      ..._cities.map((c) => DropdownMenuItem<String?>(
+                            value: c.name,
+                            child: Text(c.label),
+                          )),
+                    ],
+                    onChanged: _isFiltering ? null : _filterByCity,
                   ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: _isFiltering ? null : _filterByCity,
-                  child: const Text('Filtriraj'),
                 ),
                 const SizedBox(width: 8),
                 DropdownButton<int>(

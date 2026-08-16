@@ -9,11 +9,29 @@ namespace Application.Mapper
         public MappingProfile()
         {
             // Hotel mappings
-            CreateMap<Hotel, HotelDto>();
+            CreateMap<Hotel, HotelDto>()
+                .ForMember(dest => dest.City, opt => opt.MapFrom(src => src.City != null ? src.City.Name : string.Empty))
+                .ForMember(dest => dest.Country, opt => opt.MapFrom(src => src.City != null && src.City.Country != null ? src.City.Country.Name : string.Empty));
             CreateMap<CreateHotelDto, Hotel>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
             CreateMap<UpdateHotelDto, Hotel>()
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
+            // Country / City mappings (referentne tabele — zamjena za slobodan tekst na Hotelu)
+            CreateMap<Country, CountryDto>();
+            CreateMap<CreateCountryDto, Country>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+            CreateMap<UpdateCountryDto, Country>()
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
+            CreateMap<City, CityDto>()
+                .ForMember(dest => dest.CountryName, opt => opt.MapFrom(src => src.Country != null ? src.Country.Name : string.Empty));
+            CreateMap<CreateCityDto, City>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+            CreateMap<UpdateCityDto, City>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
             // Booking mappings

@@ -6,6 +6,7 @@ namespace Contracts.DTOs
     {
         public string Name { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
+        public int CityId { get; set; }
         public string City { get; set; } = string.Empty;
         public string Country { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
@@ -27,13 +28,8 @@ namespace Contracts.DTOs
         [StringLength(200, ErrorMessage = "Address cannot exceed 200 characters")]
         public string Address { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "City is required")]
-        [StringLength(50, ErrorMessage = "City cannot exceed 50 characters")]
-        public string City { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Country is required")]
-        [StringLength(50, ErrorMessage = "Country cannot exceed 50 characters")]
-        public string Country { get; set; } = string.Empty;
+        [Range(1, int.MaxValue, ErrorMessage = "City is required")]
+        public int CityId { get; set; }
 
         [StringLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
         public string PhoneNumber { get; set; } = string.Empty;
@@ -61,13 +57,8 @@ namespace Contracts.DTOs
         [StringLength(200, ErrorMessage = "Address cannot exceed 200 characters")]
         public string Address { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "City is required")]
-        [StringLength(50, ErrorMessage = "City cannot exceed 50 characters")]
-        public string City { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Country is required")]
-        [StringLength(50, ErrorMessage = "Country cannot exceed 50 characters")]
-        public string Country { get; set; } = string.Empty;
+        [Range(1, int.MaxValue, ErrorMessage = "City is required")]
+        public int CityId { get; set; }
 
         [StringLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
         public string PhoneNumber { get; set; } = string.Empty;

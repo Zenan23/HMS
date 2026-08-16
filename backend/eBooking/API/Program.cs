@@ -111,6 +111,8 @@ builder.Services.AddScoped<IInventoryTransactionService, InventoryTransactionSer
 builder.Services.AddScoped<IInventoryItemService, InventoryItemService>();
 builder.Services.AddScoped<ILoyaltyPointsRedemptionService, LoyaltyPointsRedemptionService>();
 builder.Services.AddScoped<ISupportTicketService, SupportTicketService>();
+builder.Services.AddScoped<ICountryService, CountryService>();
+builder.Services.AddScoped<ICityService, CityService>();
 
 // Queries (read-only)
 builder.Services.AddScoped<Application.Queries.IBookingQueries, Application.Queries.BookingQueries>();
