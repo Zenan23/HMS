@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Contracts.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,10 +22,24 @@ namespace API.Controllers
         }
 
         [HttpGet("active")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<PriceAdjustmentDto>>>> GetActive([FromQuery] DateTime? atDate)
+        public async Task<ActionResult<ApiResponse<IEnumerable<PriceAdjustmentDto>>>> GetActive(
+            [FromQuery] DateTime? atDate, [FromQuery] int? hotelId)
         {
-            var activeAdjustments = await _priceAdjustmentService.GetActiveAdjustmentsAsync(atDate ?? DateTime.UtcNow);
+            var activeAdjustments = await _priceAdjustmentService.GetActiveAdjustmentsAsync(atDate ?? DateTime.UtcNow, hotelId);
             return Ok(ApiResponse<IEnumerable<PriceAdjustmentDto>>.SuccessResult(activeAdjustments, "Active price adjustments retrieved successfully."));
+        }
+
+        // Server-side postavljanje CreatedByUserId iz JWT-a — klijent ga ne šalje/ne može falsifikovati.
+        [HttpPost]
+        public override async Task<ActionResult<ApiResponse<PriceAdjustmentDto>>> Create([FromBody] CreatePriceAdjustmentDto createDto)
+        {
+            var uidClaim = User.FindFirst("userId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
+            if (uidClaim != null && int.TryParse(uidClaim.Value, out var uid))
+            {
+                createDto.CreatedByUserId = uid;
+            }
+
+            return await base.Create(createDto);
         }
     }
 }

@@ -5,6 +5,8 @@ namespace Contracts.DTOs
     public class InventoryTransactionDto : BaseEntityDto
     {
         public int InventoryItemId { get; set; }
+        public string InventoryItemName { get; set; } = string.Empty;
+        public string InventoryItemUnit { get; set; } = string.Empty;
         public int QuantityChange { get; set; }
         public DateTime TransactionDate { get; set; }
         public int StaffUserId { get; set; }

@@ -286,16 +286,53 @@ namespace Application.Services
             if (stripeEvent.Type == Stripe.Events.CheckoutSessionCompleted)
             {
                 if (stripeEvent.Data.Object is Session session)
+                {
+                    await TryLinkWebhookPaymentAsync("Stripe", stripeEvent.Id, session.Metadata);
                     return await FinalizeStripeSessionInternalAsync(session);
+                }
             }
 
             if (stripeEvent.Type == Stripe.Events.PaymentIntentSucceeded)
             {
                 if (stripeEvent.Data.Object is PaymentIntent intent)
+                {
+                    await TryLinkWebhookPaymentAsync("Stripe", stripeEvent.Id, intent.Metadata);
                     return await FinalizeStripePaymentIntentInternalAsync(intent);
+                }
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Best-effort: poveži ProcessedWebhookEvent sa Payment zapisom (audit/debug), ako je payment_id
+        /// dostupan u metapodacima. Nikad ne baca — greška ovdje ne smije uticati na obradu webhooka.
+        /// </summary>
+        private async Task TryLinkWebhookPaymentAsync(string provider, string eventId, IDictionary<string, string>? metadata)
+        {
+            try
+            {
+                if (metadata != null && metadata.TryGetValue("payment_id", out var paymentIdStr) && int.TryParse(paymentIdStr, out var paymentId))
+                {
+                    await _webhookDedup.LinkPaymentAsync(provider, eventId, paymentId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Nije moguće povezati webhook event {Provider}/{EventId} sa Payment zapisom (nekritično).", provider, eventId);
+            }
+        }
+
+        private async Task TryLinkWebhookPaymentAsync(string provider, string eventId, int paymentId)
+        {
+            try
+            {
+                await _webhookDedup.LinkPaymentAsync(provider, eventId, paymentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Nije moguće povezati webhook event {Provider}/{EventId} sa Payment zapisom (nekritično).", provider, eventId);
+            }
         }
 
         public async Task<bool> ProcessPayPalWebhookAsync(string rawBody, string transmissionId, string transmissionTime, string certUrl, string authAlgo, string transmissionSig)
@@ -354,6 +391,8 @@ namespace Application.Services
                 _logger.LogWarning("PayPal webhook: nije moguće mapirati payment id.");
                 return true;
             }
+
+            await TryLinkWebhookPaymentAsync("PayPal", transmissionId, paymentId);
 
             return await MarkPayPalPaymentCompletedAsync(paymentId, captureId, rawBody);
         }

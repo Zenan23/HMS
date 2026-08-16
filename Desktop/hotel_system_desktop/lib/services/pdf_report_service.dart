@@ -369,7 +369,9 @@ class PdfReportService {
       rows: transactions
           .map((t) => [
                 '${t.id}',
-                '${t.inventoryItemId}',
+                t.inventoryItemName.isNotEmpty
+                    ? t.inventoryItemName
+                    : 'Artikal #${t.inventoryItemId}',
                 '${t.quantityChange}',
                 formatDisplayDate(t.transactionDate),
                 t.staffUserName.isNotEmpty

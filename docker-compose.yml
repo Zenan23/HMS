@@ -64,7 +64,7 @@ services:
     environment:
       - ASPNETCORE_URLS=http://+:8080
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=db;Database=IB170028;User ID=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!};Encrypt=true;TrustServerCertificate=true;MultipleActiveResultSets=true
+      - ConnectionStrings__DefaultConnection=Server=db;Database=170028;User ID=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!};Encrypt=true;TrustServerCertificate=true;MultipleActiveResultSets=true
       - JWT__SecretKey=${JWT_SECRET:-ChangeThisToAStrongSecretKey_AtLeast32Chars}
       - JWT__Issuer=eBooking
       - JWT__Audience=eBookingUsers
@@ -104,7 +104,7 @@ services:
         required: false
     environment:
       - DOTNET_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=db;Database=IB170028;User ID=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!};Encrypt=true;TrustServerCertificate=true;MultipleActiveResultSets=true
+      - ConnectionStrings__DefaultConnection=Server=db;Database=170028;User ID=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!};Encrypt=true;TrustServerCertificate=true;MultipleActiveResultSets=true
       - Rabbit__Host=rabbitmq
       - Rabbit__User=${RABBIT_USER:-guest}
       - Rabbit__Pass=${RABBIT_PASS:-guest}

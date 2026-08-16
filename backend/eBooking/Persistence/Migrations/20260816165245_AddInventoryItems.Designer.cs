@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Persistence.Data;
 
@@ -11,9 +12,11 @@ using Persistence.Data;
 namespace Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260816165245_AddInventoryItems")]
+    partial class AddInventoryItems
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -568,14 +571,8 @@ namespace Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("CreatedByUserId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<int?>("HotelId")
-                        .HasColumnType("int");
 
                     b.Property<bool>("IsCumulative")
                         .HasColumnType("bit");
@@ -599,10 +596,6 @@ namespace Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedByUserId");
-
-                    b.HasIndex("HotelId");
-
                     b.ToTable("PriceAdjustments");
                 });
 
@@ -619,9 +612,6 @@ namespace Persistence.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<int?>("PaymentId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Provider")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -631,8 +621,6 @@ namespace Persistence.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("PaymentId");
 
                     b.HasIndex("Provider", "EventId")
                         .IsUnique();
@@ -1122,33 +1110,6 @@ namespace Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("InitiatedByUser");
-
-                    b.Navigation("Payment");
-                });
-
-            modelBuilder.Entity("Persistence.Models.PriceAdjustment", b =>
-                {
-                    b.HasOne("Persistence.Models.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Persistence.Models.Hotel", "Hotel")
-                        .WithMany()
-                        .HasForeignKey("HotelId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("CreatedByUser");
-
-                    b.Navigation("Hotel");
-                });
-
-            modelBuilder.Entity("Persistence.Models.ProcessedWebhookEvent", b =>
-                {
-                    b.HasOne("Persistence.Models.Payment", "Payment")
-                        .WithMany()
-                        .HasForeignKey("PaymentId")
-                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Payment");
                 });

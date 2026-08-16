@@ -152,7 +152,7 @@ namespace Application.Services
                 throw new ArgumentException("Boravak mora trajati najmanje jednu noć.");
 
             decimal total = nights * room.PricePerNight;
-            return await _priceAdjustmentService.ApplyActiveAdjustmentsAsync(total, checkIn);
+            return await _priceAdjustmentService.ApplyActiveAdjustmentsAsync(total, checkIn, room.HotelId);
         }
 
         public async Task<decimal> CalculatePriceAsync(int roomId, DateTime checkIn, DateTime checkOut, int guests, IEnumerable<(int ServiceId, int Quantity)> services)
@@ -183,7 +183,7 @@ namespace Application.Services
                 }
             }
 
-            return await _priceAdjustmentService.ApplyActiveAdjustmentsAsync(total, checkIn);
+            return await _priceAdjustmentService.ApplyActiveAdjustmentsAsync(total, checkIn, room.HotelId);
         }
 
         public override async Task<RoomDto> CreateAsync(CreateRoomDto createDto)

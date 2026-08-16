@@ -13,6 +13,7 @@ import 'screens/support_tickets_screen.dart';
 import 'screens/room_maintenance_logs_screen.dart';
 import 'screens/price_adjustments_screen.dart';
 import 'screens/inventory_transactions_screen.dart';
+import 'screens/inventory_items_screen.dart';
 import 'screens/loyalty_redemptions_screen.dart';
 import 'utils/role_utils.dart';
 
@@ -90,6 +91,7 @@ class _MainTabsState extends State<MainTabs>
         Tab(text: 'Podrška'),
         Tab(text: 'Održavanje'),
         Tab(text: 'Cijene'),
+        Tab(text: 'Artikli skladišta'),
         Tab(text: 'Skladište'),
         Tab(text: 'Vjernost'),
       ];
@@ -101,6 +103,7 @@ class _MainTabsState extends State<MainTabs>
         SupportTicketsScreen(),
         RoomMaintenanceLogsScreen(),
         PriceAdjustmentsScreen(),
+        InventoryItemsScreen(),
         InventoryTransactionsScreen(),
         LoyaltyRedemptionsScreen(),
       ];

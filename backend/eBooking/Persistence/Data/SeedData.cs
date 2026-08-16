@@ -326,6 +326,9 @@ namespace Persistence.Data
         {
             var today = DateTime.UtcNow.Date;
 
+            var admin = await context.Users.FirstOrDefaultAsync(u => u.Email == "admin@demo.com");
+            var firstHotelForPricing = await context.Hotels.OrderBy(h => h.Id).FirstOrDefaultAsync();
+
             if (!await context.PriceAdjustments.AnyAsync())
             {
                 context.PriceAdjustments.AddRange(
@@ -335,7 +338,9 @@ namespace Persistence.Data
                         PercentageModifier = -15m,
                         StartDate = today.AddDays(-30),
                         EndDate = today.AddDays(90),
-                        IsCumulative = true
+                        IsCumulative = true,
+                        CreatedByUserId = admin?.Id,
+                        HotelId = null // sajt-wide
                     },
                     new PriceAdjustment
                     {
@@ -343,7 +348,9 @@ namespace Persistence.Data
                         PercentageModifier = -10m,
                         StartDate = today,
                         EndDate = today.AddDays(60),
-                        IsCumulative = false
+                        IsCumulative = false,
+                        CreatedByUserId = admin?.Id,
+                        HotelId = null // sajt-wide
                     },
                     new PriceAdjustment
                     {
@@ -351,7 +358,9 @@ namespace Persistence.Data
                         PercentageModifier = 25m,
                         StartDate = new DateTime(today.Year, 12, 20),
                         EndDate = new DateTime(today.Year + 1, 1, 5),
-                        IsCumulative = false
+                        IsCumulative = false,
+                        CreatedByUserId = admin?.Id,
+                        HotelId = firstHotelForPricing?.Id // demonstracija hotel-specifičnog pravila
                     });
                 await context.SaveChangesAsync();
             }
@@ -409,12 +418,24 @@ namespace Persistence.Data
                 await context.SaveChangesAsync();
             }
 
-            if (!await context.InventoryTransactions.AnyAsync() && leo != null)
+            if (!await context.InventoryItems.AnyAsync())
+            {
+                context.InventoryItems.AddRange(
+                    new InventoryItem { Name = "Sapun", Unit = "kom", Category = "Higijena", MinimumStockLevel = 50 },
+                    new InventoryItem { Name = "Mini bar - napici", Unit = "kom", Category = "Mini bar", MinimumStockLevel = 20 },
+                    new InventoryItem { Name = "Peškiri", Unit = "kom", Category = "Tekstil", MinimumStockLevel = 30 });
+                await context.SaveChangesAsync();
+            }
+
+            var soap = await context.InventoryItems.FirstOrDefaultAsync(x => x.Name == "Sapun");
+            var miniBar = await context.InventoryItems.FirstOrDefaultAsync(x => x.Name == "Mini bar - napici");
+
+            if (!await context.InventoryTransactions.AnyAsync() && leo != null && soap != null && miniBar != null)
             {
                 context.InventoryTransactions.AddRange(
                     new InventoryTransaction
                     {
-                        InventoryItemId = 1,
+                        InventoryItemId = soap.Id,
                         QuantityChange = 100,
                         TransactionDate = today.AddDays(-7),
                         StaffUserId = leo.Id,
@@ -422,7 +443,7 @@ namespace Persistence.Data
                     },
                     new InventoryTransaction
                     {
-                        InventoryItemId = 1,
+                        InventoryItemId = soap.Id,
                         QuantityChange = -20,
                         TransactionDate = today.AddDays(-2),
                         StaffUserId = leo.Id,
@@ -430,7 +451,7 @@ namespace Persistence.Data
                     },
                     new InventoryTransaction
                     {
-                        InventoryItemId = 2,
+                        InventoryItemId = miniBar.Id,
                         QuantityChange = -15,
                         TransactionDate = today,
                         StaffUserId = leo.Id,

@@ -5,6 +5,9 @@ class PriceAdjustment {
   final DateTime startDate;
   final DateTime endDate;
   final bool isCumulative;
+  final int? hotelId;
+  final String hotelName;
+  final String createdByUserName;
 
   PriceAdjustment({
     required this.id,
@@ -13,6 +16,9 @@ class PriceAdjustment {
     required this.startDate,
     required this.endDate,
     required this.isCumulative,
+    required this.hotelId,
+    required this.hotelName,
+    required this.createdByUserName,
   });
 
   factory PriceAdjustment.fromJson(Map<String, dynamic> json) => PriceAdjustment(
@@ -22,5 +28,8 @@ class PriceAdjustment {
         startDate: DateTime.tryParse(json['startDate'] ?? '') ?? DateTime.now(),
         endDate: DateTime.tryParse(json['endDate'] ?? '') ?? DateTime.now(),
         isCumulative: json['isCumulative'] ?? false,
+        hotelId: json['hotelId'],
+        hotelName: json['hotelName'] ?? '',
+        createdByUserName: json['createdByUserName'] ?? '',
       );
 }

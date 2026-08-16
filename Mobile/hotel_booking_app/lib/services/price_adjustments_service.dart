@@ -3,10 +3,11 @@ import '../utils/api_response.dart';
 import 'api_service.dart';
 
 class PriceAdjustmentsService {
-  Future<List<PriceAdjustment>> getActive({DateTime? atDate}) async {
+  Future<List<PriceAdjustment>> getActive({DateTime? atDate, int? hotelId}) async {
     final date = (atDate ?? DateTime.now()).toUtc().toIso8601String();
+    final hotelParam = hotelId != null ? '&hotelId=$hotelId' : '';
     final response =
-        await ApiService.get('/PriceAdjustments/active?atDate=$date');
+        await ApiService.get('/PriceAdjustments/active?atDate=$date$hotelParam');
     return ApiResponseParser.parseList(response, PriceAdjustment.fromJson);
   }
 
