@@ -23,16 +23,50 @@ namespace Persistence.Data
 
         public static async Task InitializeAsync(ApplicationDbContext context, IServiceProvider services)
         {
+            // Referentne/šifarnik tabele: države i gradovi. Moraju postojati PRIJE hotela
+            // jer Hotel.CityId je obavezan FK (zamjena za slobodan tekstualni unos grada/države).
+            if (!await context.Countries.AnyAsync())
+            {
+                context.Countries.AddRange(
+                    new Country { Name = "Hrvatska" },
+                    new Country { Name = "Slovenija" },
+                    new Country { Name = "Bosna i Hercegovina" }
+                );
+                await context.SaveChangesAsync();
+            }
+
+            var hrCountry = await context.Countries.FirstAsync(c => c.Name == "Hrvatska");
+            var siCountry = await context.Countries.FirstAsync(c => c.Name == "Slovenija");
+            var baCountry = await context.Countries.FirstAsync(c => c.Name == "Bosna i Hercegovina");
+
+            if (!await context.Cities.AnyAsync())
+            {
+                context.Cities.AddRange(
+                    new City { Name = "Split", CountryId = hrCountry.Id },
+                    new City { Name = "Zagreb", CountryId = hrCountry.Id },
+                    new City { Name = "Bled", CountryId = siCountry.Id },
+                    new City { Name = "Sarajevo", CountryId = baCountry.Id },
+                    new City { Name = "Mostar", CountryId = baCountry.Id }
+                );
+                await context.SaveChangesAsync();
+            }
+
             // Hoteli + sobe + servisi (osnovni seed)
             if (!await context.Hotels.AnyAsync())
             {
+                var splitCity = await context.Cities.FirstAsync(c => c.Name == "Split");
+                var bledCity = await context.Cities.FirstAsync(c => c.Name == "Bled");
+                var sarajevoCity = await context.Cities.FirstAsync(c => c.Name == "Sarajevo");
+                var mostarCity = await context.Cities.FirstAsync(c => c.Name == "Mostar");
+                var zagrebCity = await context.Cities.FirstAsync(c => c.Name == "Zagreb");
+
                 var hotels = new List<Hotel>
                 {
-                    new Hotel { Name = "Blue Sea Hotel", Address = "Riviera 1", City = "Split", Country = "HR", PhoneNumber = "+385 21 123 456", Email = "info@bluesea.hr", Description = "Hotel uz more sa predivnim pogledom", ImageUrl = string.Empty },
-                    new Hotel { Name = "Alpine Lodge", Address = "Dolomiti 12", City = "Bled", Country = "SI", PhoneNumber = "+386 4 987 654", Email = "info@alpinelodge.si", Description = "Planinski ugođaj i wellness", ImageUrl = string.Empty },
-                    new Hotel { Name = "City Center Inn", Address = "King St 10", City = "Sarajevo", Country = "BA", PhoneNumber = "+387 33 111 222", Email = "info@citycenter.ba", Description = "U srcu grada, blizu svih atrakcija", ImageUrl = string.Empty },
-                    new Hotel { Name = "Riverside Retreat", Address = "Obala 5", City = "Mostar", Country = "BA", PhoneNumber = "+387 36 555 777", Email = "hello@riverside.ba", Description = "Ugodan boravak uz rijeku", ImageUrl = string.Empty },
-                    new Hotel { Name = "Metropolis Hotel", Address = "Main Ave 44", City = "Zagreb", Country = "HR", PhoneNumber = "+385 1 222 333", Email = "contact@metropolis.hr", Description = "Moderan gradski hotel", ImageUrl = string.Empty },
+                    new Hotel { Name = "Blue Sea Hotel", Address = "Riviera 1", CityId = splitCity.Id, PhoneNumber = "+385 21 123 456", Email = "info@bluesea.hr", Description = "Hotel uz more sa predivnim pogledom", ImageUrl = string.Empty },
+                    new Hotel { Name = "Alpine Lodge", Address = "Dolomiti 12", CityId = bledCity.Id, PhoneNumber = "+386 4 987 654", Email = "info@alpinelodge.si", Description = "Planinski ugođaj i wellness", ImageUrl = string.Empty },
+                    new Hotel { Name = "City Center Inn", Address = "King St 10", CityId = sarajevoCity.Id, PhoneNumber = "+387 33 111 222", Email = "info@citycenter.ba", Description = "U srcu grada, blizu svih atrakcija", ImageUrl = string.Empty },
+                    new Hotel { Name = "Riverside Retreat", Address = "Obala 5", CityId = mostarCity.Id, PhoneNumber = "+387 36 555 777", Email = "hello@riverside.ba", Description = "Ugodan boravak uz rijeku", ImageUrl = string.Empty },
+                    new Hotel { Name = "Metropolis Hotel", Address = "Main Ave 44", CityId = zagrebCity.Id, PhoneNumber = "+385 1 222 333", Email = "contact@metropolis.hr", Description = "Moderan gradski hotel", ImageUrl = string.Empty },
                 };
                 context.Hotels.AddRange(hotels);
                 await context.SaveChangesAsync();
@@ -92,7 +126,7 @@ namespace Persistence.Data
                 context.Users.AddRange(admin, demo, ana, marko, ivan, leo);
                 await context.SaveChangesAsync();
 
-                var hotelsAll = await context.Hotels.ToListAsync();
+                var hotelsAll = await context.Hotels.Include(h => h.City).ToListAsync();
                 var roomsAll = await context.Rooms.ToListAsync();
                 var servicesAll = await context.Services.ToListAsync();
 
@@ -103,7 +137,7 @@ namespace Persistence.Data
                 var bookings = new List<Booking>();
 
                 // Demo voli more (Split), često uzima spa i doručak
-                var splitHotel = hotelsAll.FirstOrDefault(h => h.City == "Split");
+                var splitHotel = hotelsAll.FirstOrDefault(h => h.City != null && h.City.Name == "Split");
                 if (splitHotel != null)
                 {
                     var room = RoomForHotel(splitHotel.Id)!;
@@ -121,7 +155,7 @@ namespace Persistence.Data
                 }
 
                 // Ana preferira planine (Bled)
-                var bledHotel = hotelsAll.FirstOrDefault(h => h.City == "Bled");
+                var bledHotel = hotelsAll.FirstOrDefault(h => h.City != null && h.City.Name == "Bled");
                 if (bledHotel != null)
                 {
                     var room = RoomForHotel(bledHotel.Id)!;
@@ -139,7 +173,7 @@ namespace Persistence.Data
                 }
 
                 // Marko često u gradskim hotelima (Zagreb/Sarajevo)
-                var zagrebHotel = hotelsAll.FirstOrDefault(h => h.City == "Zagreb");
+                var zagrebHotel = hotelsAll.FirstOrDefault(h => h.City != null && h.City.Name == "Zagreb");
                 if (zagrebHotel != null)
                 {
                     var room = RoomForHotel(zagrebHotel.Id)!;
@@ -156,7 +190,7 @@ namespace Persistence.Data
                     });
                 }
 
-                var sarajevoHotel = hotelsAll.FirstOrDefault(h => h.City == "Sarajevo");
+                var sarajevoHotel = hotelsAll.FirstOrDefault(h => h.City != null && h.City.Name == "Sarajevo");
                 if (sarajevoHotel != null)
                 {
                     var room = RoomForHotel(sarajevoHotel.Id)!;
@@ -174,7 +208,7 @@ namespace Persistence.Data
                 }
 
                 // Ivan voli Mostar i uslugu shuttle-a
-                var mostarHotel = hotelsAll.FirstOrDefault(h => h.City == "Mostar");
+                var mostarHotel = hotelsAll.FirstOrDefault(h => h.City != null && h.City.Name == "Mostar");
                 if (mostarHotel != null)
                 {
                     var room = RoomForHotel(mostarHotel.Id)!;
@@ -217,24 +251,24 @@ namespace Persistence.Data
                 var reviews = new List<Review>();
                 
                 // Demo - voli more i luksuz (visoke ocjene)
-                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Split").Id, UserId = demo.Id, Rating = 5, Title = "Odlično more", Comment = "Prekrasan pogled na more", ReviewDate = today.AddDays(-15), IsApproved = true });
-                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Zagreb").Id, UserId = demo.Id, Rating = 4, Title = "Dobar gradski hotel", Comment = "Moderan i udoban", ReviewDate = today.AddDays(-12), IsApproved = true });
-                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Bled").Id, UserId = demo.Id, Rating = 3, Title = "Planinski ugođaj", Comment = "Nije moj stil", ReviewDate = today.AddDays(-10), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City != null && h.City.Name == "Split").Id, UserId = demo.Id, Rating = 5, Title = "Odlično more", Comment = "Prekrasan pogled na more", ReviewDate = today.AddDays(-15), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City != null && h.City.Name == "Zagreb").Id, UserId = demo.Id, Rating = 4, Title = "Dobar gradski hotel", Comment = "Moderan i udoban", ReviewDate = today.AddDays(-12), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City != null && h.City.Name == "Bled").Id, UserId = demo.Id, Rating = 3, Title = "Planinski ugođaj", Comment = "Nije moj stil", ReviewDate = today.AddDays(-10), IsApproved = true });
                 
                 // Ana - voli planine i prirodu (srednje ocjene)
-                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Bled").Id, UserId = ana.Id, Rating = 5, Title = "Prekrasne planine", Comment = "Odličan wellness", ReviewDate = today.AddDays(-9), IsApproved = true });
-                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Mostar").Id, UserId = ana.Id, Rating = 4, Title = "Lijep grad", Comment = "Ugodan boravak", ReviewDate = today.AddDays(-7), IsApproved = true });
-                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Split").Id, UserId = ana.Id, Rating = 2, Title = "Previše turista", Comment = "Gradski hotel", ReviewDate = today.AddDays(-5), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City != null && h.City.Name == "Bled").Id, UserId = ana.Id, Rating = 5, Title = "Prekrasne planine", Comment = "Odličan wellness", ReviewDate = today.AddDays(-9), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City != null && h.City.Name == "Mostar").Id, UserId = ana.Id, Rating = 4, Title = "Lijep grad", Comment = "Ugodan boravak", ReviewDate = today.AddDays(-7), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City != null && h.City.Name == "Split").Id, UserId = ana.Id, Rating = 2, Title = "Previše turista", Comment = "Gradski hotel", ReviewDate = today.AddDays(-5), IsApproved = true });
                 
                 // Ivan - voli historijske gradove (visoke ocjene za historijske gradove)
-                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Mostar").Id, UserId = ivan.Id, Rating = 5, Title = "Historijski grad", Comment = "Prelijep most", ReviewDate = today.AddDays(-3), IsApproved = true });
-                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Sarajevo").Id, UserId = ivan.Id, Rating = 4, Title = "Baščaršija", Comment = "Odlična kultura", ReviewDate = today.AddDays(-1), IsApproved = true });
-                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Zagreb").Id, UserId = ivan.Id, Rating = 3, Title = "Moderan grad", Comment = "Ok, ali nije historijski", ReviewDate = today.AddDays(-8), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City != null && h.City.Name == "Mostar").Id, UserId = ivan.Id, Rating = 5, Title = "Historijski grad", Comment = "Prelijep most", ReviewDate = today.AddDays(-3), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City != null && h.City.Name == "Sarajevo").Id, UserId = ivan.Id, Rating = 4, Title = "Baščaršija", Comment = "Odlična kultura", ReviewDate = today.AddDays(-1), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City != null && h.City.Name == "Zagreb").Id, UserId = ivan.Id, Rating = 3, Title = "Moderan grad", Comment = "Ok, ali nije historijski", ReviewDate = today.AddDays(-8), IsApproved = true });
                 
                 // Marko - voli luksuz i visoke ocjene (sličan Demo-u)
-                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Split").Id, UserId = marko.Id, Rating = 5, Title = "Luksuzan boravak", Comment = "Odličan spa", ReviewDate = today.AddDays(-6), IsApproved = true });
-                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Zagreb").Id, UserId = marko.Id, Rating = 4, Title = "Moderan luksuz", Comment = "Dobar standard", ReviewDate = today.AddDays(-4), IsApproved = true });
-                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City == "Bled").Id, UserId = marko.Id, Rating = 4, Title = "Planinski luksuz", Comment = "Odličan wellness", ReviewDate = today.AddDays(-2), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City != null && h.City.Name == "Split").Id, UserId = marko.Id, Rating = 5, Title = "Luksuzan boravak", Comment = "Odličan spa", ReviewDate = today.AddDays(-6), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City != null && h.City.Name == "Zagreb").Id, UserId = marko.Id, Rating = 4, Title = "Moderan luksuz", Comment = "Dobar standard", ReviewDate = today.AddDays(-4), IsApproved = true });
+                reviews.Add(new Review { HotelId = hotelsAll.First(h => h.City != null && h.City.Name == "Bled").Id, UserId = marko.Id, Rating = 4, Title = "Planinski luksuz", Comment = "Odličan wellness", ReviewDate = today.AddDays(-2), IsApproved = true });
                 context.Reviews.AddRange(reviews);
                 await context.SaveChangesAsync();
             }

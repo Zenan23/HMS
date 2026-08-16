@@ -1,7 +1,9 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../models/city.dart';
 import '../models/hotel.dart';
 import '../services/api_service.dart';
+import '../services/city_service.dart';
 import '../utils/api_response.dart';
 import '../utils/validation_utils.dart';
 import '../utils/image_utils.dart';
@@ -16,11 +18,11 @@ class HotelFormDialog extends StatefulWidget {
 
 class _HotelFormDialogState extends State<HotelFormDialog> {
   final _formKey = GlobalKey<FormState>();
+  final _cityService = CityService();
   late int id;
   late String name;
   late String address;
-  late String city;
-  late String country;
+  int? cityId;
   late String phoneNumber;
   late String email;
   late String description;
@@ -29,7 +31,9 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
   PlatformFile? _selectedImage;
   bool _removeExistingImage = false;
   bool isLoading = false;
+  bool _loadingCities = true;
   String? error;
+  List<City> _cities = [];
 
   @override
   void initState() {
@@ -38,13 +42,27 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
     id = h?.id ?? 0;
     name = h?.name ?? '';
     address = h?.address ?? '';
-    city = h?.city ?? '';
-    country = h?.country ?? '';
+    cityId = h != null && h.cityId > 0 ? h.cityId : null;
     phoneNumber = h?.phoneNumber ?? '';
     email = h?.email ?? '';
     description = h?.description ?? '';
     starRating = h?.starRating ?? 1;
     _currentImageUrl = h?.imageUrl;
+    _fetchCities();
+  }
+
+  Future<void> _fetchCities() async {
+    try {
+      final cities = await _cityService.getAllForDropdown();
+      if (mounted) {
+        setState(() {
+          _cities = cities;
+          _loadingCities = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingCities = false);
+    }
   }
 
   Future<void> _pickImage() async {
@@ -61,6 +79,10 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (cityId == null) {
+      setState(() => error = 'Odaberite grad.');
+      return;
+    }
     setState(() {
       isLoading = true;
       error = null;
@@ -70,8 +92,7 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
       'id': id,
       'name': name,
       'address': address,
-      'city': city,
-      'country': country,
+      'cityId': cityId,
       'phoneNumber': phoneNumber,
       'email': email,
       'description': description,
@@ -157,18 +178,23 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
                 onChanged: (v) => address = v,
                 validator: ValidationUtils.validateAddress,
               ),
-              TextFormField(
-                initialValue: city,
-                decoration: const InputDecoration(labelText: 'Grad'),
-                onChanged: (v) => city = v,
-                validator: ValidationUtils.validateCity,
-              ),
-              TextFormField(
-                initialValue: country,
-                decoration: const InputDecoration(labelText: 'Država'),
-                onChanged: (v) => country = v,
-                validator: ValidationUtils.validateCity,
-              ),
+              _loadingCities
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: LinearProgressIndicator(),
+                    )
+                  : DropdownButtonFormField<int>(
+                      value: _cities.any((c) => c.id == cityId) ? cityId : null,
+                      decoration: const InputDecoration(labelText: 'Grad'),
+                      items: _cities
+                          .map((c) => DropdownMenuItem<int>(
+                                value: c.id,
+                                child: Text(c.label),
+                              ))
+                          .toList(),
+                      onChanged: (v) => setState(() => cityId = v),
+                      validator: (v) => v == null ? 'Odaberite grad.' : null,
+                    ),
               TextFormField(
                 initialValue: phoneNumber,
                 decoration: const InputDecoration(labelText: 'Telefon'),

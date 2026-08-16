@@ -15,6 +15,7 @@ import 'screens/price_adjustments_screen.dart';
 import 'screens/inventory_transactions_screen.dart';
 import 'screens/inventory_items_screen.dart';
 import 'screens/loyalty_redemptions_screen.dart';
+import 'screens/cities_screen.dart';
 import 'utils/role_utils.dart';
 
 void main() {
@@ -85,6 +86,7 @@ class _MainTabsState extends State<MainTabs>
     } else if (RoleUtils.isEmployee(auth.role)) {
       _tabs = const [
         Tab(text: 'Hoteli'),
+        Tab(text: 'Gradovi'),
         Tab(text: 'Rezervacije'),
         Tab(text: 'Sobe'),
         Tab(text: 'Servisi'),
@@ -97,6 +99,7 @@ class _MainTabsState extends State<MainTabs>
       ];
       _tabViews = const [
         HotelsScreen(),
+        CitiesScreen(),
         BookingsScreen(),
         RoomsScreen(),
         ServicesScreen(),

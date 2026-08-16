@@ -51,7 +51,7 @@ namespace Application.Services
 
             if (!string.IsNullOrEmpty(city))
             {
-                hotels = hotels.Where(h => h.City.Contains(city, StringComparison.OrdinalIgnoreCase));  // Filtriraj prema gradu
+                hotels = hotels.Where(h => h.City != null && h.City.Name.Contains(city, StringComparison.OrdinalIgnoreCase));  // Filtriraj prema gradu
             }
 
             if (!string.IsNullOrEmpty(name))

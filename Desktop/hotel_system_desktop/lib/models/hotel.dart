@@ -2,6 +2,7 @@ class Hotel {
   final int id;
   final String name;
   final String address;
+  final int cityId;
   final String city;
   final String country;
   final String phoneNumber;
@@ -17,6 +18,7 @@ class Hotel {
     required this.id,
     required this.name,
     required this.address,
+    required this.cityId,
     required this.city,
     required this.country,
     required this.phoneNumber,
@@ -33,8 +35,9 @@ class Hotel {
         id: json['id'],
         name: json['name'],
         address: json['address'],
-        city: json['city'],
-        country: json['country'],
+        cityId: json['cityId'] ?? 0,
+        city: json['city'] ?? '',
+        country: json['country'] ?? '',
         phoneNumber: json['phoneNumber'],
         email: json['email'],
         description: json['description'],

@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../models/city.dart';
 import '../models/hotel.dart';
 import '../services/api_service.dart';
+import '../services/city_service.dart';
 import '../services/pdf_report_service.dart';
 import '../widgets/hotel_form.dart';
 import '../utils/api_response.dart';
@@ -19,19 +21,25 @@ class _HotelsScreenState extends State<HotelsScreen> {
   int _totalPages = 1;
   bool _isLoading = false;
   List<Hotel> _hotels = [];
-  final TextEditingController _searchController = TextEditingController();
+  final _cityService = CityService();
+  List<City> _cities = [];
+  int? _selectedCityId;
   bool _isSearchMode = false;
 
   @override
   void initState() {
     super.initState();
     _fetchHotels(_page);
+    _fetchCities();
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  Future<void> _fetchCities() async {
+    try {
+      final cities = await _cityService.getAllForDropdown();
+      if (mounted) setState(() => _cities = cities);
+    } catch (_) {
+      // ignore, dropdown ostaje prazan sa opcijom "Svi gradovi"
+    }
   }
 
   Future<void> _fetchHotels(int page) async {
@@ -127,12 +135,16 @@ class _HotelsScreenState extends State<HotelsScreen> {
   }
 
   void _applyCityFilter() {
-    final query = _searchController.text.trim();
-    if (query.isEmpty) {
+    if (_selectedCityId == null) {
       _fetchHotels(1);
-    } else {
-      _fetchHotelsByName(query);
+      return;
     }
+    final city = _cities.where((c) => c.id == _selectedCityId).toList();
+    if (city.isEmpty) {
+      _fetchHotels(1);
+      return;
+    }
+    _fetchHotelsByName(city.first.name);
   }
 
   void _openHotelForm({Hotel? hotel}) async {
@@ -160,26 +172,34 @@ class _HotelsScreenState extends State<HotelsScreen> {
                 Row(
                   children: [
                     SizedBox(
-                      width: 200,
-                      child: TextField(
-                        controller: _searchController,
+                      width: 220,
+                      child: DropdownButtonFormField<int?>(
+                        value: _selectedCityId,
                         decoration: const InputDecoration(
-                          labelText: 'Pretraži po nazivu grada',
+                          labelText: 'Pretraži po gradu',
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.search),
                         ),
-                        onSubmitted: (_) => _applyCityFilter(),
+                        items: [
+                          const DropdownMenuItem<int?>(
+                            value: null,
+                            child: Text('Svi gradovi'),
+                          ),
+                          ..._cities.map((c) => DropdownMenuItem<int?>(
+                                value: c.id,
+                                child: Text(c.label),
+                              )),
+                        ],
+                        onChanged: (v) {
+                          setState(() => _selectedCityId = v);
+                          _applyCityFilter();
+                        },
                       ),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
-                      onPressed: _applyCityFilter,
-                      child: const Text('Filtriraj'),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
                       onPressed: () {
-                        _searchController.clear();
+                        setState(() => _selectedCityId = null);
                         _fetchHotels(1);
                       },
                       child: const Text('Očisti filtere'),

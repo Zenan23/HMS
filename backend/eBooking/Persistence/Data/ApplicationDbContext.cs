@@ -29,10 +29,32 @@ namespace Persistence.Data
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
         public DbSet<LoyaltyPointsRedemption> LoyaltyPointsRedemptions { get; set; }
         public DbSet<SupportTicket> SupportTickets { get; set; }
+        public DbSet<Country> Countries { get; set; }
+        public DbSet<City> Cities { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Country configuration (referentna/šifarnik tabela)
+            modelBuilder.Entity<Country>(entity =>
+            {
+                entity.HasKey(c => c.Id);
+                entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
+                entity.HasIndex(c => c.Name).IsUnique();
+            });
+
+            // City configuration (referentna/šifarnik tabela)
+            modelBuilder.Entity<City>(entity =>
+            {
+                entity.HasKey(c => c.Id);
+                entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
+
+                entity.HasOne(c => c.Country)
+                    .WithMany(co => co.Cities)
+                    .HasForeignKey(c => c.CountryId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
 
             // Hotel configuration
             modelBuilder.Entity<Hotel>(entity =>
@@ -40,12 +62,15 @@ namespace Persistence.Data
                 entity.HasKey(h => h.Id);
                 entity.Property(h => h.Name).IsRequired().HasMaxLength(100);
                 entity.Property(h => h.Address).IsRequired().HasMaxLength(200);
-                entity.Property(h => h.City).IsRequired().HasMaxLength(50);
-                entity.Property(h => h.Country).IsRequired().HasMaxLength(50);
                 entity.Property(h => h.Email).IsRequired().HasMaxLength(100);
                 entity.Property(h => h.PhoneNumber).HasMaxLength(20);
                 entity.Property(h => h.StarRating).HasDefaultValue(0);
                 entity.Property(h => h.ImageUrl).HasMaxLength(500);
+
+                entity.HasOne(h => h.City)
+                    .WithMany(c => c.Hotels)
+                    .HasForeignKey(h => h.CityId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasMany(h => h.Rooms)
                     .WithOne(r => r.Hotel)
@@ -362,6 +387,8 @@ namespace Persistence.Data
             modelBuilder.Entity<InventoryTransaction>().HasQueryFilter(it => !it.IsDeleted);
             modelBuilder.Entity<LoyaltyPointsRedemption>().HasQueryFilter(lpr => !lpr.IsDeleted);
             modelBuilder.Entity<SupportTicket>().HasQueryFilter(st => !st.IsDeleted);
+            modelBuilder.Entity<Country>().HasQueryFilter(c => !c.IsDeleted);
+            modelBuilder.Entity<City>().HasQueryFilter(c => !c.IsDeleted);
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
