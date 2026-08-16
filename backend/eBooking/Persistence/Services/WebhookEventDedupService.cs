@@ -37,5 +37,17 @@ namespace Persistence.Services
                 return false;
             }
         }
+
+        public async Task LinkPaymentAsync(string provider, string eventId, int paymentId, CancellationToken cancellationToken = default)
+        {
+            var evt = await _db.ProcessedWebhookEvents
+                .FirstOrDefaultAsync(e => e.Provider == provider && e.EventId == eventId, cancellationToken);
+
+            if (evt == null || evt.PaymentId == paymentId)
+                return;
+
+            evt.PaymentId = paymentId;
+            await _db.SaveChangesAsync(cancellationToken);
+        }
     }
 }

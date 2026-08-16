@@ -137,15 +137,31 @@ namespace Application.Mapper
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
             // PriceAdjustment mappings
-            CreateMap<PriceAdjustment, PriceAdjustmentDto>();
+            CreateMap<PriceAdjustment, PriceAdjustmentDto>()
+                .ForMember(dest => dest.CreatedByUserName, opt => opt.MapFrom(src => src.CreatedByUser != null
+                    ? (!string.IsNullOrWhiteSpace(src.CreatedByUser.FirstName) || !string.IsNullOrWhiteSpace(src.CreatedByUser.LastName)
+                        ? $"{src.CreatedByUser.FirstName} {src.CreatedByUser.LastName}".Trim()
+                        : src.CreatedByUser.Username)
+                    : string.Empty))
+                .ForMember(dest => dest.HotelName, opt => opt.MapFrom(src => src.Hotel != null ? src.Hotel.Name : string.Empty));
             CreateMap<CreatePriceAdjustmentDto, PriceAdjustment>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
             CreateMap<UpdatePriceAdjustmentDto, PriceAdjustment>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
+            // InventoryItem mappings (referentna tabela)
+            CreateMap<InventoryItem, InventoryItemDto>();
+            CreateMap<CreateInventoryItemDto, InventoryItem>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+            CreateMap<UpdateInventoryItemDto, InventoryItem>()
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
             // InventoryTransaction mappings
             CreateMap<InventoryTransaction, InventoryTransactionDto>()
+                .ForMember(dest => dest.InventoryItemName, opt => opt.MapFrom(src => src.InventoryItem != null ? src.InventoryItem.Name : string.Empty))
+                .ForMember(dest => dest.InventoryItemUnit, opt => opt.MapFrom(src => src.InventoryItem != null ? src.InventoryItem.Unit : string.Empty))
                 .ForMember(dest => dest.StaffUserName, opt => opt.MapFrom(src => src.StaffUser != null
                     ? (!string.IsNullOrWhiteSpace(src.StaffUser.FirstName) || !string.IsNullOrWhiteSpace(src.StaffUser.LastName)
                         ? $"{src.StaffUser.FirstName} {src.StaffUser.LastName}".Trim()

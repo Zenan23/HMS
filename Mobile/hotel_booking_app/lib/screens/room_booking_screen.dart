@@ -30,6 +30,7 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
   bool? _available;
   double? _price;
   List<PriceAdjustment> _activeAdjustments = [];
+  int? _hotelId;
   // services selection: serviceId -> quantity
   final Map<int, int> _selectedServices = {};
   // available services for hotel (id, name, price)
@@ -96,8 +97,8 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
       final price = await RoomsService().calculatePrice(
           widget.roomId, checkInStr, checkOutStr, _guests,
           services: servicesStr);
-      final adjustments =
-          await PriceAdjustmentsService().getActive(atDate: _checkIn);
+      final adjustments = await PriceAdjustmentsService()
+          .getActive(atDate: _checkIn, hotelId: _hotelId);
       setState(() {
         _available = true;
         _activeAdjustments = adjustments;
@@ -128,6 +129,7 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
         final data = decoded['data'] as Map<String, dynamic>?;
         final hotelId = data?['hotelId'];
         if (hotelId is int) {
+          _hotelId = hotelId;
           await _loadServicesForHotel(hotelId);
         }
       }

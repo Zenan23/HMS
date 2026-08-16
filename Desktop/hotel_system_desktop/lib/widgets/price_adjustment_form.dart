@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../models/hotel.dart';
 import '../models/price_adjustment.dart';
+import '../services/api_service.dart';
 import '../services/price_adjustment_service.dart';
 import '../widgets/date_picker_field.dart';
 
@@ -20,6 +23,8 @@ class _PriceAdjustmentFormDialogState extends State<PriceAdjustmentFormDialog> {
   late DateTime startDate;
   late DateTime endDate;
   late bool isCumulative;
+  int? hotelId;
+  List<Hotel> _hotels = [];
   bool isLoading = false;
   String? error;
 
@@ -32,6 +37,25 @@ class _PriceAdjustmentFormDialogState extends State<PriceAdjustmentFormDialog> {
     startDate = a?.startDate ?? DateTime.now();
     endDate = a?.endDate ?? DateTime.now().add(const Duration(days: 30));
     isCumulative = a?.isCumulative ?? false;
+    hotelId = a?.hotelId;
+    _fetchHotels();
+  }
+
+  Future<void> _fetchHotels() async {
+    try {
+      final response =
+          await ApiService().get('/api/Hotels?pageNumber=1&pageSize=100');
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      final data = decoded['data'] ?? {};
+      final List items = data['items'] ?? [];
+      if (mounted) {
+        setState(() {
+          _hotels = items.map((e) => Hotel.fromJson(e)).toList().cast<Hotel>();
+        });
+      }
+    } catch (_) {
+      // ignore, dropdown ostaje samo sa opcijom "Svi hoteli"
+    }
   }
 
   Future<void> _submit() async {
@@ -51,6 +75,7 @@ class _PriceAdjustmentFormDialogState extends State<PriceAdjustmentFormDialog> {
       'startDate': startDate.toIso8601String(),
       'endDate': endDate.toIso8601String(),
       'isCumulative': isCumulative,
+      'hotelId': hotelId,
     };
     try {
       if (widget.adjustment == null) {
@@ -115,6 +140,22 @@ class _PriceAdjustmentFormDialogState extends State<PriceAdjustmentFormDialog> {
                   title: const Text('Kumulativno'),
                   value: isCumulative,
                   onChanged: (v) => setState(() => isCumulative = v),
+                ),
+                DropdownButtonFormField<int?>(
+                  value: _hotels.any((h) => h.id == hotelId) ? hotelId : null,
+                  decoration: const InputDecoration(
+                      labelText: 'Hotel (prazno = važi za sve hotele)'),
+                  items: [
+                    const DropdownMenuItem<int?>(
+                      value: null,
+                      child: Text('Svi hoteli (sajt-wide)'),
+                    ),
+                    ..._hotels.map((h) => DropdownMenuItem<int?>(
+                          value: h.id,
+                          child: Text(h.name),
+                        )),
+                  ],
+                  onChanged: (v) => setState(() => hotelId = v),
                 ),
                 if (error != null)
                   Text(error!, style: const TextStyle(color: Colors.red)),

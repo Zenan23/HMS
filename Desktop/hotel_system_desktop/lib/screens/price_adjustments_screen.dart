@@ -160,13 +160,16 @@ class _PriceAdjustmentsScreenState extends State<PriceAdjustmentsScreen> {
                           itemCount: _adjustments.length,
                           itemBuilder: (context, i) {
                             final a = _adjustments[i];
+                            final scope = a.hotelId != null && a.hotelName.isNotEmpty
+                                ? a.hotelName
+                                : 'Svi hoteli';
                             return Card(
                               child: ListTile(
                                 title: Text(a.name),
                                 subtitle: Text(
                                   '${a.percentageModifier}% • '
                                   '${formatDisplayDate(a.startDate)} – ${formatDisplayDate(a.endDate)}\n'
-                                  'Kumulativno: ${a.isCumulative ? 'Da' : 'Ne'}',
+                                  'Kumulativno: ${a.isCumulative ? 'Da' : 'Ne'} • $scope',
                                 ),
                                 isThreeLine: true,
                                 trailing: Row(

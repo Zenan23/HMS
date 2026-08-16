@@ -4,7 +4,7 @@ namespace Persistence.Interfaces
 {
     public interface IPriceAdjustmentService : IBaseService<PriceAdjustmentDto, CreatePriceAdjustmentDto, UpdatePriceAdjustmentDto>
     {
-        Task<IEnumerable<PriceAdjustmentDto>> GetActiveAdjustmentsAsync(DateTime atDate);
-        Task<decimal> ApplyActiveAdjustmentsAsync(decimal basePrice, DateTime atDate);
+        Task<IEnumerable<PriceAdjustmentDto>> GetActiveAdjustmentsAsync(DateTime atDate, int? hotelId = null);
+        Task<decimal> ApplyActiveAdjustmentsAsync(decimal basePrice, DateTime atDate, int? hotelId = null);
     }
 }

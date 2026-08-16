@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../models/inventory_item.dart';
 import '../models/inventory_transaction.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../services/inventory_item_service.dart';
 import '../services/inventory_transaction_service.dart';
 import 'date_picker_field.dart';
 
@@ -19,25 +21,29 @@ class _InventoryTransactionFormDialogState
     extends State<InventoryTransactionFormDialog> {
   final _formKey = GlobalKey<FormState>();
   final _service = InventoryTransactionService();
-  late int inventoryItemId;
+  final _itemService = InventoryItemService();
+  int? inventoryItemId;
   late int quantityChange;
   late DateTime transactionDate;
   late int staffUserId;
   late String reason;
   bool isLoading = false;
+  bool _isLoadingItems = true;
   String? error;
   List<Employee> _staff = [];
+  List<InventoryItem> _items = [];
 
   @override
   void initState() {
     super.initState();
     final t = widget.transaction;
-    inventoryItemId = t?.inventoryItemId ?? 1;
+    inventoryItemId = t?.inventoryItemId;
     quantityChange = t?.quantityChange ?? -1;
     transactionDate = t?.transactionDate ?? DateTime.now();
     staffUserId = t?.staffUserId ?? 0;
     reason = t?.reason ?? '';
     _fetchStaff();
+    _fetchItems();
   }
 
   Future<void> _fetchStaff() async {
@@ -50,6 +56,13 @@ class _InventoryTransactionFormDialogState
     if (mounted) setState(() {});
   }
 
+  Future<void> _fetchItems() async {
+    try {
+      _items = await _itemService.getAllForDropdown();
+    } catch (_) {}
+    if (mounted) setState(() => _isLoadingItems = false);
+  }
+
   String _staffLabel(Employee u) {
     final name = u.fullName.isNotEmpty ? u.fullName : u.username;
     return '$name (${u.email})';
@@ -57,6 +70,10 @@ class _InventoryTransactionFormDialogState
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (inventoryItemId == null) {
+      setState(() => error = 'Odaberite artikal skladišta.');
+      return;
+    }
     setState(() {
       isLoading = true;
       error = null;
@@ -96,16 +113,27 @@ class _InventoryTransactionFormDialogState
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextFormField(
-                  initialValue: inventoryItemId.toString(),
-                  decoration:
-                      const InputDecoration(labelText: 'ID artikla skladišta'),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) =>
-                      inventoryItemId = int.tryParse(v) ?? inventoryItemId,
-                  validator: (v) =>
-                      int.tryParse(v ?? '') == null ? 'Obavezno' : null,
-                ),
+                _isLoadingItems
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: LinearProgressIndicator(),
+                      )
+                    : DropdownButtonFormField<int>(
+                        value: _items.any((i) => i.id == inventoryItemId)
+                            ? inventoryItemId
+                            : null,
+                        decoration:
+                            const InputDecoration(labelText: 'Artikal skladišta'),
+                        items: _items
+                            .map((i) => DropdownMenuItem<int>(
+                                  value: i.id,
+                                  child: Text('${i.name} (${i.unit})'),
+                                ))
+                            .toList(),
+                        onChanged: (v) => setState(() => inventoryItemId = v),
+                        validator: (v) =>
+                            v == null ? 'Odaberite artikal.' : null,
+                      ),
                 TextFormField(
                   initialValue: quantityChange.toString(),
                   decoration:

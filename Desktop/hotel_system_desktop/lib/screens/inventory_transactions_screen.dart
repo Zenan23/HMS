@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../models/inventory_item.dart';
 import '../models/inventory_transaction.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../services/inventory_item_service.dart';
 import '../services/inventory_transaction_service.dart';
 import '../services/pdf_report_service.dart';
 import '../utils/date_format_utils.dart';
@@ -20,25 +22,22 @@ class InventoryTransactionsScreen extends StatefulWidget {
 class _InventoryTransactionsScreenState
     extends State<InventoryTransactionsScreen> {
   final _service = InventoryTransactionService();
+  final _itemService = InventoryItemService();
   int _page = 1;
   final int _pageSize = 10;
   bool _isLoading = false;
   List<InventoryTransaction> _transactions = [];
-  final _itemIdController = TextEditingController();
+  int? _selectedItemId;
   int? _selectedStaffId;
   List<Employee> _staff = [];
+  List<InventoryItem> _items = [];
 
   @override
   void initState() {
     super.initState();
     _fetchStaff();
+    _fetchItems();
     _fetchTransactions();
-  }
-
-  @override
-  void dispose() {
-    _itemIdController.dispose();
-    super.dispose();
   }
 
   Future<void> _fetchStaff() async {
@@ -51,12 +50,18 @@ class _InventoryTransactionsScreenState
     if (mounted) setState(() {});
   }
 
+  Future<void> _fetchItems() async {
+    try {
+      _items = await _itemService.getAllForDropdown();
+    } catch (_) {}
+    if (mounted) setState(() {});
+  }
+
   Future<void> _fetchTransactions() async {
     setState(() => _isLoading = true);
     try {
-      final itemId = int.tryParse(_itemIdController.text);
-      if (itemId != null) {
-        _transactions = await _service.getByInventoryItemId(itemId);
+      if (_selectedItemId != null) {
+        _transactions = await _service.getByInventoryItemId(_selectedItemId!);
       } else if (_selectedStaffId != null) {
         _transactions = await _service.getByStaffUserId(_selectedStaffId!);
       } else {
@@ -109,12 +114,22 @@ class _InventoryTransactionsScreenState
             Row(
               children: [
                 SizedBox(
-                  width: 140,
-                  child: TextField(
-                    controller: _itemIdController,
+                  width: 220,
+                  child: DropdownButtonFormField<int?>(
+                    value: _selectedItemId,
                     decoration:
-                        const InputDecoration(labelText: 'ID artikla'),
-                    keyboardType: TextInputType.number,
+                        const InputDecoration(labelText: 'Artikal'),
+                    items: [
+                      const DropdownMenuItem<int?>(
+                        value: null,
+                        child: Text('Svi artikli'),
+                      ),
+                      ..._items.map((i) => DropdownMenuItem<int?>(
+                            value: i.id,
+                            child: Text(i.name),
+                          )),
+                    ],
+                    onChanged: (v) => setState(() => _selectedItemId = v),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -157,10 +172,13 @@ class _InventoryTransactionsScreenState
                             final staff = t.staffUserName.isNotEmpty
                                 ? t.staffUserName
                                 : 'Uposlenik #${t.staffUserId}';
+                            final itemLabel = t.inventoryItemName.isNotEmpty
+                                ? t.inventoryItemName
+                                : 'Nepoznat artikal';
                             return Card(
                               child: ListTile(
                                 title: Text(
-                                    'Artikal #${t.inventoryItemId} (${t.quantityChange > 0 ? '+' : ''}${t.quantityChange})'),
+                                    '$itemLabel (${t.quantityChange > 0 ? '+' : ''}${t.quantityChange} ${t.inventoryItemUnit})'),
                                 subtitle: Text(
                                     '${t.reason}\n$staff • ${formatDisplayDate(t.transactionDate)}'),
                                 isThreeLine: true,

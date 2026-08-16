@@ -25,6 +25,7 @@ namespace Persistence.Data
         public DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents { get; set; }
         public DbSet<RoomMaintenanceLog> RoomMaintenanceLogs { get; set; }
         public DbSet<PriceAdjustment> PriceAdjustments { get; set; }
+        public DbSet<InventoryItem> InventoryItems { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
         public DbSet<LoyaltyPointsRedemption> LoyaltyPointsRedemptions { get; set; }
         public DbSet<SupportTicket> SupportTickets { get; set; }
@@ -230,6 +231,12 @@ namespace Persistence.Data
                 entity.Property(e => e.EventId).IsRequired().HasMaxLength(256);
                 entity.HasIndex(e => new { e.Provider, e.EventId }).IsUnique();
                 entity.Property(e => e.ReceivedAt).IsRequired();
+
+                // Opciono povezan sa Payment-om (popunjava se naknadno, best-effort — vidi model).
+                entity.HasOne(e => e.Payment)
+                    .WithMany()
+                    .HasForeignKey(e => e.PaymentId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // PaymentAuditLog configuration
@@ -268,6 +275,25 @@ namespace Persistence.Data
                 entity.HasKey(pa => pa.Id);
                 entity.Property(pa => pa.Name).IsRequired().HasMaxLength(100);
                 entity.Property(pa => pa.PercentageModifier).HasColumnType("decimal(5,2)");
+
+                entity.HasOne(pa => pa.CreatedByUser)
+                    .WithMany()
+                    .HasForeignKey(pa => pa.CreatedByUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(pa => pa.Hotel)
+                    .WithMany()
+                    .HasForeignKey(pa => pa.HotelId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // InventoryItem configuration (referentna tabela artikala skladišta)
+            modelBuilder.Entity<InventoryItem>(entity =>
+            {
+                entity.HasKey(ii => ii.Id);
+                entity.Property(ii => ii.Name).IsRequired().HasMaxLength(150);
+                entity.Property(ii => ii.Unit).IsRequired().HasMaxLength(20);
+                entity.Property(ii => ii.Category).HasMaxLength(100);
             });
 
             // InventoryTransaction configuration
@@ -279,6 +305,11 @@ namespace Persistence.Data
                 entity.HasOne(it => it.StaffUser)
                     .WithMany()
                     .HasForeignKey(it => it.StaffUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(it => it.InventoryItem)
+                    .WithMany(ii => ii.Transactions)
+                    .HasForeignKey(it => it.InventoryItemId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -327,6 +358,7 @@ namespace Persistence.Data
             modelBuilder.Entity<PaymentAuditLog>().HasQueryFilter(pal => !pal.IsDeleted);
             modelBuilder.Entity<RoomMaintenanceLog>().HasQueryFilter(rml => !rml.IsDeleted);
             modelBuilder.Entity<PriceAdjustment>().HasQueryFilter(pa => !pa.IsDeleted);
+            modelBuilder.Entity<InventoryItem>().HasQueryFilter(ii => !ii.IsDeleted);
             modelBuilder.Entity<InventoryTransaction>().HasQueryFilter(it => !it.IsDeleted);
             modelBuilder.Entity<LoyaltyPointsRedemption>().HasQueryFilter(lpr => !lpr.IsDeleted);
             modelBuilder.Entity<SupportTicket>().HasQueryFilter(st => !st.IsDeleted);

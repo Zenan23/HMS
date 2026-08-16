@@ -1,6 +1,8 @@
 class InventoryTransaction {
   final int id;
   final int inventoryItemId;
+  final String inventoryItemName;
+  final String inventoryItemUnit;
   final int quantityChange;
   final DateTime transactionDate;
   final int staffUserId;
@@ -10,6 +12,8 @@ class InventoryTransaction {
   InventoryTransaction({
     required this.id,
     required this.inventoryItemId,
+    required this.inventoryItemName,
+    required this.inventoryItemUnit,
     required this.quantityChange,
     required this.transactionDate,
     required this.staffUserId,
@@ -21,6 +25,8 @@ class InventoryTransaction {
       InventoryTransaction(
         id: json['id'] ?? 0,
         inventoryItemId: json['inventoryItemId'] ?? 0,
+        inventoryItemName: json['inventoryItemName'] ?? '',
+        inventoryItemUnit: json['inventoryItemUnit'] ?? '',
         quantityChange: json['quantityChange'] ?? 0,
         transactionDate:
             DateTime.tryParse(json['transactionDate'] ?? '') ?? DateTime.now(),

@@ -108,6 +108,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IRoomMaintenanceLogService, RoomMaintenanceLogService>();
 builder.Services.AddScoped<IPriceAdjustmentService, PriceAdjustmentService>();
 builder.Services.AddScoped<IInventoryTransactionService, InventoryTransactionService>();
+builder.Services.AddScoped<IInventoryItemService, InventoryItemService>();
 builder.Services.AddScoped<ILoyaltyPointsRedemptionService, LoyaltyPointsRedemptionService>();
 builder.Services.AddScoped<ISupportTicketService, SupportTicketService>();
 

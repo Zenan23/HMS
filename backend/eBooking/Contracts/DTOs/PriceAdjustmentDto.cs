@@ -9,6 +9,10 @@ namespace Contracts.DTOs
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public bool IsCumulative { get; set; }
+        public int? CreatedByUserId { get; set; }
+        public string CreatedByUserName { get; set; } = string.Empty;
+        public int? HotelId { get; set; }
+        public string HotelName { get; set; } = string.Empty;
     }
 
     public class CreatePriceAdjustmentDto : CreateBaseEntityDto
@@ -27,6 +31,12 @@ namespace Contracts.DTOs
         public DateTime EndDate { get; set; }
 
         public bool IsCumulative { get; set; }
+
+        /// <summary>Server-side se postavlja iz JWT-a (vidi PriceAdjustmentsController) — klijent ovo ne treba slati.</summary>
+        public int? CreatedByUserId { get; set; }
+
+        /// <summary>Null = pravilo važi za sve hotele. Popunjeno = važi samo za taj hotel.</summary>
+        public int? HotelId { get; set; }
     }
 
     public class UpdatePriceAdjustmentDto : UpdateBaseEntityDto
@@ -45,5 +55,8 @@ namespace Contracts.DTOs
         public DateTime EndDate { get; set; }
 
         public bool IsCumulative { get; set; }
+
+        /// <summary>Null = pravilo važi za sve hotele. Popunjeno = važi samo za taj hotel.</summary>
+        public int? HotelId { get; set; }
     }
 }

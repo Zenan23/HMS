@@ -8,5 +8,6 @@ namespace Persistence.Models
         public int StaffUserId { get; set; }
         public string Reason { get; set; } = string.Empty;
         public User StaffUser { get; set; } = null!;
+        public InventoryItem InventoryItem { get; set; } = null!;
     }
 }
