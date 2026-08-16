@@ -75,6 +75,39 @@ class _InventoryTransactionsScreenState
     if (mounted) setState(() => _isLoading = false);
   }
 
+  // Izvještaj mora obuhvatiti cijeli dataset, ne samo trenutno prikazanu
+  // stranicu — ako je aktivan filter po artiklu/uposleniku, taj poziv već
+  // vraća sve rezultate; u suprotnom dohvati sve stranice.
+  Future<List<InventoryTransaction>> _fetchAllTransactionsForExport() async {
+    if (_selectedItemId != null) {
+      return _service.getByInventoryItemId(_selectedItemId!);
+    }
+    if (_selectedStaffId != null) {
+      return _service.getByStaffUserId(_selectedStaffId!);
+    }
+    final List<InventoryTransaction> all = [];
+    int page = 1;
+    const int size = 100;
+    while (true) {
+      final result = await _service.getPaged(pageNumber: page, pageSize: size);
+      all.addAll(result.items);
+      if (all.length >= result.totalCount || result.items.isEmpty) break;
+      page++;
+    }
+    return all;
+  }
+
+  Future<void> _exportTransactionsPdf() async {
+    setState(() => _isLoading = true);
+    try {
+      final all = await _fetchAllTransactionsForExport();
+      if (mounted) PdfReportService.exportInventoryTransactions(context, all);
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
   Future<void> _openForm({InventoryTransaction? transaction}) async {
     final result = await showDialog<bool>(
       context: context,
@@ -97,8 +130,7 @@ class _InventoryTransactionsScreenState
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
             tooltip: 'PDF izvještaj',
-            onPressed: () => PdfReportService.exportInventoryTransactions(
-                context, _transactions),
+            onPressed: _exportTransactionsPdf,
           ),
         ],
       ),

@@ -94,25 +94,52 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
             pinned: true,
             expandedHeight: 240,
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(widget.hotel.name),
-              background: widget.hotel.imageUrl.isNotEmpty
-                  ? Hero(
-                      tag: 'hotel_${widget.hotel.id}',
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final dpr = MediaQuery.of(context).devicePixelRatio;
-                          final targetWidth = (constraints.maxWidth * dpr).clamp(480, 1600).round();
-                          return Image.network(
-                            widget.hotel.displayImageUrl,
-                            fit: BoxFit.cover,
-                            gaplessPlayback: true,
-                            cacheWidth: targetWidth,
-                            filterQuality: FilterQuality.low,
-                          );
-                        },
+              title: Text(
+                widget.hotel.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  shadows: [
+                    Shadow(color: Colors.black87, blurRadius: 6, offset: Offset(0, 1)),
+                  ],
+                ),
+              ),
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  widget.hotel.imageUrl.isNotEmpty
+                      ? Hero(
+                          tag: 'hotel_${widget.hotel.id}',
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final dpr = MediaQuery.of(context).devicePixelRatio;
+                              final targetWidth = (constraints.maxWidth * dpr).clamp(480, 1600).round();
+                              return Image.network(
+                                widget.hotel.displayImageUrl,
+                                fit: BoxFit.cover,
+                                gaplessPlayback: true,
+                                cacheWidth: targetWidth,
+                                filterQuality: FilterQuality.low,
+                              );
+                            },
+                          ),
+                        )
+                      : Container(color: Colors.grey.shade200),
+                  // Scrim: garantuje čitljivost naslova bez obzira na svjetlinu slike.
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black.withOpacity(0.65)],
+                        stops: const [0.55, 1.0],
                       ),
-                    )
-                  : Container(color: Colors.grey.shade200),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

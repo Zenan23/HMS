@@ -133,7 +133,9 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                         });
                       },
                       onSubmitted: (value) {
-                        if (value.isNotEmpty) {
+                        if (value.trim().isEmpty) {
+                          _fetchEmployees();
+                        } else {
                           _fetchEmployeeByUsername(value);
                         }
                       },
@@ -142,7 +144,9 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () {
-                      if (_searchQuery.isNotEmpty) {
+                      if (_searchQuery.trim().isEmpty) {
+                        _fetchEmployees();
+                      } else {
                         _fetchEmployeeByUsername(_searchQuery);
                       }
                     },

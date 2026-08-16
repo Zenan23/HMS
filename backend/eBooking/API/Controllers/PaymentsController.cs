@@ -1,4 +1,5 @@
-﻿using Contracts.DTOs;
+﻿using API.Attributes;
+using Contracts.DTOs;
 using Contracts.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +21,27 @@ namespace API.Controllers
             : base(paymentService, logger)
         {
             _paymentService = paymentService;
+        }
+
+        // Lista SVIH plaćanja (bez filtera po korisniku) — samo za osoblje, finansijski podaci.
+        [HttpGet]
+        [AuthorizeRole(UserRole.Employee)]
+        public override Task<ActionResult<ApiResponse<PaginatedResult<PaymentDto>>>> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+            => base.GetAll(pageNumber, pageSize);
+
+        // Pojedinačno plaćanje po ID-u — spriječi da korisnik pogodi/enumeriše tuđi paymentId.
+        [HttpGet("{id}")]
+        public override async Task<ActionResult<ApiResponse<PaymentDto>>> GetById([FromRoute] int id)
+        {
+            var result = await base.GetById(id);
+            if (result.Result is OkObjectResult ok && ok.Value is ApiResponse<PaymentDto> resp && resp.Data != null)
+            {
+                if (!IsSelfOrElevated(resp.Data.UserId))
+                {
+                    return Forbid();
+                }
+            }
+            return result;
         }
 
         /// <summary>
@@ -320,6 +342,11 @@ namespace API.Controllers
                 if (userId <= 0)
                 {
                     return BadRequest(ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("Invalid user ID."));
+                }
+
+                if (!IsSelfOrElevated(userId))
+                {
+                    return Forbid();
                 }
 
                 var payments = await _paymentService.GetByUserIdAsync(userId);

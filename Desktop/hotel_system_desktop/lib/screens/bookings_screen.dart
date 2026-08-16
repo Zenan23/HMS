@@ -51,6 +51,42 @@ class _BookingsScreenState extends State<BookingsScreen> {
     setState(() => _isLoading = false);
   }
 
+  // Izvještaj mora obuhvatiti cijeli dataset, ne samo trenutno prikazanu
+  // stranicu — ako je aktivan filter po periodu, taj poziv već vraća sve
+  // rezultate; u suprotnom dohvati sve stranice.
+  Future<List<Booking>> _fetchAllBookingsForExport() async {
+    if (_isSearchMode) return _bookings;
+    final List<Booking> all = [];
+    int page = 1;
+    const int size = 100;
+    while (true) {
+      final response = await ApiService()
+          .get('/api/Bookings?pageNumber=$page&pageSize=$size');
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      final data = decoded['data'] ?? {};
+      final List items = data['items'] ?? [];
+      all.addAll(items.map((e) => Booking.fromJson(e)));
+      final int totalCount = data['totalCount'] ?? 0;
+      if (all.length >= totalCount || items.isEmpty) break;
+      page++;
+    }
+    return all;
+  }
+
+  Future<void> _exportBookingsPdf() async {
+    setState(() => _isLoading = true);
+    try {
+      final all = await _fetchAllBookingsForExport();
+      if (mounted) PdfReportService.exportBookings(context, all);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Greška: $e')));
+      }
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
   Future<void> _fetchBookingsByDateRange(DateTime startDate, DateTime endDate) async {
     setState(() => _isLoading = true);
     try {
@@ -178,7 +214,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                     icon: const Icon(Icons.picture_as_pdf),
                     label: const Text('PDF'),
                     onPressed: () =>
-                        PdfReportService.exportBookings(context, _bookings),
+                        _exportBookingsPdf(),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton.icon(

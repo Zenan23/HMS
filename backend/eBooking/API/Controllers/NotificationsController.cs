@@ -35,6 +35,11 @@ namespace API.Controllers
                     return BadRequest(ApiResponse<IEnumerable<NotificationDto>>.ErrorResult("Invalid user ID."));
                 }
 
+                if (!IsSelfOrElevated(userId))
+                {
+                    return Forbid();
+                }
+
                 var notifications = await _notificationService.GetByUserIdAsync(userId);
                 return Ok(ApiResponse<IEnumerable<NotificationDto>>.SuccessResult(notifications, "Notifications retrieved successfully."));
             }
@@ -77,6 +82,11 @@ namespace API.Controllers
                     return BadRequest(ApiResponse<int>.ErrorResult("Invalid user ID."));
                 }
 
+                if (!IsSelfOrElevated(userId))
+                {
+                    return Forbid();
+                }
+
                 var unread = await _notificationService.GetUnreadNotificationsAsync();
                 var count = unread.Count(n => n.UserId == userId);
                 return Ok(ApiResponse<int>.SuccessResult(count, "Unread count retrieved successfully."));
@@ -107,6 +117,11 @@ namespace API.Controllers
                 if (notification == null)
                 {
                     return NotFound(ApiResponse<bool>.ErrorResult($"Notification with ID {id} not found."));
+                }
+
+                if (!IsSelfOrElevated(notification.UserId))
+                {
+                    return Forbid();
                 }
 
                 var updateDto = new UpdateNotificationDto

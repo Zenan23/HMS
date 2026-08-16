@@ -51,6 +51,40 @@ class _UsersScreenState extends State<UsersScreen> {
     setState(() => _isLoading = false);
   }
 
+  // Izvještaj mora obuhvatiti cijeli dataset, ne samo trenutno prikazanu
+  // stranicu — dohvati sve stranice prije generisanja PDF-a.
+  Future<List<Employee>> _fetchAllUsersForExport() async {
+    final List<Employee> all = [];
+    int page = 1;
+    const int size = 100;
+    while (true) {
+      final response = await ApiService()
+          .get('/api/Users?pageNumber=$page&pageSize=$size');
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      final data = decoded['data'] ?? {};
+      final List items = data['items'] ?? [];
+      all.addAll(items.map((e) => Employee.fromJson(e)));
+      final int totalCount = data['totalCount'] ?? 0;
+      if (all.length >= totalCount || items.isEmpty) break;
+      page++;
+    }
+    return all;
+  }
+
+  Future<void> _exportUsersPdf() async {
+    setState(() => _isLoading = true);
+    try {
+      final all = await _fetchAllUsersForExport();
+      if (mounted) PdfReportService.exportUsers(context, all);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Greška: $e')));
+      }
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
   Future<void> _fetchUserByUsername(String username) async {
     setState(() => _isLoading = true);
     try {
@@ -132,7 +166,9 @@ class _UsersScreenState extends State<UsersScreen> {
                         });
                       },
                       onSubmitted: (value) {
-                        if (value.isNotEmpty) {
+                        if (value.trim().isEmpty) {
+                          _fetchUsers(1);
+                        } else {
                           _fetchUserByUsername(value);
                         }
                       },
@@ -141,7 +177,9 @@ class _UsersScreenState extends State<UsersScreen> {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () {
-                      if (_searchQuery.isNotEmpty) {
+                      if (_searchQuery.trim().isEmpty) {
+                        _fetchUsers(1);
+                      } else {
                         _fetchUserByUsername(_searchQuery);
                       }
                     },
@@ -164,8 +202,7 @@ class _UsersScreenState extends State<UsersScreen> {
                   ElevatedButton.icon(
                     icon: const Icon(Icons.picture_as_pdf),
                     label: const Text('PDF'),
-                    onPressed: () =>
-                        PdfReportService.exportUsers(context, _users),
+                    onPressed: _exportUsersPdf,
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton.icon(

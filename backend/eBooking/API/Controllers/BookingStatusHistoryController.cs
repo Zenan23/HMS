@@ -1,4 +1,6 @@
-﻿using Contracts.DTOs;
+﻿using API.Attributes;
+using Contracts.DTOs;
+using Contracts.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Persistence.Interfaces;
@@ -19,6 +21,21 @@ namespace API.Controllers
         {
             _bookingStatusHistoryService = bookingStatusHistoryService;
         }
+
+        [HttpPost]
+        [AuthorizeRole(UserRole.Employee)]
+        public override Task<ActionResult<ApiResponse<BookingStatusHistoryDto>>> Create([FromBody] CreateBookingStatusHistoryDto createDto)
+            => base.Create(createDto);
+
+        [HttpPut("{id}")]
+        [AuthorizeRole(UserRole.Employee)]
+        public override Task<ActionResult<ApiResponse<BookingStatusHistoryDto>>> Update([FromRoute] int id, [FromBody] UpdateBookingStatusHistoryDto updateDto)
+            => base.Update(id, updateDto);
+
+        [HttpDelete("{id}")]
+        [AuthorizeRole(UserRole.Employee)]
+        public override Task<ActionResult<ApiResponse<bool>>> Delete([FromRoute] int id)
+            => base.Delete(id);
 
         /// <summary>
         /// Get booking status history by booking ID
@@ -58,6 +75,11 @@ namespace API.Controllers
                 if (userId <= 0)
                 {
                     return BadRequest(ApiResponse<IEnumerable<BookingStatusHistoryDto>>.ErrorResult("Invalid user ID."));
+                }
+
+                if (!IsSelfOrElevated(userId))
+                {
+                    return Forbid();
                 }
 
                 var history = await _bookingStatusHistoryService.GetByUserIdAsync(userId);

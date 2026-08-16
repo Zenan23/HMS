@@ -72,6 +72,36 @@ class _RoomMaintenanceLogsScreenState extends State<RoomMaintenanceLogsScreen> {
     if (mounted) setState(() => _isLoading = false);
   }
 
+  // Izvještaj mora obuhvatiti cijeli dataset, ne samo trenutno prikazanu
+  // stranicu — ako je aktivan filter po sobi, taj poziv već vraća sve
+  // rezultate; u suprotnom dohvati sve stranice.
+  Future<List<RoomMaintenanceLog>> _fetchAllLogsForExport() async {
+    if (_filterByRoom && _selectedRoomId != null) {
+      return _service.getByRoomId(_selectedRoomId!);
+    }
+    final List<RoomMaintenanceLog> all = [];
+    int page = 1;
+    const int size = 100;
+    while (true) {
+      final result = await _service.getPaged(pageNumber: page, pageSize: size);
+      all.addAll(result.items);
+      if (all.length >= result.totalCount || result.items.isEmpty) break;
+      page++;
+    }
+    return all;
+  }
+
+  Future<void> _exportLogsPdf() async {
+    setState(() => _isLoading = true);
+    try {
+      final all = await _fetchAllLogsForExport();
+      if (mounted) PdfReportService.exportMaintenanceLogs(context, all);
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
   Future<void> _openForm({RoomMaintenanceLog? log}) async {
     final result = await showDialog<bool>(
       context: context,
@@ -124,8 +154,7 @@ class _RoomMaintenanceLogsScreenState extends State<RoomMaintenanceLogsScreen> {
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
             tooltip: 'PDF izvještaj',
-            onPressed: () =>
-                PdfReportService.exportMaintenanceLogs(context, _logs),
+            onPressed: _exportLogsPdf,
           ),
         ],
       ),

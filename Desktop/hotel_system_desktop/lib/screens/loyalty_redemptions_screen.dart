@@ -69,6 +69,40 @@ class _LoyaltyRedemptionsScreenState extends State<LoyaltyRedemptionsScreen> {
     if (mounted) setState(() => _isLoading = false);
   }
 
+  // Izvještaj mora obuhvatiti cijeli dataset, ne samo trenutno prikazanu
+  // stranicu — ako je aktivan filter po korisniku/rezervaciji, taj poziv
+  // već vraća sve rezultate; u suprotnom dohvati sve stranice.
+  Future<List<LoyaltyPointsRedemption>> _fetchAllRedemptionsForExport() async {
+    final bookingId = int.tryParse(_bookingIdController.text);
+    if (_selectedUserId != null) {
+      return _service.getByUserId(_selectedUserId!);
+    }
+    if (bookingId != null) {
+      return _service.getByBookingId(bookingId);
+    }
+    final List<LoyaltyPointsRedemption> all = [];
+    int page = 1;
+    const int size = 100;
+    while (true) {
+      final result = await _service.getPaged(pageNumber: page, pageSize: size);
+      all.addAll(result.items);
+      if (all.length >= result.totalCount || result.items.isEmpty) break;
+      page++;
+    }
+    return all;
+  }
+
+  Future<void> _exportRedemptionsPdf() async {
+    setState(() => _isLoading = true);
+    try {
+      final all = await _fetchAllRedemptionsForExport();
+      if (mounted) PdfReportService.exportLoyaltyRedemptions(context, all);
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
   Future<void> _openForm({LoyaltyPointsRedemption? redemption}) async {
     final result = await showDialog<bool>(
       context: context,
@@ -91,8 +125,7 @@ class _LoyaltyRedemptionsScreenState extends State<LoyaltyRedemptionsScreen> {
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
             tooltip: 'PDF izvještaj',
-            onPressed: () => PdfReportService.exportLoyaltyRedemptions(
-                context, _redemptions),
+            onPressed: _exportRedemptionsPdf,
           ),
         ],
       ),
@@ -134,6 +167,7 @@ class _LoyaltyRedemptionsScreenState extends State<LoyaltyRedemptionsScreen> {
                     decoration:
                         const InputDecoration(labelText: 'ID rezervacije'),
                     keyboardType: TextInputType.number,
+                    onSubmitted: (_) => _fetchRedemptions(),
                   ),
                 ),
                 const SizedBox(width: 8),

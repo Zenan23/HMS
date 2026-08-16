@@ -52,6 +52,36 @@ class _PriceAdjustmentsScreenState extends State<PriceAdjustmentsScreen> {
     if (mounted) setState(() => _isLoading = false);
   }
 
+  // Izvještaj mora obuhvatiti cijeli dataset, ne samo trenutno prikazanu
+  // stranicu — ako je aktivan filter "samo aktivna", taj poziv već vraća
+  // sve rezultate; u suprotnom dohvati sve stranice.
+  Future<List<PriceAdjustment>> _fetchAllAdjustmentsForExport() async {
+    if (_showActiveOnly) {
+      return _service.getActive();
+    }
+    final List<PriceAdjustment> all = [];
+    int page = 1;
+    const int size = 100;
+    while (true) {
+      final result = await _service.getPaged(pageNumber: page, pageSize: size);
+      all.addAll(result.items);
+      if (all.length >= result.totalCount || result.items.isEmpty) break;
+      page++;
+    }
+    return all;
+  }
+
+  Future<void> _exportAdjustmentsPdf() async {
+    setState(() => _isLoading = true);
+    try {
+      final all = await _fetchAllAdjustmentsForExport();
+      if (mounted) PdfReportService.exportPriceAdjustments(context, all);
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
   Future<void> _openForm({PriceAdjustment? adjustment}) async {
     final result = await showDialog<bool>(
       context: context,
@@ -94,8 +124,7 @@ class _PriceAdjustmentsScreenState extends State<PriceAdjustmentsScreen> {
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
             tooltip: 'PDF izvještaj',
-            onPressed: () => PdfReportService.exportPriceAdjustments(
-                context, _adjustments),
+            onPressed: _exportAdjustmentsPdf,
           ),
         ],
       ),

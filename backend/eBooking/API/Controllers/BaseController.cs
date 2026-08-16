@@ -1,4 +1,6 @@
-﻿using Contracts.DTOs;
+﻿using System.Security.Claims;
+using Contracts.DTOs;
+using Contracts.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Persistence.Interfaces;
@@ -21,6 +23,25 @@ namespace API.Controllers
         {
             _service = service;
             _logger = logger;
+        }
+
+        /// <summary>
+        /// Provjera da li ulogovani korisnik smije pristupiti podacima korisnika sa datim ID-jem —
+        /// dozvoljeno ako je to on sam (podudaranje sa JWT claim-om), ili ako je Employee/Admin.
+        /// Koristi se na endpoint-ima tipa GET .../user/{userId} da se spriječi IDOR
+        /// (npr. bilo koji ulogovani korisnik da vidi tuđe rezervacije/uplate/recenzije).
+        /// </summary>
+        protected bool IsSelfOrElevated(int userId)
+        {
+            var roleClaim = User.FindFirst(ClaimTypes.Role);
+            if (roleClaim != null &&
+                (roleClaim.Value == UserRole.Employee.ToString() || roleClaim.Value == UserRole.Admin.ToString()))
+            {
+                return true;
+            }
+
+            var uidClaim = User.FindFirst("userId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
+            return uidClaim != null && int.TryParse(uidClaim.Value, out var callerId) && callerId == userId;
         }
 
         protected ActionResult<ApiResponse<TDto>>? MapServiceException(Exception ex, string operation)

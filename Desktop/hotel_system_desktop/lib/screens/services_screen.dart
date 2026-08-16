@@ -52,6 +52,42 @@ class _ServicesScreenState extends State<ServicesScreen> {
     setState(() => _isLoading = false);
   }
 
+  // Izvještaj mora obuhvatiti cijeli dataset, ne samo trenutno prikazanu
+  // stranicu — ako je aktivan filter dostupnosti, taj poziv već vraća sve
+  // rezultate; u suprotnom dohvati sve stranice.
+  Future<List<Service>> _fetchAllServicesForExport() async {
+    if (_isSearchMode) return _services;
+    final List<Service> all = [];
+    int page = 1;
+    const int size = 100;
+    while (true) {
+      final response = await ApiService()
+          .get('/api/Services?pageNumber=$page&pageSize=$size');
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      final data = decoded['data'] ?? {};
+      final List items = data['items'] ?? [];
+      all.addAll(items.map((e) => Service.fromJson(e)));
+      final int totalCount = data['totalCount'] ?? 0;
+      if (all.length >= totalCount || items.isEmpty) break;
+      page++;
+    }
+    return all;
+  }
+
+  Future<void> _exportServicesPdf() async {
+    setState(() => _isLoading = true);
+    try {
+      final all = await _fetchAllServicesForExport();
+      if (mounted) PdfReportService.exportServices(context, all);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Greška: $e')));
+      }
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
   Future<void> _fetchAvailableServices() async {
     setState(() => _isLoading = true);
     try {
@@ -163,8 +199,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                     ElevatedButton.icon(
                       icon: const Icon(Icons.picture_as_pdf),
                       label: const Text('PDF'),
-                      onPressed: () =>
-                          PdfReportService.exportServices(context, _services),
+                      onPressed: _exportServicesPdf,
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
