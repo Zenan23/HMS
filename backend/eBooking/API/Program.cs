@@ -29,8 +29,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-// MassTransit + RabbitMQ
-builder.Services.AddMessaging(builder.Configuration);
+// MassTransit + RabbitMQ — API samo publish-uje evente (BookingService/PaymentService/NotificationService)
+// i konzumira JEDINO NotificationCreated (za realtime SignalR push već povezanim klijentima).
+// Poslovna async obrada (booking confirmed/updated, payment completed, check-in podsjetnici) je
+// premještena u odvojen Worker servis/kontejner — vidi backend/eBooking/Worker.
+builder.Services.AddApiMessaging(builder.Configuration);
 
 
 // Add JWT Authentication

@@ -3,7 +3,7 @@ using MassTransit;
 using Microsoft.Extensions.Logging;
 using Persistence.Interfaces;
 
-namespace API.Messaging.Consumers
+namespace Worker.Consumers
 {
     public class BookingUpdatedConsumer : IConsumer<BookingUpdated>
     {
@@ -36,5 +36,3 @@ namespace API.Messaging.Consumers
         }
     }
 }
-
-
