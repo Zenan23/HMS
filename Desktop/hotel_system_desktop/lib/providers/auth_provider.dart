@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../utils/role_utils.dart';
 
@@ -56,7 +57,7 @@ class AuthProvider with ChangeNotifier {
       final token = await AuthService().getToken();
       if (token == null || token.isEmpty) return false;
       final response = await http.get(
-        Uri.parse('http://localhost:8080/api/auth/profile'),
+        Uri.parse('${ApiService.baseUrl}/api/auth/profile'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
