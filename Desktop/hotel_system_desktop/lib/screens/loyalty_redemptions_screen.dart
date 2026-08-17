@@ -26,6 +26,7 @@ class _LoyaltyRedemptionsScreenState extends State<LoyaltyRedemptionsScreen> {
   int? _selectedUserId;
   final _bookingIdController = TextEditingController();
   List<Employee> _users = [];
+  int? _selectedUserBalance;
 
   @override
   void initState() {
@@ -56,12 +57,17 @@ class _LoyaltyRedemptionsScreenState extends State<LoyaltyRedemptionsScreen> {
       final bookingId = int.tryParse(_bookingIdController.text);
       if (_selectedUserId != null) {
         _redemptions = await _service.getByUserId(_selectedUserId!);
+        // Balans daje kontekst zaposleniku prije nego doda ručnu korekciju
+        // (npr. da vidi da korisnik nema dovoljno bodova za traženo iskorištenje).
+        _selectedUserBalance = await _service.getBalance(_selectedUserId!);
       } else if (bookingId != null) {
         _redemptions = await _service.getByBookingId(bookingId);
+        _selectedUserBalance = null;
       } else {
         final result =
             await _service.getPaged(pageNumber: _page, pageSize: _pageSize);
         _redemptions = result.items;
+        _selectedUserBalance = null;
       }
     } catch (e) {
       if (mounted) showApiError(context, e);
@@ -177,6 +183,16 @@ class _LoyaltyRedemptionsScreenState extends State<LoyaltyRedemptionsScreen> {
                 ),
               ],
             ),
+            if (_selectedUserId != null && _selectedUserBalance != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Chip(
+                    label: Text('Trenutni balans: $_selectedUserBalance bodova'),
+                  ),
+                ),
+              ),
             const SizedBox(height: 8),
             Expanded(
               child: _isLoading

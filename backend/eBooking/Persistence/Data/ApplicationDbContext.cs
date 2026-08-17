@@ -28,6 +28,7 @@ namespace Persistence.Data
         public DbSet<InventoryItem> InventoryItems { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
         public DbSet<LoyaltyPointsRedemption> LoyaltyPointsRedemptions { get; set; }
+        public DbSet<LoyaltyPointsEarned> LoyaltyPointsEarned { get; set; }
         public DbSet<SupportTicket> SupportTickets { get; set; }
         public DbSet<Country> Countries { get; set; }
         public DbSet<City> Cities { get; set; }
@@ -355,6 +356,30 @@ namespace Persistence.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
+            // LoyaltyPointsEarned configuration
+            modelBuilder.Entity<LoyaltyPointsEarned>(entity =>
+            {
+                entity.HasKey(lpe => lpe.Id);
+                entity.Property(lpe => lpe.PointsEarned).IsRequired();
+                entity.Property(lpe => lpe.EarnedAt).IsRequired();
+                entity.Property(lpe => lpe.Reason).IsRequired().HasMaxLength(200);
+
+                entity.HasOne(lpe => lpe.User)
+                    .WithMany()
+                    .HasForeignKey(lpe => lpe.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(lpe => lpe.Booking)
+                    .WithMany()
+                    .HasForeignKey(lpe => lpe.BookingId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(lpe => lpe.Payment)
+                    .WithMany()
+                    .HasForeignKey(lpe => lpe.PaymentId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
             // SupportTicket configuration
             modelBuilder.Entity<SupportTicket>(entity =>
             {
@@ -363,11 +388,17 @@ namespace Persistence.Data
                 entity.Property(st => st.MessageBody).IsRequired().HasMaxLength(5000);
                 entity.Property(st => st.Status).IsRequired();
                 entity.Property(st => st.Priority).IsRequired();
+                entity.Property(st => st.AdminResponse).HasMaxLength(5000);
 
                 entity.HasOne(st => st.User)
                     .WithMany()
                     .HasForeignKey(st => st.UserId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(st => st.RespondedByUser)
+                    .WithMany()
+                    .HasForeignKey(st => st.RespondedByUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // Add global query filter for soft delete
@@ -386,6 +417,7 @@ namespace Persistence.Data
             modelBuilder.Entity<InventoryItem>().HasQueryFilter(ii => !ii.IsDeleted);
             modelBuilder.Entity<InventoryTransaction>().HasQueryFilter(it => !it.IsDeleted);
             modelBuilder.Entity<LoyaltyPointsRedemption>().HasQueryFilter(lpr => !lpr.IsDeleted);
+            modelBuilder.Entity<LoyaltyPointsEarned>().HasQueryFilter(lpe => !lpe.IsDeleted);
             modelBuilder.Entity<SupportTicket>().HasQueryFilter(st => !st.IsDeleted);
             modelBuilder.Entity<Country>().HasQueryFilter(c => !c.IsDeleted);
             modelBuilder.Entity<City>().HasQueryFilter(c => !c.IsDeleted);

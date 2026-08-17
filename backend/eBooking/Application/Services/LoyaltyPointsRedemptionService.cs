@@ -33,5 +33,11 @@ namespace Application.Services
                 .OrderByDescending(x => x.RedeemedAt);
             return _mapper.Map<IEnumerable<LoyaltyPointsRedemptionDto>>(filtered);
         }
+
+        public async Task<int> GetTotalPointsUsedForUserAsync(int userId)
+        {
+            var entities = await _repository.GetAllAsync();
+            return entities.Where(x => x.UserId == userId && !x.IsDeleted).Sum(x => x.PointsUsed);
+        }
     }
 }

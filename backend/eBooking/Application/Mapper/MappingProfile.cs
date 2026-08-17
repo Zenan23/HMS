@@ -208,16 +208,41 @@ namespace Application.Mapper
             CreateMap<UpdateLoyaltyPointsRedemptionDto, LoyaltyPointsRedemption>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
+            // LoyaltyPointsEarned mappings
+            CreateMap<LoyaltyPointsEarned, LoyaltyPointsEarnedDto>()
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null
+                    ? (!string.IsNullOrWhiteSpace(src.User.FirstName) || !string.IsNullOrWhiteSpace(src.User.LastName)
+                        ? $"{src.User.FirstName} {src.User.LastName}".Trim()
+                        : src.User.Username)
+                    : string.Empty))
+                .ForMember(dest => dest.BookingLabel, opt => opt.MapFrom(src =>
+                    src.Booking != null && src.Booking.Room != null
+                        ? $"BK-{src.Booking.Id:D6} · Soba {src.Booking.Room.RoomNumber}"
+                        : (src.BookingId != null ? $"BK-{src.BookingId:D6}" : null)));
+            CreateMap<CreateLoyaltyPointsEarnedDto, LoyaltyPointsEarned>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+            CreateMap<UpdateLoyaltyPointsEarnedDto, LoyaltyPointsEarned>()
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
             // SupportTicket mappings
             CreateMap<SupportTicket, SupportTicketDto>()
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null
                     ? (!string.IsNullOrWhiteSpace(src.User.FirstName) || !string.IsNullOrWhiteSpace(src.User.LastName)
                         ? $"{src.User.FirstName} {src.User.LastName}".Trim()
                         : src.User.Username)
-                    : string.Empty));
+                    : string.Empty))
+                .ForMember(dest => dest.RespondedByUserName, opt => opt.MapFrom(src => src.RespondedByUser != null
+                    ? (!string.IsNullOrWhiteSpace(src.RespondedByUser.FirstName) || !string.IsNullOrWhiteSpace(src.RespondedByUser.LastName)
+                        ? $"{src.RespondedByUser.FirstName} {src.RespondedByUser.LastName}".Trim()
+                        : src.RespondedByUser.Username)
+                    : null));
             CreateMap<CreateSupportTicketDto, SupportTicket>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+            // RespondedAt/RespondedByUserId se NAMJERNO ne mapiraju ovdje — postavljaju se
+            // isključivo server-side u SupportTicketsController.Update (SetResponseMetadataAsync),
+            // da klijent ne može sam sebi "potpisati" odgovor kao osoblje.
             CreateMap<UpdateSupportTicketDto, SupportTicket>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
         }

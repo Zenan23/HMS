@@ -23,9 +23,12 @@ class _SupportTicketFormDialogState extends State<SupportTicketFormDialog> {
   late String messageBody;
   late SupportTicketStatus status;
   late SupportTicketPriority priority;
+  late TextEditingController _adminResponseController;
   bool isLoading = false;
   String? error;
   List<Employee> _users = [];
+
+  bool get _isEditingExisting => widget.ticket != null;
 
   @override
   void initState() {
@@ -36,7 +39,14 @@ class _SupportTicketFormDialogState extends State<SupportTicketFormDialog> {
     messageBody = t?.messageBody ?? '';
     status = t?.status ?? SupportTicketStatus.open;
     priority = t?.priority ?? SupportTicketPriority.medium;
+    _adminResponseController = TextEditingController(text: t?.adminResponse ?? '');
     _fetchUsers();
+  }
+
+  @override
+  void dispose() {
+    _adminResponseController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchUsers() async {
@@ -74,6 +84,7 @@ class _SupportTicketFormDialogState extends State<SupportTicketFormDialog> {
       'messageBody': messageBody,
       'status': supportTicketStatusToInt(status),
       'priority': supportTicketPriorityToInt(priority),
+      if (_isEditingExisting) 'adminResponse': _adminResponseController.text,
     };
     try {
       if (widget.ticket == null) {
@@ -114,18 +125,45 @@ class _SupportTicketFormDialogState extends State<SupportTicketFormDialog> {
               TextFormField(
                 initialValue: subject,
                 decoration: const InputDecoration(labelText: 'Naslov'),
+                // Gostov originalni naslov/poruka se ne mijenjaju kroz "odgovori na tiket" tok —
+                // uređivanje ostaje moguće samo kad zaposlenik ručno kreira/ispravlja tiket.
+                readOnly: _isEditingExisting,
                 onChanged: (v) => subject = v,
                 validator: (v) =>
                     (v == null || v.isEmpty) ? 'Obavezno' : null,
               ),
               TextFormField(
                 initialValue: messageBody,
-                decoration: const InputDecoration(labelText: 'Poruka'),
+                decoration: const InputDecoration(labelText: 'Poruka (gost)'),
                 maxLines: 4,
+                readOnly: _isEditingExisting,
                 onChanged: (v) => messageBody = v,
                 validator: (v) =>
                     (v == null || v.isEmpty) ? 'Obavezno' : null,
               ),
+              if (_isEditingExisting) ...[
+                const SizedBox(height: 12),
+                if (widget.ticket?.respondedAt != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      'Prethodno odgovorio: ${widget.ticket?.respondedByUserName ?? '-'} · '
+                      '${widget.ticket!.respondedAt!.toLocal().toString().split('.').first}',
+                      style: const TextStyle(
+                          fontStyle: FontStyle.italic, fontSize: 12),
+                    ),
+                  ),
+                TextFormField(
+                  controller: _adminResponseController,
+                  decoration: const InputDecoration(
+                    labelText: 'Odgovor gostu',
+                    helperText:
+                        'Gost dobija notifikaciju kad ovdje upišete/promijenite odgovor.',
+                  ),
+                  maxLines: 4,
+                ),
+                const SizedBox(height: 8),
+              ],
               DropdownButtonFormField<SupportTicketStatus>(
                 value: status,
                 decoration: const InputDecoration(labelText: 'Status'),

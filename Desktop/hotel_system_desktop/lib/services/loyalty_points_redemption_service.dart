@@ -27,6 +27,13 @@ class LoyaltyPointsRedemptionService {
         response, LoyaltyPointsRedemption.fromJson);
   }
 
+  Future<int> getBalance(int userId) async {
+    final response =
+        await _api.get('/api/LoyaltyPointsRedemptions/balance/$userId');
+    final data = ApiResponseParser.extractData(response);
+    return data is int ? data : int.tryParse(data.toString()) ?? 0;
+  }
+
   Future<LoyaltyPointsRedemption> create(Map<String, dynamic> body) async {
     final response = await _api.post('/api/LoyaltyPointsRedemptions', body);
     return ApiResponseParser.parseObject(
