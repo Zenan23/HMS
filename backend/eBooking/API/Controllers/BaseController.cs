@@ -33,15 +33,35 @@ namespace API.Controllers
         /// </summary>
         protected bool IsSelfOrElevated(int userId)
         {
-            var roleClaim = User.FindFirst(ClaimTypes.Role);
-            if (roleClaim != null &&
-                (roleClaim.Value == UserRole.Employee.ToString() || roleClaim.Value == UserRole.Admin.ToString()))
+            if (IsElevated())
             {
                 return true;
             }
 
+            var callerId = GetCurrentUserId();
+            return callerId.HasValue && callerId.Value == userId;
+        }
+
+        /// <summary>
+        /// Vraća ID trenutno ulogovanog korisnika iz JWT claim-a (ClaimTypes.NameIdentifier), ili
+        /// null ako claim nedostaje ili se ne može parsirati. Koristiti umjesto povjerenja u
+        /// userId koji šalje klijent kroz rutu ili body — vidi uputu: "userId se nikada ne prima
+        /// iz rute ili body-ja za operacije vezane za trenutnog korisnika."
+        /// </summary>
+        protected int? GetCurrentUserId()
+        {
             var uidClaim = User.FindFirst("userId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
-            return uidClaim != null && int.TryParse(uidClaim.Value, out var callerId) && callerId == userId;
+            return uidClaim != null && int.TryParse(uidClaim.Value, out var callerId) ? callerId : null;
+        }
+
+        /// <summary>
+        /// Da li ulogovani korisnik ima Employee ili Admin ulogu (osoblje, ne obični gost).
+        /// </summary>
+        protected bool IsElevated()
+        {
+            var roleClaim = User.FindFirst(ClaimTypes.Role);
+            return roleClaim != null &&
+                (roleClaim.Value == UserRole.Employee.ToString() || roleClaim.Value == UserRole.Admin.ToString());
         }
 
         protected ActionResult<ApiResponse<TDto>>? MapServiceException(Exception ex, string operation)

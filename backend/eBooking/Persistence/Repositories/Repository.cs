@@ -26,6 +26,13 @@ namespace Persistence.Repositories
             return await _dbSet.ToListAsync();
         }
 
+        public virtual async Task<IEnumerable<T>> GetPagedAsync(int skip, int take)
+        {
+            if (skip < 0) skip = 0;
+            if (take <= 0) take = 10;
+            return await _dbSet.Skip(skip).Take(take).ToListAsync();
+        }
+
         public virtual async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
         {
             return await _dbSet.Where(predicate).ToListAsync();

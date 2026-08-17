@@ -16,6 +16,7 @@ namespace Application.Services
         private readonly IRepository<Room> _roomRepository;
         private readonly IRepository<Booking> _bookingRepository;
         private readonly IFileStorageService _fileStorage;
+        private readonly IRepository<HotelViewHistory> _hotelViewHistoryRepository;
 
         public HotelService(
             IHotelRepository hotelRepository,
@@ -25,6 +26,7 @@ namespace Application.Services
             IRepository<Room> roomRepository,
             IRepository<Booking> bookingRepository,
             IFileStorageService fileStorage,
+            IRepository<HotelViewHistory> hotelViewHistoryRepository,
             IMapper mapper,
             ILogger<HotelService> logger)
             : base(hotelRepository, mapper, logger)
@@ -36,6 +38,25 @@ namespace Application.Services
             _roomRepository = roomRepository;
             _bookingRepository = bookingRepository;
             _fileStorage = fileStorage;
+            _hotelViewHistoryRepository = hotelViewHistoryRepository;
+        }
+
+        public async Task RecordHotelViewAsync(int userId, int hotelId)
+        {
+            try
+            {
+                await _hotelViewHistoryRepository.AddAsync(new HotelViewHistory
+                {
+                    UserId = userId,
+                    HotelId = hotelId,
+                    ViewedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                // Best-effort: greška pri upisu pregleda ne smije spriječiti prikaz hotela korisniku.
+                _logger.LogWarning(ex, "Nije uspjelo bilježenje pregleda hotela {HotelId} za korisnika {UserId}", hotelId, userId);
+            }
         }
 
         public async Task<IEnumerable<HotelDto>> GetAllHotelsAsync(int? rating = null, string city = null, string name = null)
@@ -117,9 +138,12 @@ namespace Application.Services
 
         public override async Task<IEnumerable<HotelDto>> GetAllAsync(int pageNumber, int pageSize)
         {
+            if (pageNumber <= 0) pageNumber = 1;
+            if (pageSize <= 0) pageSize = 10;
             var skip = (pageNumber - 1) * pageSize;
-            var allHotels = await _hotelRepository.GetAllAsync();
-            var pagedHotels = allHotels.Skip(skip).Take(pageSize);
+            // Prava DB-level paginacija (Skip/Take u SQL-u) — prije je ovdje bila učitana CIJELA
+            // tabela hotela pa tek onda rezana u memoriji ("lažna paginacija").
+            var pagedHotels = await _hotelRepository.GetPagedAsync(skip, pageSize);
             var hotelDtos = _mapper.Map<IEnumerable<HotelDto>>(pagedHotels).ToList();
 
             var hotelIds = hotelDtos.Select(h => h.Id).ToHashSet();
@@ -217,14 +241,18 @@ namespace Application.Services
 
         public async Task<bool> DeleteHotelAsync(int id)
         {
-            if (!await _hotelRepository.ExistsAsync(id))
+            var hotel = await _hotelRepository.GetByIdAsync(id);
+            if (hotel == null)
                 return false;
 
-            var hotel = await _hotelRepository.GetByIdAsync(id);
-            if (hotel != null && !string.IsNullOrWhiteSpace(hotel.ImageUrl))
+            if (!string.IsNullOrWhiteSpace(hotel.ImageUrl))
                 await _fileStorage.DeleteHotelImageAsync(hotel.ImageUrl);
 
-            await _hotelRepository.DeleteAsync(id);
+            // Soft delete — hard delete (Repository<T>.DeleteAsync) je zabranjen uputama za
+            // entitete koji učestvuju u poslovnim relacijama (sobe, rezervacije...).
+            hotel.IsDeleted = true;
+            hotel.UpdatedAt = DateTime.UtcNow;
+            await _hotelRepository.UpdateAsync(hotel);
             return true;
         }
 
@@ -323,25 +351,64 @@ namespace Application.Services
 
             // Get hotel entities
             var hotels = allHotels.Where(h => recommendedHotels.Select(r => r.HotelId).Contains(h.Id)).ToList();
+            var dtos = _mapper.Map<List<HotelDto>>(hotels);
 
-            // Fallback: ako nema sličnih korisnika ili preporuka, vrati top hotele po prosječnom ratingu
-            if (hotels.Count == 0)
+            if (dtos.Count > 0)
             {
-                var topByRating = allReviews
-                    .Where(r => r.IsApproved && !r.IsDeleted)
-                    .GroupBy(r => r.HotelId)
-                    .Select(g => new { HotelId = g.Key, Avg = g.Average(x => (double)x.Rating), Cnt = g.Count() })
-                    .Where(x => x.Avg >= dynamicThreshold)
-                    .OrderByDescending(x => x.Avg)
-                    .ThenByDescending(x => x.Cnt)
-                    .Take(maxRecommendations)
-                    .Select(x => x.HotelId)
-                    .ToHashSet();
-
-                hotels = allHotels.Where(h => topByRating.Contains(h.Id)).ToList();
+                // Objašnjiva preporuka (user-based collaborative filtering grana): korisniku se
+                // navodi na osnovu čega je hotel preporučen — broj sličnih korisnika i njihova
+                // vremenski ponderisana prosječna ocjena za taj hotel.
+                var reasonByHotelId = recommendedHotels.ToDictionary(r => r.HotelId, r => r);
+                foreach (var dto in dtos)
+                {
+                    if (reasonByHotelId.TryGetValue(dto.Id, out var r))
+                    {
+                        dto.RecommendationReason =
+                            $"Preporučeno jer su korisnici sličnih preferencija ovaj hotel ocijenili prosječnom ocjenom {r.WeightedAvgRating:F1}/5 ({r.Count} {(r.Count == 1 ? "recenzija" : "recenzije")}).";
+                    }
+                }
+                return dtos;
             }
 
-            return _mapper.Map<IEnumerable<HotelDto>>(hotels);
+            // Fallback: ako nema sličnih korisnika ili preporuka, vrati top hotele po prosječnom ratingu
+            // (popularity-based pristup). Broj STVARNIH pregleda (HotelViewHistory — upisuje se u
+            // HotelsController.GetById pri svakom pregledu detalja hotela) se ovdje zaista koristi
+            // kao dodatni popularity signal za rangiranje, ne samo prikuplja bez svrhe.
+            var allViews = await _hotelViewHistoryRepository.GetAllAsync();
+            var viewCountByHotelId = allViews
+                .GroupBy(v => v.HotelId)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            var topByRating = allReviews
+                .Where(r => r.IsApproved && !r.IsDeleted)
+                .GroupBy(r => r.HotelId)
+                .Select(g => new
+                {
+                    HotelId = g.Key,
+                    Avg = g.Average(x => (double)x.Rating),
+                    Cnt = g.Count(),
+                    Views = viewCountByHotelId.TryGetValue(g.Key, out var v) ? v : 0
+                })
+                .Where(x => x.Avg >= dynamicThreshold)
+                .OrderByDescending(x => x.Avg)
+                .ThenByDescending(x => x.Views) // trending: više pregleda = veći prioritet kod izjednačene ocjene
+                .ThenByDescending(x => x.Cnt)
+                .Take(maxRecommendations)
+                .ToList();
+
+            var fallbackHotels = allHotels.Where(h => topByRating.Select(x => x.HotelId).Contains(h.Id)).ToList();
+            var fallbackDtos = _mapper.Map<List<HotelDto>>(fallbackHotels);
+            var fallbackReasonByHotelId = topByRating.ToDictionary(x => x.HotelId, x => x);
+            foreach (var dto in fallbackDtos)
+            {
+                if (fallbackReasonByHotelId.TryGetValue(dto.Id, out var x))
+                {
+                    dto.RecommendationReason = x.Views > 0
+                        ? $"Trenutno jedan od najbolje ocijenjenih i najgledanijih hotela — prosječna ocjena {x.Avg:F1}/5 iz {x.Cnt} {(x.Cnt == 1 ? "recenzije" : "recenzija")}, {x.Views} {(x.Views == 1 ? "pregled" : "pregleda")}."
+                        : $"Trenutno jedan od najbolje ocijenjenih hotela — prosječna ocjena {x.Avg:F1}/5 iz {x.Cnt} {(x.Cnt == 1 ? "recenzije" : "recenzija")}.";
+                }
+            }
+            return fallbackDtos;
         }
 
         /// <summary>

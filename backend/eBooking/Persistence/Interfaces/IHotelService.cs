@@ -16,5 +16,12 @@ namespace Persistence.Interfaces
         Task<IEnumerable<HotelDto>> GetHotelsByNameAsync(string name);
         Task<HotelDto?> SetHotelImageAsync(int hotelId, Stream fileStream, string fileName, CancellationToken cancellationToken = default);
         Task<bool> RemoveHotelImageAsync(int hotelId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Evidentira da je korisnik pregledao detalje hotela — stvarni ponašajni signal koji se
+        /// koristi u sistemu preporuke (popularity-based komponenta), ne samo prikuplja bez svrhe.
+        /// Best-effort: greška pri upisu ne smije srušiti prikaz hotela korisniku.
+        /// </summary>
+        Task RecordHotelViewAsync(int userId, int hotelId);
     }
 }

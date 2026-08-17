@@ -30,6 +30,26 @@ namespace API.Controllers
         public override Task<ActionResult<ApiResponse<PaginatedResult<BookingDto>>>> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
             => base.GetAll(pageNumber, pageSize);
 
+        // Kreiranje rezervacije: UserId se PRESKRIPUJE identitetom iz JWT-a za obične goste, jer
+        // createDto.UserId dolazi iz klijentovog body-ja i ne smije se vjerovati (gost ne smije
+        // moći kreirati rezervaciju "u ime" drugog korisnika). Osoblje (Employee/Admin) i dalje
+        // smije kreirati rezervaciju za bilo kojeg korisnika (npr. rezervacija na recepciji).
+        [HttpPost]
+        public override async Task<ActionResult<ApiResponse<BookingDto>>> Create([FromBody] CreateBookingDto createDto)
+        {
+            if (!IsElevated())
+            {
+                var currentUserId = GetCurrentUserId();
+                if (currentUserId == null)
+                {
+                    return Forbid();
+                }
+                createDto.UserId = currentUserId.Value;
+            }
+
+            return await base.Create(createDto);
+        }
+
         // Pojedinačna rezervacija po ID-u — spriječi da gost pogodi/enumeriše tuđi bookingId
         // i vidi detalje (datumi, cijena) tuđe rezervacije.
         [HttpGet("{id}")]
@@ -243,6 +263,12 @@ namespace API.Controllers
             }
         }
 
+        // Sve statusne prelaze rezervacije moraju ići kroz eksplicitne, centralizovane servisne
+        // metode (CancelBookingAsync/CheckInAsync/CheckOutAsync/MarkNoShowAsync) — NIKAD kroz
+        // generički BaseDtoService.UpdateAsync, koji bi bez validacije upisao klijentov Status i
+        // TotalPrice direktno u bazu. Takođe se provjerava vlasništvo prije bilo koje izmjene:
+        // Guest smije samo otkazati SVOJU rezervaciju, ostale statusne prelaze smije izvesti
+        // isključivo osoblje (Employee/Admin).
         [HttpPut("{id}")]
         [AuthorizeRole(UserRole.Employee, UserRole.Guest)]
         public override async Task<ActionResult<ApiResponse<BookingDto>>> Update([FromRoute] int id, [FromBody] UpdateBookingDto updateDto)
@@ -254,20 +280,45 @@ namespace API.Controllers
                     return BadRequest(ApiResponse<bool>.ErrorResult("Invalid booking ID."));
                 }
 
-                bool result = false;
+                var existing = await _bookingService.GetByIdAsync(id);
+                if (existing == null)
+                {
+                    return NotFound(ApiResponse<bool>.ErrorResult($"Booking with ID {id} not found."));
+                }
+
+                if (!IsSelfOrElevated(existing.UserId))
+                {
+                    return Forbid();
+                }
+
+                var currentUserId = GetCurrentUserId();
+                bool result;
                 switch (updateDto.Status)
                 {
                     case BookingStatus.Cancelled:
-                        result = await _bookingService.CancelBookingAsync(id);
+                        result = await _bookingService.CancelBookingAsync(id, currentUserId);
                         break;
                     case BookingStatus.CheckedIn:
-                        result = await _bookingService.CheckInAsync(id);
+                        if (!IsElevated()) return Forbid();
+                        result = await _bookingService.CheckInAsync(id, currentUserId);
                         break;
                     case BookingStatus.CheckedOut:
-                        result = await _bookingService.CheckOutAsync(id);
+                        if (!IsElevated()) return Forbid();
+                        result = await _bookingService.CheckOutAsync(id, currentUserId);
+                        break;
+                    case BookingStatus.NoShow:
+                        if (!IsElevated()) return Forbid();
+                        result = await _bookingService.MarkNoShowAsync(id, currentUserId);
                         break;
                     default:
-                        return await base.Update(id, updateDto);
+                        // Pending/Confirmed se ne postavljaju direktno kroz PUT — Confirmed nastaje
+                        // isključivo kroz ConfirmBookingAfterPaymentAsync (nakon uspješnog plaćanja),
+                        // a Pending je isključivo početno stanje pri kreiranju rezervacije. Ovdje
+                        // NEMA fallback-a na base.Update, jer bi to dozvolilo klijentu da proizvoljno
+                        // upiše Status i TotalPrice bez validacije.
+                        return BadRequest(ApiResponse<bool>.ErrorResult(
+                            "Status rezervacije se ne može direktno postaviti na ovu vrijednost. " +
+                            "Koristite akcije za otkazivanje, check-in, check-out ili no-show."));
                 }
 
                 if (!result)
@@ -300,7 +351,20 @@ namespace API.Controllers
                     return BadRequest(ApiResponse<bool>.ErrorResult("Invalid booking ID."));
                 }
 
-                var result = await _bookingService.CancelBookingAsync(id, request.CancelledByUserId);
+                var existing = await _bookingService.GetByIdAsync(id);
+                if (existing == null)
+                {
+                    return NotFound(ApiResponse<bool>.ErrorResult($"Booking with ID {id} not found."));
+                }
+
+                // Vlasništvo: gost smije otkazati samo svoju rezervaciju; userId se uzima iz JWT-a,
+                // nikad iz body-ja (request.CancelledByUserId je uklonjen iz DTO-a).
+                if (!IsSelfOrElevated(existing.UserId))
+                {
+                    return Forbid();
+                }
+
+                var result = await _bookingService.CancelBookingAsync(id, GetCurrentUserId(), request.Reason);
 
                 if (!result)
                 {
@@ -333,7 +397,7 @@ namespace API.Controllers
                     return BadRequest(ApiResponse<bool>.ErrorResult("Invalid booking ID."));
                 }
 
-                var result = await _bookingService.CheckInAsync(id, request.CheckedInByUserId);
+                var result = await _bookingService.CheckInAsync(id, GetCurrentUserId());
 
                 if (!result)
                 {
@@ -366,7 +430,7 @@ namespace API.Controllers
                     return BadRequest(ApiResponse<bool>.ErrorResult("Invalid booking ID."));
                 }
 
-                var result = await _bookingService.CheckOutAsync(id, request.CheckedOutByUserId);
+                var result = await _bookingService.CheckOutAsync(id, GetCurrentUserId());
 
                 if (!result)
                 {
@@ -385,7 +449,9 @@ namespace API.Controllers
 
     public class CancelBookingRequest
     {
-        public int? CancelledByUserId { get; set; }
+        /// <summary>Razlog otkazivanja koji korisnik/osoblje unosi — prikazuje se u historiji rezervacije.</summary>
+        [System.ComponentModel.DataAnnotations.StringLength(500)]
+        public string? Reason { get; set; }
     }
 
     public class CheckInRequest

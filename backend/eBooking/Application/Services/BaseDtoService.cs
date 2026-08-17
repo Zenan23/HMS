@@ -64,9 +64,12 @@ namespace Application.Services
                 _logger.LogInformation("Getting {EntityType} entities - Page: {PageNumber}, Size: {PageSize}",
                     typeof(TEntity).Name, pageNumber, pageSize);
 
+                if (pageNumber <= 0) pageNumber = 1;
+                if (pageSize <= 0) pageSize = 10;
                 var skip = (pageNumber - 1) * pageSize;
-                var allEntities = await _repository.GetAllAsync();
-                var pagedEntities = allEntities.Skip(skip).Take(pageSize);
+                // Prava DB-level paginacija (EF Skip/Take) umjesto učitavanja cijele tabele i
+                // rezanja u memoriji.
+                var pagedEntities = await _repository.GetPagedAsync(skip, pageSize);
                 return _mapper.Map<IEnumerable<TDto>>(pagedEntities);
             }
             catch (Exception ex)

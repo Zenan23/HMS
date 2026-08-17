@@ -14,13 +14,39 @@ namespace API.Controllers
     public class PaymentsController : BaseController<PaymentDto, CreatePaymentDto, UpdatePaymentDto>
     {
         private readonly IPaymentService _paymentService;
+        private readonly IBookingService _bookingService;
 
         public PaymentsController(
             IPaymentService paymentService,
+            IBookingService bookingService,
             ILogger<PaymentsController> logger)
             : base(paymentService, logger)
         {
             _paymentService = paymentService;
+            _bookingService = bookingService;
+        }
+
+        /// <summary>
+        /// Provjerava da li pozivalac smije pokrenuti plaćanje za dto.BookingId — samo vlasnik
+        /// rezervacije ili Employee/Admin. UserId u DTO-u se PRESKRIPUJE stvarnim vlasnikom
+        /// rezervacije (klijent ne smije platiti "u ime" tuđe rezervacije niti lažirati UserId).
+        /// Vraća null ako je sve u redu, inače ActionResult sa greškom koju treba direktno vratiti.
+        /// </summary>
+        private async Task<ActionResult?> AuthorizeAndPrepareCheckoutAsync(CreateHostedCheckoutDto dto)
+        {
+            var booking = await _bookingService.GetByIdAsync(dto.BookingId);
+            if (booking == null)
+            {
+                return NotFound(ApiResponse<object>.ErrorResult("Rezervacija nije pronađena."));
+            }
+
+            if (!IsSelfOrElevated(booking.UserId))
+            {
+                return Forbid();
+            }
+
+            dto.UserId = booking.UserId;
+            return null;
         }
 
         // Lista SVIH plaćanja (bez filtera po korisniku) — samo za osoblje, finansijski podaci.
@@ -67,6 +93,9 @@ namespace API.Controllers
                     var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
                     return BadRequest(ApiResponse<StripeIntentResponseDto>.ErrorResult("Validation failed.", errors));
                 }
+
+                var authError = await AuthorizeAndPrepareCheckoutAsync(dto);
+                if (authError != null) return authError;
 
                 var userAgent = Request.Headers["User-Agent"].ToString();
                 var ipAddress = GetClientIpAddress();
@@ -118,6 +147,9 @@ namespace API.Controllers
                     return BadRequest(ApiResponse<PayPalNativeOrderResponseDto>.ErrorResult("Validation failed.", errors));
                 }
 
+                var authError = await AuthorizeAndPrepareCheckoutAsync(dto);
+                if (authError != null) return authError;
+
                 var userAgent = Request.Headers["User-Agent"].ToString();
                 var ipAddress = GetClientIpAddress();
                 var result = await _paymentService.StartPayPalNativeOrderAsync(dto, userAgent, ipAddress);
@@ -147,6 +179,9 @@ namespace API.Controllers
                     var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
                     return BadRequest(ApiResponse<HostedCheckoutResponseDto>.ErrorResult("Validation failed.", errors));
                 }
+
+                var authError = await AuthorizeAndPrepareCheckoutAsync(dto);
+                if (authError != null) return authError;
 
                 var userAgent = Request.Headers["User-Agent"].ToString();
                 var ipAddress = GetClientIpAddress();

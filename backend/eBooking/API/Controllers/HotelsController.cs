@@ -26,6 +26,23 @@ namespace API.Controllers
             _mapper = mapper;
         }
 
+        // Pregled detalja hotela — bilježi STVARAN ponašajni signal (HotelViewHistory) koji
+        // recommender kasnije koristi (vidi HotelService.GetUserBasedHotelRecommendationsAsync,
+        // popularity/trending grana). Best-effort: ne blokira niti ruši odgovor korisniku.
+        [HttpGet("{id}")]
+        public override async Task<ActionResult<ApiResponse<HotelDto>>> GetById([FromRoute] int id)
+        {
+            var result = await base.GetById(id);
+
+            var currentUserId = GetCurrentUserId();
+            if (currentUserId.HasValue && result.Result is OkObjectResult ok && ok.Value is ApiResponse<HotelDto> resp && resp.Data != null)
+            {
+                await _hotelService.RecordHotelViewAsync(currentUserId.Value, id);
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// Get hotels by city
         /// </summary>
@@ -101,7 +118,8 @@ namespace API.Controllers
 
                 // Get all hotels and filter by star rating
                 var allHotels = await _hotelService.GetAllHotelsAsync();
-                var filteredHotels = allHotels.Where(h => h.AverageRating >= starRating && h.AverageRating < starRating + 1);
+                // Max limit — spriječi neograničen odgovor (vidi napomenu uz paginaciju).
+                var filteredHotels = allHotels.Where(h => h.AverageRating >= starRating && h.AverageRating < starRating + 1).Take(200);
 
                 return Ok(ApiResponse<IEnumerable<HotelDto>>.SuccessResult(
                     filteredHotels,
