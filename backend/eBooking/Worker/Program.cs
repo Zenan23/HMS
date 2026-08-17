@@ -64,6 +64,8 @@ builder.Services.AddScoped<Application.Queries.IServiceQueries, Application.Quer
 // --- Plaćanja (PaymentService je posredna zavisnost BookingService-a; Worker je ne poziva
 // direktno za checkout, ali DI mora znati sastaviti kompletan graf) ---
 builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection(PaymentOptions.SectionName));
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 builder.Services.AddHttpClient("PayPalApi", (sp, client) =>
 {
     var baseUrl = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PaymentOptions>>().Value.PayPal.BaseUrl;

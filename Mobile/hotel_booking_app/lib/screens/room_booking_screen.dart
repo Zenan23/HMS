@@ -14,8 +14,7 @@ class RoomBookingScreen extends StatefulWidget {
   final int roomId;
   final int maxOccupancy;
   const RoomBookingScreen(
-      {Key? key, required this.roomId, required this.maxOccupancy})
-      : super(key: key);
+      {super.key, required this.roomId, required this.maxOccupancy});
 
   @override
   State<RoomBookingScreen> createState() => _RoomBookingScreenState();
@@ -83,9 +82,22 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
     final checkOutStr = DateFormat('yyyy-MM-dd').format(_checkOut!);
     final servicesStr = _buildServicesQuery();
     try {
-      final available = await RoomsService().checkAvailability(
-          widget.roomId, checkInStr, checkOutStr,
-          services: servicesStr);
+      // Dostupnost, cijena i aktivni popusti/doplate su tri nezavisna HTTP poziva (nijedan ne
+      // zavisi od rezultata drugog) — paralelizovano preko Future.wait() umjesto tri sekvencijalna
+      // await-a, čime se skraćuje ukupno vrijeme čekanja na otprilike trajanje najsporijeg poziva.
+      final results = await Future.wait<dynamic>([
+        RoomsService().checkAvailability(
+            widget.roomId, checkInStr, checkOutStr,
+            services: servicesStr),
+        RoomsService().calculatePrice(
+            widget.roomId, checkInStr, checkOutStr, _guests,
+            services: servicesStr),
+        PriceAdjustmentsService().getActive(atDate: _checkIn, hotelId: _hotelId),
+      ]);
+      final available = results[0] as bool;
+      final price = results[1] as double;
+      final adjustments = results[2] as List<PriceAdjustment>;
+
       if (!available) {
         setState(() {
           _available = false;
@@ -94,11 +106,6 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
         });
         return;
       }
-      final price = await RoomsService().calculatePrice(
-          widget.roomId, checkInStr, checkOutStr, _guests,
-          services: servicesStr);
-      final adjustments = await PriceAdjustmentsService()
-          .getActive(atDate: _checkIn, hotelId: _hotelId);
       setState(() {
         _available = true;
         _activeAdjustments = adjustments;
@@ -106,7 +113,6 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
         _loading = false;
       });
     } catch (e) {
-      print(e);
       setState(() {
         _error = 'Greška pri provjeri dostupnosti ili cijene.';
         _loading = false;
@@ -173,7 +179,38 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
     } catch (_) {}
   }
 
-  void _goToPayment() async {
+  /// Kreiranje rezervacije je nepovratna akcija (zauzima termin, upisuje se u bazu) — traži
+  /// potvrdu prije slanja zahtjeva serveru.
+  Future<void> _confirmAndGoToPayment() async {
+    if (_price == null || _checkIn == null || _checkOut == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Potvrda rezervacije'),
+        content: Text(
+          'Rezervišete sobu od ${DateFormat('dd.MM.yyyy').format(_checkIn!)} do '
+          '${DateFormat('dd.MM.yyyy').format(_checkOut!)} za $_guests gostiju.\n'
+          'Ukupna cijena: ${_price!.toStringAsFixed(2)} EUR.\n\n'
+          'Nakon potvrde nastavljate na plaćanje.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Odustani'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Potvrdi'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await _goToPayment();
+    }
+  }
+
+  Future<void> _goToPayment() async {
     if (_price != null) {
       showDialog(
         context: context,
@@ -322,8 +359,9 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
                                       setState(() {
                                         final q =
                                             (_selectedServices[svc['id']] ?? 1);
-                                        if (q > 1)
+                                        if (q > 1) {
                                           _selectedServices[svc['id']] = q - 1;
+                                        }
                                         // Reset cijenu i dostupnost kada se promijeni količina
                                         _resetPriceAndAvailability();
                                       });
@@ -384,7 +422,7 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
                           ),
                         ),
                         ElevatedButton(
-                          onPressed: _goToPayment,
+                          onPressed: _confirmAndGoToPayment,
                           child: const Text('Nastavi'),
                         ),
                       ],

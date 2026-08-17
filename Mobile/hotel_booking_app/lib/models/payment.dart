@@ -162,15 +162,21 @@ enum PaymentStatusApi {
 /// Detalji plaćanja sa GET /Payments/{id} (za polling i potvrdu nakon checkout-a).
 class PaymentDetails {
   final int id;
+  final int? bookingId;
   final PaymentStatusApi? status;
   final PaymentMethod? paymentMethod;
   final String? checkoutId;
+  final num amount;
+  final num? refundAmount;
 
   PaymentDetails({
     required this.id,
+    this.bookingId,
     this.status,
     this.paymentMethod,
     this.checkoutId,
+    this.amount = 0,
+    this.refundAmount,
   });
 
   factory PaymentDetails.fromJson(Map<String, dynamic> json) {
@@ -183,13 +189,17 @@ class PaymentDetails {
     }
     return PaymentDetails(
       id: (json['id'] as num).toInt(),
+      bookingId: (json['bookingId'] as num?)?.toInt(),
       status: PaymentStatusApi.fromInt((json['status'] as num?)?.toInt()),
       paymentMethod: method,
       checkoutId: json['checkoutId'] as String?,
+      amount: (json['amount'] as num?) ?? 0,
+      refundAmount: json['refundAmount'] as num?,
     );
   }
 
   bool get isCompleted => status == PaymentStatusApi.completed;
   bool get isPendingConfirmation =>
       status == PaymentStatusApi.processing || status == PaymentStatusApi.pending;
+  bool get isRefundable => status == PaymentStatusApi.completed;
 }

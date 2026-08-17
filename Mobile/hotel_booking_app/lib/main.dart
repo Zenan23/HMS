@@ -4,14 +4,18 @@ import 'services/auth_service.dart';
 import 'services/hotels_service.dart';
 import 'services/stripe_platform.dart';
 import 'screens/login_screen.dart';
+import 'screens/forgot_password_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
-import 'screens/rooms_screen.dart';
 import 'screens/reservations_screen.dart';
 import 'screens/registration_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/support_tickets_screen.dart';
 import 'services/notifications_service.dart';
+
+/// Globalni navigator key — omogućava navigaciju (npr. redirect na login nakon HTTP 401) iz
+/// mjesta bez BuildContext-a, kao što je ApiService (statička klasa, centralni HTTP klijent).
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +35,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NotificationsService()),
       ],
       child: MaterialApp(
+        navigatorKey: navigatorKey,
         title: 'Hotel Booking',
         theme: ThemeData(
           useMaterial3: true,
@@ -84,10 +89,10 @@ class MyApp extends StatelessWidget {
         initialRoute: '/login',
         routes: {
           '/login': (context) => const LoginScreen(),
+          '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/register': (context) => const RegistrationScreen(),
           '/home': (context) => const HomeScreen(),
           '/profile': (context) => const ProfileScreen(),
-          '/rooms': (context) => const RoomsScreen(),
           '/reservations': (context) => const ReservationsScreen(),
           '/notifications': (context) => const NotificationsScreen(),
           '/support-tickets': (context) => const SupportTicketsScreen(),

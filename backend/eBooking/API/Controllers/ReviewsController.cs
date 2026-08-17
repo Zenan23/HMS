@@ -21,6 +21,27 @@ namespace API.Controllers
         }
 
         /// <summary>
+        /// Kreiranje recenzije — UserId se ne uzima iz tijela zahtjeva za obične korisnike (klijent
+        /// ga može lažirati i "ostaviti" recenziju u tuđe ime), nego se preskripuje iz JWT-a.
+        /// Employee/Admin mogu i dalje eksplicitno navesti UserId (npr. unos recenzije u ime gosta).
+        /// </summary>
+        [HttpPost]
+        public override async Task<ActionResult<ApiResponse<ReviewDto>>> Create([FromBody] CreateReviewDto createDto)
+        {
+            if (!IsElevated())
+            {
+                var callerId = GetCurrentUserId();
+                if (callerId == null)
+                {
+                    return Forbid();
+                }
+                createDto.UserId = callerId.Value;
+            }
+
+            return await base.Create(createDto);
+        }
+
+        /// <summary>
         /// Get reviews by hotel ID
         /// </summary>
         /// <param name="hotelId">Hotel ID</param>

@@ -309,7 +309,22 @@ namespace API.Controllers
                     return BadRequest(ApiResponse<bool>.ErrorResult("Validation failed.", errors));
                 }
 
-                var result = await _paymentService.RefundPaymentAsync(id, request.Amount, request.Reason, request.InitiatedByUserId);
+                var payment = await _paymentService.GetByIdAsync(id);
+                if (payment == null)
+                {
+                    return NotFound(ApiResponse<bool>.ErrorResult("Payment not found."));
+                }
+
+                // Samo vlasnik plaćanja (svoja rezervacija) ili Employee/Admin smiju zatražiti povrat —
+                // bez ovoga bilo koji prijavljeni korisnik mogao je refundirati tuđe plaćanje pogađanjem ID-a.
+                if (!IsSelfOrElevated(payment.UserId))
+                {
+                    return Forbid();
+                }
+
+                // InitiatedByUserId se ne uzima iz tijela zahtjeva (klijent ga može lažirati) — uvijek
+                // se upisuje stvarni pozivalac iz JWT-a radi tačnog audit traga.
+                var result = await _paymentService.RefundPaymentAsync(id, request.Amount, request.Reason, GetCurrentUserId());
 
                 if (!result)
                 {
@@ -348,7 +363,18 @@ namespace API.Controllers
                     return BadRequest(ApiResponse<bool>.ErrorResult("Validation failed.", errors));
                 }
 
-                var result = await _paymentService.CancelPaymentAsync(id, request.Reason, request.InitiatedByUserId);
+                var payment = await _paymentService.GetByIdAsync(id);
+                if (payment == null)
+                {
+                    return NotFound(ApiResponse<bool>.ErrorResult("Payment not found."));
+                }
+
+                if (!IsSelfOrElevated(payment.UserId))
+                {
+                    return Forbid();
+                }
+
+                var result = await _paymentService.CancelPaymentAsync(id, request.Reason, GetCurrentUserId());
 
                 if (!result)
                 {
@@ -407,6 +433,18 @@ namespace API.Controllers
                 if (bookingId <= 0)
                 {
                     return BadRequest(ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("Invalid booking ID."));
+                }
+
+                var booking = await _bookingService.GetByIdAsync(bookingId);
+                if (booking == null)
+                {
+                    return NotFound(ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("Booking not found."));
+                }
+
+                // Samo vlasnik rezervacije ili Employee/Admin smiju vidjeti plaćanja vezana za nju.
+                if (!IsSelfOrElevated(booking.UserId))
+                {
+                    return Forbid();
                 }
 
                 var payments = await _paymentService.GetByBookingIdAsync(bookingId);

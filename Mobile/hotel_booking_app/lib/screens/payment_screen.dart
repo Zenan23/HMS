@@ -173,6 +173,34 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
     );
   }
 
+  /// Plaćanje je nepovratna akcija (novac se skida sa kartice/PayPal naloga) — traži potvrdu
+  /// prije pokretanja stvarnog checkout flow-a.
+  Future<void> _confirmAndStartPayment() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Potvrda plaćanja'),
+        content: Text(
+          'Platit ćete ${widget.amount.toStringAsFixed(2)} ${widget.currency} za rezervaciju '
+          '#${widget.bookingId} preko $_providerLabel-a. Nastaviti?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Odustani'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Plati'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await _startPayment();
+    }
+  }
+
   Future<void> _startPayment() async {
     if (!(_formKey.currentState?.validate() ?? true)) return;
     _formKey.currentState?.save();
@@ -607,7 +635,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
                     const SizedBox(height: 24),
                     if (canPay)
                       FilledButton(
-                        onPressed: _startPayment,
+                        onPressed: _confirmAndStartPayment,
                         child: Text('Plati $_providerLabel'),
                       ),
                     if (inBrowser || _phase == _PaymentPhase.failed) ...[

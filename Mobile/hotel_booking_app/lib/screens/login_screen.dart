@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -72,6 +72,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     Navigator.pushReplacementNamed(context, '/register');
                   },
                   child: const Text('Nemate nalog? Registrujte se'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/forgot-password');
+                  },
+                  child: const Text('Zaboravili ste lozinku?'),
                 ),
               ],
             ),

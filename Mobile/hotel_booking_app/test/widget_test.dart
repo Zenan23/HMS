@@ -1,9 +1,7 @@
-// This is a basic Flutter widget test.
+// Osnovni smoke test za Hotel Booking mobilnu aplikaciju.
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Provjerava da se aplikacija uspješno pokrene i da se prikaže login ekran
+// (initialRoute '/login') sa očekivanim elementima, bez mrežnih poziva.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,20 +9,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hotel_booking_app/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  testWidgets('Aplikacija se pokreće i prikazuje login ekran', (WidgetTester tester) async {
+    // Build aplikacije i triggerovanje frame-a.
     await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Naslov aplikacije treba biti vidljiv na login ekranu.
+    expect(find.text('Hotel Booking'), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Forma za prijavu: polja za email/lozinku i dugme za prijavu.
+    expect(find.widgetWithText(ElevatedButton, 'Prijavi se'), findsOneWidget);
+    expect(find.byType(TextFormField), findsNWidgets(2));
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Linkovi ka registraciji i resetu lozinke moraju postojati.
+    expect(find.text('Nemate nalog? Registrujte se'), findsOneWidget);
+    expect(find.text('Zaboravili ste lozinku?'), findsOneWidget);
   });
 }

@@ -25,6 +25,7 @@ namespace Persistence.Data
         public DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents { get; set; }
         public DbSet<RevokedToken> RevokedTokens { get; set; }
         public DbSet<HotelViewHistory> HotelViewHistories { get; set; }
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
         public DbSet<RoomMaintenanceLog> RoomMaintenanceLogs { get; set; }
         public DbSet<PriceAdjustment> PriceAdjustments { get; set; }
         public DbSet<InventoryItem> InventoryItems { get; set; }
@@ -299,6 +300,19 @@ namespace Persistence.Data
                 // Brzo dohvatanje "koliko puta je hotel pregledan" za popularity signal.
                 entity.HasIndex(e => e.HotelId);
                 entity.HasIndex(e => new { e.UserId, e.HotelId });
+            });
+
+            modelBuilder.Entity<PasswordResetToken>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.CodeHash).IsRequired();
+                entity.Property(e => e.ExpiresAt).IsRequired();
+                entity.HasIndex(e => e.UserId);
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // PaymentAuditLog configuration

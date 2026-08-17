@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/payment.dart';
+import '../utils/api_response.dart';
 import 'api_service.dart';
 
 class PaymentsService {
@@ -69,6 +70,23 @@ class PaymentsService {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Sva plaćanja vezana za rezervaciju (koristi se za pronalazak plaćanja koje se refundira).
+  Future<List<PaymentDetails>> getPaymentsByBooking(int bookingId) async {
+    final response = await ApiService.get('/Payments/booking/$bookingId');
+    return ApiResponseParser.parseList(response, PaymentDetails.fromJson);
+  }
+
+  /// Zahtjev za povrat novca za dato plaćanje. `amount` je iznos koji se refundira (obično puni
+  /// iznos plaćanja), `reason` je obavezan razlog koji se šalje serveru i upisuje u audit log.
+  Future<bool> refundPayment(int paymentId, num amount, String reason) async {
+    final response = await ApiService.post('/Payments/$paymentId/refund', {
+      'amount': amount,
+      'reason': reason,
+    });
+    ApiResponseParser.ensureSuccess(response);
+    return true;
   }
 
   Future<PaymentDetails?> getPaymentDetails(int paymentId) async {
