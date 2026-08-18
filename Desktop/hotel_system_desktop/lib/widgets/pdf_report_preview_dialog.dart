@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -43,22 +42,23 @@ class PdfReportPreviewDialog extends StatelessWidget {
 
   Future<void> _export(BuildContext context) async {
     try {
-      final path = await FilePicker.platform.saveFile(
+      // file_picker v12+: saveFile() sada zahtijeva `bytes` i sam upisuje
+      // fajl na disk (vraća Uri, ne String path kao ranije) — ručni
+      // File(...).writeAsBytes() poziv više nije potreban.
+      final outputFile = await FilePicker.saveFile(
         dialogTitle: 'Sačuvaj PDF izvještaj',
         fileName: _safeFileName,
+        bytes: pdfBytes,
         type: FileType.custom,
         allowedExtensions: const ['pdf'],
       );
 
-      if (path == null) return;
-
-      final outPath = path.toLowerCase().endsWith('.pdf') ? path : '$path.pdf';
-      await File(outPath).writeAsBytes(pdfBytes, flush: true);
+      if (outputFile == null) return;
 
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('PDF sačuvan: $outPath'),
+          content: Text('PDF sačuvan: ${outputFile.toFilePath()}'),
           backgroundColor: Colors.green,
         ),
       );
@@ -112,6 +112,11 @@ class PdfReportPreviewDialog extends StatelessWidget {
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
                       child: const Text('Zatvori'),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      tooltip: 'Zatvori',
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
                 ),

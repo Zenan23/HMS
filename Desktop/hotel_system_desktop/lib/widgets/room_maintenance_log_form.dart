@@ -5,6 +5,7 @@ import '../models/room_maintenance_log.dart';
 import '../services/api_service.dart';
 import '../services/room_maintenance_log_service.dart';
 import 'date_picker_field.dart';
+import 'app_dialog_title.dart';
 
 class RoomMaintenanceLogFormDialog extends StatefulWidget {
   final RoomMaintenanceLog? log;
@@ -89,7 +90,7 @@ class _RoomMaintenanceLogFormDialogState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.log == null ? 'Novi zapis' : 'Uredi zapis'),
+      title: AppDialogTitle(widget.log == null ? 'Novi zapis' : 'Uredi zapis'),
       content: SizedBox(
         width: 420,
         child: SingleChildScrollView(

@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../models/city.dart';
@@ -7,6 +8,8 @@ import '../services/city_service.dart';
 import '../utils/api_response.dart';
 import '../utils/validation_utils.dart';
 import '../utils/image_utils.dart';
+import 'app_dialog_title.dart';
+import 'city_form.dart';
 
 class HotelFormDialog extends StatefulWidget {
   final Hotel? hotel;
@@ -29,6 +32,9 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
   late int starRating;
   String? _currentImageUrl;
   PlatformFile? _selectedImage;
+  // file_picker v12+: sadržaj fajla se čita async preko readAsBytes()
+  // (sinhroni PlatformFile.bytes getter je uklonjen), pa ga čuvamo posebno.
+  Uint8List? _selectedImageBytes;
   bool _removeExistingImage = false;
   bool isLoading = false;
   bool _loadingCities = true;
@@ -65,14 +71,38 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
     }
   }
 
-  Future<void> _pickImage() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      withData: true,
+  // Inline dodavanje grada bez napuštanja forme za hotel (RSII uputa: FK
+  // objekat treba biti moguće dodati kroz modal, ne napuštanjem toka).
+  Future<void> _addCityInline() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => const CityFormDialog(),
     );
-    if (result == null || result.files.isEmpty) return;
+    if (result == true) {
+      final cities = await _cityService.getAllForDropdown();
+      if (!mounted) return;
+      setState(() {
+        _cities = cities;
+        // Novododani grad je obično posljednji u listi po Id-u — odaberi ga.
+        if (cities.isNotEmpty) {
+          cityId = cities
+              .reduce((a, b) => a.id > b.id ? a : b)
+              .id;
+        }
+      });
+    }
+  }
+
+  Future<void> _pickImage() async {
+    // pickFile() (jednina) vraća Future<PlatformFile?> direktno — jednostavnije
+    // od pickFiles() (koje od v12 vraća Future<List<PlatformFile>>, ne
+    // FilePickerResult sa .files getterom kao ranije) jer nama treba samo 1 fajl.
+    final picked = await FilePicker.pickFile(type: FileType.image);
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
     setState(() {
-      _selectedImage = result.files.first;
+      _selectedImage = picked;
+      _selectedImageBytes = bytes;
       _removeExistingImage = false;
     });
   }
@@ -113,8 +143,9 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
 
       if (_removeExistingImage) {
         await ApiService().delete('/api/hotels/$hotelId/image');
-      } else if (_selectedImage != null) {
-        await ApiService().uploadHotelImage(hotelId, _selectedImage!);
+      } else if (_selectedImage != null && _selectedImageBytes != null) {
+        await ApiService().uploadHotelImage(
+            hotelId, _selectedImage!.name, _selectedImageBytes!);
       }
 
       if (mounted) Navigator.pop(context, true);
@@ -129,9 +160,9 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
   }
 
   Widget _buildImagePreview() {
-    if (_selectedImage != null && _selectedImage!.bytes != null) {
+    if (_selectedImageBytes != null) {
       return Image.memory(
-        _selectedImage!.bytes!,
+        _selectedImageBytes!,
         width: 160,
         height: 100,
         fit: BoxFit.cover,
@@ -159,7 +190,7 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.hotel == null ? 'Dodaj hotel' : 'Uredi hotel'),
+      title: AppDialogTitle(widget.hotel == null ? 'Dodaj hotel' : 'Uredi hotel'),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -183,17 +214,33 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
                       padding: EdgeInsets.symmetric(vertical: 8),
                       child: LinearProgressIndicator(),
                     )
-                  : DropdownButtonFormField<int>(
-                      value: _cities.any((c) => c.id == cityId) ? cityId : null,
-                      decoration: const InputDecoration(labelText: 'Grad'),
-                      items: _cities
-                          .map((c) => DropdownMenuItem<int>(
-                                value: c.id,
-                                child: Text(c.label),
-                              ))
-                          .toList(),
-                      onChanged: (v) => setState(() => cityId = v),
-                      validator: (v) => v == null ? 'Odaberite grad.' : null,
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            value: _cities.any((c) => c.id == cityId)
+                                ? cityId
+                                : null,
+                            decoration:
+                                const InputDecoration(labelText: 'Grad'),
+                            items: _cities
+                                .map((c) => DropdownMenuItem<int>(
+                                      value: c.id,
+                                      child: Text(c.label),
+                                    ))
+                                .toList(),
+                            onChanged: (v) => setState(() => cityId = v),
+                            validator: (v) =>
+                                v == null ? 'Odaberite grad.' : null,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline),
+                          tooltip: 'Dodaj novi grad',
+                          onPressed: isLoading ? null : _addCityInline,
+                        ),
+                      ],
                     ),
               TextFormField(
                 initialValue: phoneNumber,
@@ -238,6 +285,7 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
                           ? null
                           : () => setState(() {
                                 _selectedImage = null;
+                                _selectedImageBytes = null;
                                 _removeExistingImage = true;
                               }),
                       child: const Text('Ukloni sliku'),

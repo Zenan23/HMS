@@ -8,6 +8,7 @@ import '../models/service.dart';
 import '../utils/validation_utils.dart';
 import '../utils/date_format_utils.dart';
 import '../utils/display_labels.dart';
+import 'app_dialog_title.dart';
 
 class BookingFormDialog extends StatefulWidget {
   final Booking? booking;
@@ -168,7 +169,7 @@ class _BookingFormDialogState extends State<BookingFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(
+      title: AppDialogTitle(
           widget.booking == null ? 'Dodaj rezervaciju' : 'Uredi rezervaciju'),
       content: SingleChildScrollView(
         child: Form(

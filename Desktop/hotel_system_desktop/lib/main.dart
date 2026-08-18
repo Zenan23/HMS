@@ -16,6 +16,8 @@ import 'screens/inventory_transactions_screen.dart';
 import 'screens/inventory_items_screen.dart';
 import 'screens/loyalty_redemptions_screen.dart';
 import 'screens/cities_screen.dart';
+import 'screens/reference_data_screen.dart';
+import 'screens/reports_screen.dart';
 import 'utils/role_utils.dart';
 
 void main() {
@@ -75,6 +77,7 @@ class _MainTabsState extends State<MainTabs>
         Tab(text: 'Korisnici'),
         Tab(text: 'Podrška'),
         Tab(text: 'Cijene'),
+        Tab(text: 'Izvještaji'),
       ];
       _tabViews = const [
         DashboardScreen(),
@@ -82,11 +85,13 @@ class _MainTabsState extends State<MainTabs>
         UsersScreen(),
         SupportTicketsScreen(),
         PriceAdjustmentsScreen(),
+        ReportsScreen(),
       ];
     } else if (RoleUtils.isEmployee(auth.role)) {
       _tabs = const [
         Tab(text: 'Hoteli'),
         Tab(text: 'Gradovi'),
+        Tab(text: 'Šifarnici'),
         Tab(text: 'Rezervacije'),
         Tab(text: 'Sobe'),
         Tab(text: 'Servisi'),
@@ -96,10 +101,12 @@ class _MainTabsState extends State<MainTabs>
         Tab(text: 'Artikli skladišta'),
         Tab(text: 'Skladište'),
         Tab(text: 'Vjernost'),
+        Tab(text: 'Izvještaji'),
       ];
       _tabViews = const [
         HotelsScreen(),
         CitiesScreen(),
+        ReferenceDataScreen(),
         BookingsScreen(),
         RoomsScreen(),
         ServicesScreen(),
@@ -109,6 +116,7 @@ class _MainTabsState extends State<MainTabs>
         InventoryItemsScreen(),
         InventoryTransactionsScreen(),
         LoyaltyRedemptionsScreen(),
+        ReportsScreen(),
       ];
     } else {
       _tabs = const [Tab(text: 'Greška')];

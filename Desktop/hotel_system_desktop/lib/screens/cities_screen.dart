@@ -6,6 +6,7 @@ import '../services/country_service.dart';
 import '../utils/error_helper.dart';
 import '../widgets/city_form.dart';
 import '../widgets/country_form.dart';
+import '../widgets/app_dialog_title.dart';
 
 /// Upravljanje referentnim/šifarnik tabelama Grad/Država — dropdown izvori
 /// za Hotel.CityId (zamjena za slobodan tekstualni unos grada/države).
@@ -25,11 +26,30 @@ class _CitiesScreenState extends State<CitiesScreen>
   bool _isLoadingCities = false;
   List<Country> _countries = [];
   List<City> _cities = [];
+  final _searchController = TextEditingController();
+  String _searchTerm = '';
+
+  List<City> get _filteredCities {
+    final q = _searchTerm.trim().toLowerCase();
+    if (q.isEmpty) return _cities;
+    return _cities
+        .where((c) =>
+            c.name.toLowerCase().contains(q) ||
+            c.countryName.toLowerCase().contains(q))
+        .toList();
+  }
+
+  List<Country> get _filteredCountries {
+    final q = _searchTerm.trim().toLowerCase();
+    if (q.isEmpty) return _countries;
+    return _countries.where((c) => c.name.toLowerCase().contains(q)).toList();
+  }
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() => setState(() {}));
     _fetchCountries();
     _fetchCities();
   }
@@ -37,6 +57,7 @@ class _CitiesScreenState extends State<CitiesScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -85,7 +106,7 @@ class _CitiesScreenState extends State<CitiesScreen>
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
+        title: const AppDialogTitle('Potvrda brisanja'),
         content: Text(
             'Obrisati državu „${country.name}”? Nije moguće ako postoje gradovi vezani za nju.'),
         actions: [
@@ -111,7 +132,7 @@ class _CitiesScreenState extends State<CitiesScreen>
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
+        title: const AppDialogTitle('Potvrda brisanja'),
         content: Text(
             'Obrisati grad „${city.name}”? Nije moguće ako postoje hoteli u njemu.'),
         actions: [
@@ -148,25 +169,65 @@ class _CitiesScreenState extends State<CitiesScreen>
       ),
       floatingActionButton: AnimatedBuilder(
         animation: _tabController,
-        builder: (context, _) => FloatingActionButton(
-          onPressed: () => _tabController.index == 0
-              ? _openCityForm()
-              : _openCountryForm(),
-          tooltip: _tabController.index == 0 ? 'Novi grad' : 'Nova država',
-          child: const Icon(Icons.add),
-        ),
+        builder: (context, _) {
+          // Grad mora biti vezan za državu (obavezan FK) — dok ne postoji
+          // nijedna država, forma za dodavanje grada se ne smije otvoriti.
+          final blockedByMissingCountry =
+              _tabController.index == 0 && !_isLoadingCountries && _countries.isEmpty;
+          return FloatingActionButton(
+            onPressed: blockedByMissingCountry
+                ? null
+                : () => _tabController.index == 0
+                    ? _openCityForm()
+                    : _openCountryForm(),
+            tooltip: blockedByMissingCountry
+                ? 'Prvo dodajte barem jednu državu'
+                : (_tabController.index == 0 ? 'Novi grad' : 'Nova država'),
+            child: const Icon(Icons.add),
+          );
+        },
       ),
-      body: TabBarView(
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: _tabController.index == 0
+                    ? 'Pretraga gradova (naziv ili država)'
+                    : 'Pretraga država',
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(),
+                suffixIcon: _searchTerm.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        tooltip: 'Očisti pretragu',
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchTerm = '');
+                        },
+                      )
+                    : null,
+              ),
+              onChanged: (v) => setState(() => _searchTerm = v),
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
         controller: _tabController,
         children: [
           _isLoadingCities
               ? const Center(child: CircularProgressIndicator())
-              : _cities.isEmpty
-                  ? const Center(child: Text('Nema gradova.'))
+              : _filteredCities.isEmpty
+                  ? Center(
+                      child: Text(_searchTerm.isNotEmpty
+                          ? 'Nema rezultata za pretragu.'
+                          : 'Nema gradova.'))
                   : ListView.builder(
-                      itemCount: _cities.length,
+                      itemCount: _filteredCities.length,
                       itemBuilder: (context, i) {
-                        final city = _cities[i];
+                        final city = _filteredCities[i];
                         return Card(
                           margin: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 4),
@@ -195,12 +256,15 @@ class _CitiesScreenState extends State<CitiesScreen>
                     ),
           _isLoadingCountries
               ? const Center(child: CircularProgressIndicator())
-              : _countries.isEmpty
-                  ? const Center(child: Text('Nema država.'))
+              : _filteredCountries.isEmpty
+                  ? Center(
+                      child: Text(_searchTerm.isNotEmpty
+                          ? 'Nema rezultata za pretragu.'
+                          : 'Nema država.'))
                   : ListView.builder(
-                      itemCount: _countries.length,
+                      itemCount: _filteredCountries.length,
                       itemBuilder: (context, i) {
-                        final country = _countries[i];
+                        final country = _filteredCountries[i];
                         return Card(
                           margin: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 4),
@@ -226,6 +290,9 @@ class _CitiesScreenState extends State<CitiesScreen>
                         );
                       },
                     ),
+        ],
+            ),
+          ),
         ],
       ),
     );

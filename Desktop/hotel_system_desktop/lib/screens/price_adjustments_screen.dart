@@ -5,6 +5,7 @@ import '../services/price_adjustment_service.dart';
 import '../utils/date_format_utils.dart';
 import '../utils/error_helper.dart';
 import '../widgets/price_adjustment_form.dart';
+import '../widgets/app_dialog_title.dart';
 
 class PriceAdjustmentsScreen extends StatefulWidget {
   const PriceAdjustmentsScreen({super.key});
@@ -94,7 +95,7 @@ class _PriceAdjustmentsScreenState extends State<PriceAdjustmentsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
+        title: const AppDialogTitle('Potvrda brisanja'),
         content: Text('Obrisati pravilo „${a.name}”?'),
         actions: [
           TextButton(

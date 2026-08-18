@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/country.dart';
 import '../services/country_service.dart';
+import 'app_dialog_title.dart';
 
 class CountryFormDialog extends StatefulWidget {
   final Country? country;
@@ -46,7 +47,7 @@ class _CountryFormDialogState extends State<CountryFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.country == null ? 'Nova država' : 'Uredi državu'),
+      title: AppDialogTitle(widget.country == null ? 'Nova država' : 'Uredi državu'),
       content: Form(
         key: _formKey,
         child: TextFormField(

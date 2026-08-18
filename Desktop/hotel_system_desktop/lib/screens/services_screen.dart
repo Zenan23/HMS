@@ -4,6 +4,7 @@ import '../models/service.dart';
 import '../services/api_service.dart';
 import '../services/pdf_report_service.dart';
 import '../widgets/service_form.dart';
+import '../widgets/app_dialog_title.dart';
 
 class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
@@ -21,10 +22,30 @@ class _ServicesScreenState extends State<ServicesScreen> {
   String? _selectedAvailability;
   bool _isSearchMode = false;
 
+  // Servis mora biti vezan za hotel (obavezan FK) — dok ne postoji nijedan
+  // hotel u bazi, forma za dodavanje servisa se ne smije moći otvoriti.
+  bool _checkingHotels = true;
+  bool _hasHotels = false;
+
   @override
   void initState() {
     super.initState();
     _fetchServices(_page);
+    _checkHotelsExist();
+  }
+
+  Future<void> _checkHotelsExist() async {
+    try {
+      final response =
+          await ApiService().get('/api/Hotels?pageNumber=1&pageSize=1');
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      final data = decoded['data'] ?? {};
+      final int totalCount = data['totalCount'] ?? 0;
+      if (mounted) setState(() => _hasHotels = totalCount > 0);
+    } catch (_) {
+      if (mounted) setState(() => _hasHotels = true);
+    }
+    if (mounted) setState(() => _checkingHotels = false);
   }
 
   Future<void> _fetchServices(int page) async {
@@ -202,10 +223,17 @@ class _ServicesScreenState extends State<ServicesScreen> {
                       onPressed: _exportServicesPdf,
                     ),
                     const SizedBox(width: 8),
-                    ElevatedButton.icon(
+                    Tooltip(
+                      message: _checkingHotels || _hasHotels
+                          ? ''
+                          : 'Prvo dodajte barem jedan hotel — servis mora biti vezan za hotel.',
+                      child: ElevatedButton.icon(
                       icon: const Icon(Icons.add),
                       label: const Text('Dodaj servis'),
-                      onPressed: _openServiceForm,
+                      onPressed: !_checkingHotels && _hasHotels
+                          ? _openServiceForm
+                          : null,
+                      ),
                     ),
                   ],
                 ),
@@ -296,7 +324,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                                   final confirm = await showDialog<bool>(
                                     context: context,
                                     builder: (context) => AlertDialog(
-                                      title: const Text('Potvrda brisanja'),
+                                      title: const AppDialogTitle('Potvrda brisanja'),
                                       content:
                                           Text('Obrisati servis ${s.name}?'),
                                       actions: [

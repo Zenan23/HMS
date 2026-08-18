@@ -8,6 +8,7 @@ import '../services/pdf_report_service.dart';
 import '../widgets/hotel_form.dart';
 import '../utils/api_response.dart';
 import '../utils/image_utils.dart';
+import '../widgets/app_dialog_title.dart';
 
 class HotelsScreen extends StatefulWidget {
   const HotelsScreen({super.key});
@@ -25,6 +26,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
   List<City> _cities = [];
   int? _selectedCityId;
   bool _isSearchMode = false;
+  bool _loadingCities = true;
 
   @override
   void initState() {
@@ -40,6 +42,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
     } catch (_) {
       // ignore, dropdown ostaje prazan sa opcijom "Svi gradovi"
     }
+    if (mounted) setState(() => _loadingCities = false);
   }
 
   Future<void> _fetchHotels(int page) async {
@@ -214,10 +217,17 @@ class _HotelsScreenState extends State<HotelsScreen> {
                       onPressed: _exportHotelsPdf,
                     ),
                     const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.add),
-                      label: const Text('Dodaj hotel'),
-                      onPressed: () => _openHotelForm(),
+                    Tooltip(
+                      message: !_loadingCities && _cities.isEmpty
+                          ? 'Prvo dodajte barem jedan grad — hotel mora biti vezan za grad.'
+                          : '',
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.add),
+                        label: const Text('Dodaj hotel'),
+                        onPressed: _loadingCities || _cities.isEmpty
+                            ? null
+                            : () => _openHotelForm(),
+                      ),
                     ),
                   ],
                 ),
@@ -308,7 +318,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
                                     final confirm = await showDialog<bool>(
                                       context: context,
                                       builder: (context) => AlertDialog(
-                                        title: const Text('Potvrda brisanja'),
+                                        title: const AppDialogTitle('Potvrda brisanja'),
                                         content: const Text(
                                             'Da li ste sigurni da želite obrisati hotel?'),
                                         actions: [

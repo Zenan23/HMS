@@ -8,6 +8,7 @@ import '../services/room_maintenance_log_service.dart';
 import '../utils/date_format_utils.dart';
 import '../utils/error_helper.dart';
 import '../widgets/room_maintenance_log_form.dart';
+import '../widgets/app_dialog_title.dart';
 
 class RoomMaintenanceLogsScreen extends StatefulWidget {
   const RoomMaintenanceLogsScreen({super.key});
@@ -120,7 +121,7 @@ class _RoomMaintenanceLogsScreenState extends State<RoomMaintenanceLogsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
+        title: const AppDialogTitle('Potvrda brisanja'),
         content: Text('Obrisati zapis za sobu ${log.roomDisplayLabel}?'),
         actions: [
           TextButton(

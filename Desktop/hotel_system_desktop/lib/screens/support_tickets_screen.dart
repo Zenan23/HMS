@@ -4,6 +4,7 @@ import '../services/pdf_report_service.dart';
 import '../services/support_ticket_service.dart';
 import '../utils/error_helper.dart';
 import '../widgets/support_ticket_form.dart';
+import '../widgets/app_dialog_title.dart';
 
 class SupportTicketsScreen extends StatefulWidget {
   const SupportTicketsScreen({super.key});
@@ -89,9 +90,25 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     if (result == true) _fetchTickets();
   }
 
-  Future<void> _deleteTicket(int id) async {
+  Future<void> _deleteTicket(SupportTicket ticket) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const AppDialogTitle('Potvrda brisanja'),
+        content: Text('Obrisati tiket „${ticket.subject}” (${ticket.userName})?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Ne')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Da, obriši')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
     try {
-      await _service.delete(id);
+      await _service.delete(ticket.id);
       _fetchTickets();
     } catch (e) {
       if (mounted) showApiError(context, e);
@@ -190,7 +207,8 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                                     ),
                                     IconButton(
                                       icon: const Icon(Icons.delete),
-                                      onPressed: () => _deleteTicket(t.id),
+                                      tooltip: 'Obriši',
+                                      onPressed: () => _deleteTicket(t),
                                     ),
                                   ],
                                 ),

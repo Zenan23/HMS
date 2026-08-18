@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:file_picker/file_picker.dart';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/app_config.dart';
@@ -56,23 +56,21 @@ class ApiService {
     return response;
   }
 
-  Future<void> uploadHotelImage(int hotelId, PlatformFile file) async {
+  // file_picker v12+ vraća sadržaj fajla samo preko async
+  // PlatformFile.readAsBytes() (sinhroni `.bytes` getter je uklonjen), pa
+  // pozivalac (hotel_form.dart) prvo pročita bajtove pa ih proslijedi ovdje.
+  Future<void> uploadHotelImage(
+      int hotelId, String fileName, Uint8List bytes) async {
     final uri = Uri.parse('$baseUrl/api/hotels/$hotelId/image');
     final request = http.MultipartRequest('POST', uri);
     final token = await getToken();
     if (token != null) request.headers['Authorization'] = 'Bearer $token';
 
-    if (file.bytes != null) {
-      request.files.add(http.MultipartFile.fromBytes(
-        'file',
-        file.bytes!,
-        filename: file.name,
-      ));
-    } else if (file.path != null) {
-      request.files.add(await http.MultipartFile.fromPath('file', file.path!, filename: file.name));
-    } else {
-      throw ApiException('Odabrana slika nije dostupna.');
-    }
+    request.files.add(http.MultipartFile.fromBytes(
+      'file',
+      bytes,
+      filename: fileName,
+    ));
 
     final streamed = await request.send();
     final response = await http.Response.fromStream(streamed);

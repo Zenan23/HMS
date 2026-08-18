@@ -3,6 +3,7 @@ import '../models/inventory_item.dart';
 import '../services/inventory_item_service.dart';
 import '../utils/error_helper.dart';
 import '../widgets/inventory_item_form.dart';
+import '../widgets/app_dialog_title.dart';
 
 class InventoryItemsScreen extends StatefulWidget {
   const InventoryItemsScreen({super.key});
@@ -18,6 +19,8 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
   int _totalPages = 1;
   bool _isLoading = false;
   List<InventoryItem> _items = [];
+  final _searchController = TextEditingController();
+  String _searchTerm = '';
 
   @override
   void initState() {
@@ -25,15 +28,41 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
     _fetchItems();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  bool get _isSearching => _searchTerm.trim().isNotEmpty;
+
   Future<void> _fetchItems() async {
     setState(() => _isLoading = true);
     try {
-      final result =
-          await _service.getPaged(pageNumber: _page, pageSize: _pageSize);
-      setState(() {
-        _items = result.items;
-        _totalPages = result.totalPages < 1 ? 1 : result.totalPages;
-      });
+      if (_isSearching) {
+        // Pretraga mora obuhvatiti cijeli skladišni katalog, ne samo
+        // trenutno prikazanu stranicu — dohvati veću listu i filtriraj
+        // po nazivu/kategoriji/jedinici.
+        final all = await _service.getAllForDropdown();
+        final q = _searchTerm.trim().toLowerCase();
+        final filtered = all
+            .where((it) =>
+                it.name.toLowerCase().contains(q) ||
+                it.category.toLowerCase().contains(q) ||
+                it.unit.toLowerCase().contains(q))
+            .toList();
+        setState(() {
+          _items = filtered;
+          _totalPages = 1;
+        });
+      } else {
+        final result =
+            await _service.getPaged(pageNumber: _page, pageSize: _pageSize);
+        setState(() {
+          _items = result.items;
+          _totalPages = result.totalPages < 1 ? 1 : result.totalPages;
+        });
+      }
     } catch (e) {
       if (mounted) showApiError(context, e);
     }
@@ -52,7 +81,7 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
+        title: const AppDialogTitle('Potvrda brisanja'),
         content: Text(
             'Obrisati artikal „${item.name}”? Ova akcija se ne može poništiti.'),
         actions: [
@@ -88,27 +117,60 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
         child: Column(
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: _page > 1 && !_isLoading
-                      ? () {
-                          setState(() => _page--);
-                          _fetchItems();
-                        }
-                      : null,
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      labelText: 'Pretraga (naziv, kategorija, jedinica)',
+                      prefixIcon: const Icon(Icons.search),
+                      border: const OutlineInputBorder(),
+                      suffixIcon: _isSearching
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              tooltip: 'Očisti pretragu',
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _searchTerm = '';
+                                  _page = 1;
+                                });
+                                _fetchItems();
+                              },
+                            )
+                          : null,
+                    ),
+                    onChanged: (v) {
+                      setState(() {
+                        _searchTerm = v;
+                        _page = 1;
+                      });
+                      _fetchItems();
+                    },
+                  ),
                 ),
-                Text('Strana $_page / $_totalPages'),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: _page < _totalPages && !_isLoading
-                      ? () {
-                          setState(() => _page++);
-                          _fetchItems();
-                        }
-                      : null,
-                ),
+                if (!_isSearching) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: _page > 1 && !_isLoading
+                        ? () {
+                            setState(() => _page--);
+                            _fetchItems();
+                          }
+                        : null,
+                  ),
+                  Text('Strana $_page / $_totalPages'),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed: _page < _totalPages && !_isLoading
+                        ? () {
+                            setState(() => _page++);
+                            _fetchItems();
+                          }
+                        : null,
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 8),
@@ -116,7 +178,10 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _items.isEmpty
-                      ? const Center(child: Text('Nema artikala skladišta.'))
+                      ? Center(
+                          child: Text(_isSearching
+                              ? 'Nema rezultata za pretragu.'
+                              : 'Nema artikala skladišta.'))
                       : ListView.builder(
                           itemCount: _items.length,
                           itemBuilder: (context, i) {

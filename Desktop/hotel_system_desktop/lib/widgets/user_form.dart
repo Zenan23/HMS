@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../utils/validation_utils.dart';
 import '../utils/display_labels.dart';
 import 'dart:convert';
+import 'app_dialog_title.dart';
 
 class UserFormDialog extends StatefulWidget {
   final Employee? user;
@@ -79,8 +80,8 @@ class _UserFormDialogState extends State<UserFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title:
-          Text(widget.user == null ? 'Dodaj uposlenika' : 'Uredi uposlenika'),
+      title: AppDialogTitle(
+          widget.user == null ? 'Dodaj uposlenika' : 'Uredi uposlenika'),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
