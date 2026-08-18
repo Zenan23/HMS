@@ -35,6 +35,7 @@ namespace Persistence.Data
         public DbSet<SupportTicket> SupportTickets { get; set; }
         public DbSet<Country> Countries { get; set; }
         public DbSet<City> Cities { get; set; }
+        public DbSet<ServiceCategory> ServiceCategories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -58,6 +59,14 @@ namespace Persistence.Data
                     .WithMany(co => co.Cities)
                     .HasForeignKey(c => c.CountryId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ServiceCategory configuration (referentna/šifarnik tabela)
+            modelBuilder.Entity<ServiceCategory>(entity =>
+            {
+                entity.HasKey(sc => sc.Id);
+                entity.Property(sc => sc.Name).IsRequired().HasMaxLength(50);
+                entity.HasIndex(sc => sc.Name).IsUnique();
             });
 
             // Hotel configuration
@@ -154,13 +163,20 @@ namespace Persistence.Data
             {
                 entity.HasKey(s => s.Id);
                 entity.Property(s => s.Name).IsRequired().HasMaxLength(100);
-                entity.Property(s => s.Category).IsRequired().HasMaxLength(50);
                 entity.Property(s => s.Price).HasColumnType("decimal(18,2)");
 
                 entity.HasOne(s => s.Hotel)
                     .WithMany()
                     .HasForeignKey(s => s.HotelId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                // FK umjesto slobodnog string polja za kategoriju — Restrict jer brisanje
+                // kategorije koja se koristi ne smije tiho obrisati/osiročiti postojeće servise
+                // (isti obrazac kao Hotel -> City).
+                entity.HasOne(s => s.ServiceCategory)
+                    .WithMany(sc => sc.Services)
+                    .HasForeignKey(s => s.ServiceCategoryId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Review configuration
@@ -471,6 +487,7 @@ namespace Persistence.Data
             modelBuilder.Entity<SupportTicket>().HasQueryFilter(st => !st.IsDeleted);
             modelBuilder.Entity<Country>().HasQueryFilter(c => !c.IsDeleted);
             modelBuilder.Entity<City>().HasQueryFilter(c => !c.IsDeleted);
+            modelBuilder.Entity<ServiceCategory>().HasQueryFilter(sc => !sc.IsDeleted);
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

@@ -135,6 +135,7 @@ builder.Services.AddScoped<ILoyaltyPointsEarnedService, LoyaltyPointsEarnedServi
 builder.Services.AddScoped<ISupportTicketService, SupportTicketService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<ICityService, CityService>();
+builder.Services.AddScoped<IServiceCategoryService, ServiceCategoryService>();
 
 // Queries (read-only)
 builder.Services.AddScoped<Application.Queries.IBookingQueries, Application.Queries.BookingQueries>();

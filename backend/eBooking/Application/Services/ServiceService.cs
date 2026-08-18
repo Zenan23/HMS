@@ -38,7 +38,9 @@ namespace Application.Services
             {
                 _logger.LogInformation("Getting services for category: {Category}", category);
                 var entities = await _repository.GetAllAsync();
-                var filteredEntities = entities.Where(s => s.Category.Equals(category, StringComparison.OrdinalIgnoreCase) && !s.IsDeleted);
+                var filteredEntities = entities.Where(s => s.ServiceCategory != null
+                    && s.ServiceCategory.Name.Equals(category, StringComparison.OrdinalIgnoreCase)
+                    && !s.IsDeleted);
                 return _mapper.Map<IEnumerable<ServiceDto>>(filteredEntities);
             }
             catch (Exception ex)
