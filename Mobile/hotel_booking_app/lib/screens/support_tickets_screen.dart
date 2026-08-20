@@ -155,14 +155,68 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                         itemCount: _tickets.length,
                         itemBuilder: (context, i) {
                           final t = _tickets[i];
+                          final hasResponse =
+                              (t.adminResponse ?? '').trim().isNotEmpty;
                           return Card(
                             margin: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 8),
-                            child: ListTile(
-                              title: Text(t.subject),
-                              subtitle: Text(
-                                  '${t.messageBody}\nStatus: ${_statusLabel(t.status)}'),
-                              isThreeLine: true,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(t.subject,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 4),
+                                  Text(t.messageBody),
+                                  const SizedBox(height: 4),
+                                  Text('Status: ${_statusLabel(t.status)}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall),
+                                  if (hasResponse) ...[
+                                    const SizedBox(height: 10),
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primaryContainer
+                                            .withOpacity(0.4),
+                                        borderRadius:
+                                            BorderRadius.circular(8),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Odgovor${t.respondedByUserName != null ? ' — ${t.respondedByUserName}' : ''}',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 12),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(t.adminResponse!.trim()),
+                                        ],
+                                      ),
+                                    ),
+                                  ] else ...[
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Čeka se odgovor podrške.',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          fontStyle: FontStyle.italic,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .outline),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ),
                           );
                         },

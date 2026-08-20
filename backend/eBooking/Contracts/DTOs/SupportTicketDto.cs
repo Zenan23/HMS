@@ -11,6 +11,9 @@ namespace Contracts.DTOs
         public string MessageBody { get; set; } = string.Empty;
         public SupportTicketStatus Status { get; set; }
         public SupportTicketPriority Priority { get; set; }
+        public string? AdminResponse { get; set; }
+        public DateTime? RespondedAt { get; set; }
+        public string? RespondedByUserName { get; set; }
     }
 
     public class CreateSupportTicketDto : CreateBaseEntityDto
@@ -48,5 +51,10 @@ namespace Contracts.DTOs
 
         [Required(ErrorMessage = "Priority is required")]
         public SupportTicketPriority Priority { get; set; }
+
+        // Odgovor osoblja — opciono, samo Employee/Admin smiju ga stvarno postaviti
+        // (provjera i stamp RespondedAt/RespondedByUserId rade se u SupportTicketsController.Update).
+        [StringLength(5000, ErrorMessage = "Response cannot exceed 5000 characters")]
+        public string? AdminResponse { get; set; }
     }
 }

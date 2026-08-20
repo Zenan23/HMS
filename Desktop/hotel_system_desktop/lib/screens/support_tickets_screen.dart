@@ -173,11 +173,13 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                           itemCount: _tickets.length,
                           itemBuilder: (context, i) {
                             final t = _tickets[i];
+                            final hasResponse = (t.adminResponse ?? '').trim().isNotEmpty;
                             return Card(
                               child: ListTile(
                                 title: Text('${t.subject} (${t.userName})'),
                                 subtitle: Text(
-                                    '${t.messageBody}\nStatus: ${supportTicketStatusLabel(t.status)}'),
+                                    '${t.messageBody}\nStatus: ${supportTicketStatusLabel(t.status)}'
+                                    '${hasResponse ? '\nOdgovoreno (${t.respondedByUserName ?? '-'})' : '\nBez odgovora'}'),
                                 isThreeLine: true,
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,

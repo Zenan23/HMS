@@ -107,22 +107,29 @@ namespace Persistence.Data
             if (!await context.Users.AnyAsync())
             {
                 var passwordService = services.GetService<IPasswordService>();
-                var admin = new User { Username = "admin", Email = "admin@demo.com", FirstName = "Admin", LastName = "User", Role = UserRole.Admin, IsActive = true };
-                var demo = new User { Username = "demo", Email = "demo@demo.com", FirstName = "Demo", LastName = "User", Role = UserRole.Guest, IsActive = true };
-                var ana = new User { Username = "ana", Email = "ana@demo.com", FirstName = "Ana", LastName = "Anić", Role = UserRole.Guest, IsActive = true };
-                var marko = new User { Username = "marko", Email = "marko@demo.com", FirstName = "Marko", LastName = "Marković", Role = UserRole.Guest, IsActive = true };
-                var ivan = new User { Username = "ivan", Email = "ivan@demo.com", FirstName = "Ivan", LastName = "Ivić", Role = UserRole.Guest, IsActive = true };
-                var leo = new User { Username = "leo", Email = "leo@demo.com", FirstName = "Leo", LastName = "Leić", Role = UserRole.Employee, IsActive = true };
+                var admin = new User { Username = "admin", Email = "admin@demo.com", FirstName = "Admin", LastName = "User", PhoneNumber = "+387 61 100 100", Role = UserRole.Admin, IsActive = true };
+                var demo = new User { Username = "demo", Email = "demo@demo.com", FirstName = "Demo", LastName = "User", PhoneNumber = "+387 61 200 200", Role = UserRole.Guest, IsActive = true };
+                var ana = new User { Username = "ana", Email = "ana@demo.com", FirstName = "Ana", LastName = "Anić", PhoneNumber = "+385 91 234 567", Role = UserRole.Guest, IsActive = true };
+                var marko = new User { Username = "marko", Email = "marko@demo.com", FirstName = "Marko", LastName = "Marković", PhoneNumber = "+385 98 345 678", Role = UserRole.Guest, IsActive = true };
+                var ivan = new User { Username = "ivan", Email = "ivan@demo.com", FirstName = "Ivan", LastName = "Ivić", PhoneNumber = "+387 62 456 789", Role = UserRole.Guest, IsActive = true };
+                var leo = new User { Username = "leo", Email = "leo@demo.com", FirstName = "Leo", LastName = "Leić", PhoneNumber = "+387 63 567 890", Role = UserRole.Employee, IsActive = true };
 
-                if (passwordService != null)
+                // IPasswordService mora biti registrovan (API/Worker Program.cs) — bez njega bi seed
+                // korisnici dobili prazan PasswordHash (validno za NOT NULL kolonu, ali se ne mogu
+                // prijaviti, bez ikakve greške). Radije odmah prekinuti seed nego tiho napraviti
+                // naloge koje niko ne može koristiti.
+                if (passwordService == null)
                 {
-                    admin.PasswordHash = passwordService.HashPassword("Admin123!");
-                    demo.PasswordHash = passwordService.HashPassword("Demo123!");
-                    ana.PasswordHash = passwordService.HashPassword("Ana123!");
-                    marko.PasswordHash = passwordService.HashPassword("Marko123!");
-                    ivan.PasswordHash = passwordService.HashPassword("Ivan123!");
-                    leo.PasswordHash = passwordService.HashPassword("Leo123!");
+                    throw new InvalidOperationException(
+                        "SeedData: IPasswordService nije registrovan u DI kontejneru — ne mogu seed-ovati korisnike sa validnim PasswordHash-om.");
                 }
+
+                admin.PasswordHash = passwordService.HashPassword("Admin123!");
+                demo.PasswordHash = passwordService.HashPassword("Demo123!");
+                ana.PasswordHash = passwordService.HashPassword("Ana123!");
+                marko.PasswordHash = passwordService.HashPassword("Marko123!");
+                ivan.PasswordHash = passwordService.HashPassword("Ivan123!");
+                leo.PasswordHash = passwordService.HashPassword("Leo123!");
                 context.Users.AddRange(admin, demo, ana, marko, ivan, leo);
                 await context.SaveChangesAsync();
 
@@ -401,10 +408,22 @@ namespace Persistence.Data
 
             var demo = await context.Users.FirstOrDefaultAsync(u => u.Email == "demo@demo.com");
             var ana = await context.Users.FirstOrDefaultAsync(u => u.Email == "ana@demo.com");
+            var marko = await context.Users.FirstOrDefaultAsync(u => u.Email == "marko@demo.com");
+            var ivan = await context.Users.FirstOrDefaultAsync(u => u.Email == "ivan@demo.com");
             var leo = await context.Users.FirstOrDefaultAsync(u => u.Email == "leo@demo.com");
             var firstRoom = await context.Rooms.FirstOrDefaultAsync();
+            var allBookingsForOps = await context.Bookings.OrderBy(b => b.Id).ToListAsync();
             var demoBooking = demo != null
-                ? await context.Bookings.FirstOrDefaultAsync(b => b.UserId == demo.Id)
+                ? allBookingsForOps.FirstOrDefault(b => b.UserId == demo.Id)
+                : null;
+            var anaBooking = ana != null
+                ? allBookingsForOps.FirstOrDefault(b => b.UserId == ana.Id)
+                : null;
+            var markoBookings = marko != null
+                ? allBookingsForOps.Where(b => b.UserId == marko.Id).ToList()
+                : new List<Booking>();
+            var ivanBooking = ivan != null
+                ? allBookingsForOps.FirstOrDefault(b => b.UserId == ivan.Id)
                 : null;
 
             if (!await context.SupportTickets.AnyAsync() && demo != null && ana != null)
@@ -417,14 +436,18 @@ namespace Persistence.Data
                         MessageBody = "Molim potvrdu kasnog dolaska nakon 22h.",
                         Status = SupportTicketStatus.Open,
                         Priority = SupportTicketPriority.Medium
+                        // Namjerno bez odgovora — demonstrira i "čeka se odgovor" stanje u UI-ju.
                     },
                     new SupportTicket
                     {
                         UserId = ana.Id,
                         Subject = "Pitanje o parkingu",
                         MessageBody = "Da li hotel nudi besplatan parking?",
-                        Status = SupportTicketStatus.InProgress,
-                        Priority = SupportTicketPriority.Low
+                        Status = SupportTicketStatus.Closed,
+                        Priority = SupportTicketPriority.Low,
+                        AdminResponse = "Da, parking je besplatan za sve goste hotela, nalazi se odmah pored ulaza.",
+                        RespondedAt = today.AddDays(-1),
+                        RespondedByUserId = leo?.Id
                     });
                 await context.SaveChangesAsync();
             }
@@ -494,6 +517,10 @@ namespace Persistence.Data
                 await context.SaveChangesAsync();
             }
 
+            // Napomena: Demo zarađuje ~25 bodova od svog jedinog Completed plaćanja (255 EUR seed
+            // rezervacija × stopa 1 bod/10 EUR — vidi LoyaltyPointsEarned seed niže). PointsUsed
+            // ovdje je namjerno mali broj (manji od očekivanog balansa) da demo balans ostane
+            // pozitivan i realan, umjesto da bude veći od svega što je korisnik ikad zaradio.
             if (!await context.LoyaltyPointsRedemptions.AnyAsync() && demo != null && demoBooking != null)
             {
                 context.LoyaltyPointsRedemptions.Add(
@@ -501,10 +528,168 @@ namespace Persistence.Data
                     {
                         UserId = demo.Id,
                         BookingId = demoBooking.Id,
-                        PointsUsed = 500,
+                        PointsUsed = 15,
                         RedeemedAt = today.AddDays(-18),
-                        EquivalentValueAmount = 25m
+                        EquivalentValueAmount = 0.75m
                     });
+                await context.SaveChangesAsync();
+            }
+
+            // Plaćanja + audit log po plaćanju. Zadnja (Ivan/Mostar, Confirmed) namjerno ostaje
+            // Pending da postoji stvaran primjer "neplaćene" rezervacije za mobile "Plati ponovo" tok.
+            if (!await context.Payments.AnyAsync())
+            {
+                var paymentSeeds = new List<(Booking Booking, User User, PaymentStatus Status, string Suffix)>();
+                if (demo != null && demoBooking != null) paymentSeeds.Add((demoBooking, demo, PaymentStatus.Completed, "demo"));
+                if (ana != null && anaBooking != null) paymentSeeds.Add((anaBooking, ana, PaymentStatus.Completed, "ana"));
+                if (marko != null && markoBookings.Count > 0) paymentSeeds.Add((markoBookings[0], marko, PaymentStatus.Completed, "marko1"));
+                if (marko != null && markoBookings.Count > 1) paymentSeeds.Add((markoBookings[1], marko, PaymentStatus.Completed, "marko2"));
+                if (ivan != null && ivanBooking != null) paymentSeeds.Add((ivanBooking, ivan, PaymentStatus.Pending, "ivan"));
+
+                var payments = paymentSeeds.Select(s => new Payment
+                {
+                    UserId = s.User.Id,
+                    BookingId = s.Booking.Id,
+                    Amount = s.Booking.TotalPrice,
+                    PaymentMethod = PaymentMethod.Stripe,
+                    Status = s.Status,
+                    Currency = "EUR",
+                    TransactionId = s.Status == PaymentStatus.Completed ? $"pi_seed_{s.Suffix}" : null,
+                    CheckoutId = $"cs_seed_{s.Suffix}",
+                    Description = $"Uplata za rezervaciju #{s.Booking.Id}",
+                    ProcessedAt = s.Status == PaymentStatus.Completed ? today.AddDays(-1) : null
+                }).ToList();
+
+                if (payments.Count > 0)
+                {
+                    context.Payments.AddRange(payments);
+                    await context.SaveChangesAsync();
+
+                    var auditLogs = new List<PaymentAuditLog>();
+                    for (var i = 0; i < payments.Count; i++)
+                    {
+                        var payment = payments[i];
+                        var seed = paymentSeeds[i];
+                        auditLogs.Add(payment.Status == PaymentStatus.Completed
+                            ? new PaymentAuditLog
+                            {
+                                PaymentId = payment.Id,
+                                FromStatus = PaymentStatus.Pending,
+                                ToStatus = PaymentStatus.Completed,
+                                Action = "PaymentCompleted",
+                                Details = "Stripe checkout session uspješno završena",
+                                InitiatedByUserId = seed.User.Id,
+                                AttemptedAt = payment.ProcessedAt ?? today
+                            }
+                            : new PaymentAuditLog
+                            {
+                                PaymentId = payment.Id,
+                                FromStatus = PaymentStatus.Pending,
+                                ToStatus = PaymentStatus.Pending,
+                                Action = "PaymentInitiated",
+                                Details = "Stripe checkout session kreirana, čeka se uplata",
+                                InitiatedByUserId = seed.User.Id,
+                                AttemptedAt = today
+                            });
+                    }
+                    context.PaymentAuditLogs.AddRange(auditLogs);
+                    await context.SaveChangesAsync();
+
+                    // Loyalty bodovi za završena plaćanja — ista stopa (1 bod / 10 valute) kao
+                    // PaymentService.AwardLoyaltyPointsAsync koji ovo radi automatski za PRAVE
+                    // uplate. Seed direktno upisuje Payment redove (ne prolazi kroz PaymentService),
+                    // pa se ovdje ručno replicira ista logika da seed podaci ostanu dosljedni.
+                    var loyaltyEarned = payments
+                        .Where(p => p.Status == PaymentStatus.Completed)
+                        .Select(p => new LoyaltyPointsEarned
+                        {
+                            UserId = p.UserId,
+                            BookingId = p.BookingId,
+                            PaymentId = p.Id,
+                            PointsEarned = (int)Math.Floor(p.Amount * 0.1m),
+                            EarnedAt = p.ProcessedAt ?? today,
+                            Reason = $"Uplata #{p.Id} ({p.Amount:0.##} {p.Currency})"
+                        })
+                        .Where(lpe => lpe.PointsEarned > 0)
+                        .ToList();
+
+                    if (loyaltyEarned.Count > 0)
+                    {
+                        context.LoyaltyPointsEarned.AddRange(loyaltyEarned);
+                        await context.SaveChangesAsync();
+                    }
+                }
+            }
+
+            // Notifikacije vezane za rezervacije/plaćanja iznad.
+            if (!await context.Notifications.AnyAsync())
+            {
+                var notifications = new List<Notification>();
+                if (demo != null && demoBooking != null)
+                {
+                    notifications.Add(new Notification
+                    {
+                        UserId = demo.Id,
+                        BookingId = demoBooking.Id,
+                        Title = "Rezervacija potvrđena",
+                        Message = $"Vaša rezervacija #{demoBooking.Id} je uspješno plaćena i potvrđena.",
+                        Type = "PaymentReceived",
+                        Priority = "Normal",
+                        IsRead = true,
+                        SentDate = today.AddDays(-1),
+                        ReadDate = today.AddDays(-1)
+                    });
+                }
+                if (ana != null && anaBooking != null)
+                {
+                    notifications.Add(new Notification
+                    {
+                        UserId = ana.Id,
+                        BookingId = anaBooking.Id,
+                        Title = "Rezervacija potvrđena",
+                        Message = $"Vaša rezervacija #{anaBooking.Id} je uspješno plaćena i potvrđena.",
+                        Type = "PaymentReceived",
+                        Priority = "Normal",
+                        IsRead = false,
+                        SentDate = today.AddDays(-1)
+                    });
+                }
+                if (ivan != null && ivanBooking != null)
+                {
+                    notifications.Add(new Notification
+                    {
+                        UserId = ivan.Id,
+                        BookingId = ivanBooking.Id,
+                        Title = "Plaćanje na čekanju",
+                        Message = $"Rezervacija #{ivanBooking.Id} čeka uplatu. Dovršite plaćanje kako biste zadržali rezervaciju.",
+                        Type = "PaymentPending",
+                        Priority = "High",
+                        IsRead = false,
+                        SentDate = today
+                    });
+                }
+                if (notifications.Count > 0)
+                {
+                    context.Notifications.AddRange(notifications);
+                    await context.SaveChangesAsync();
+                }
+            }
+
+            // Historija promjena statusa rezervacija (Pending -> trenutni status).
+            if (!await context.BookingStatusHistories.AnyAsync() && allBookingsForOps.Count > 0)
+            {
+                var admin2 = admin ?? await context.Users.FirstOrDefaultAsync(u => u.Email == "admin@demo.com");
+                var histories = allBookingsForOps.Select(b => new BookingStatusHistory
+                {
+                    BookingId = b.Id,
+                    FromStatus = BookingStatus.Pending,
+                    ToStatus = b.Status,
+                    ChangeDate = b.CreatedAt,
+                    Reason = b.Status == BookingStatus.Cancelled ? "Otkazano od strane gosta" : "Automatska potvrda rezervacije",
+                    ChangedByUserId = admin2?.Id
+                }).ToList();
+
+                context.BookingStatusHistories.AddRange(histories);
                 await context.SaveChangesAsync();
             }
         }

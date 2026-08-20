@@ -60,6 +60,9 @@ class SupportTicket {
   final SupportTicketPriority priority;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? adminResponse;
+  final DateTime? respondedAt;
+  final String? respondedByUserName;
 
   SupportTicket({
     required this.id,
@@ -71,6 +74,9 @@ class SupportTicket {
     required this.priority,
     required this.createdAt,
     required this.updatedAt,
+    this.adminResponse,
+    this.respondedAt,
+    this.respondedByUserName,
   });
 
   factory SupportTicket.fromJson(Map<String, dynamic> json) => SupportTicket(
@@ -83,6 +89,11 @@ class SupportTicket {
         priority: supportTicketPriorityFromInt(json['priority'] ?? 2),
         createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
         updatedAt: DateTime.tryParse(json['updatedAt'] ?? '') ?? DateTime.now(),
+        adminResponse: json['adminResponse'],
+        respondedAt: json['respondedAt'] != null
+            ? DateTime.tryParse(json['respondedAt'])
+            : null,
+        respondedByUserName: json['respondedByUserName'],
       );
 
   Map<String, dynamic> toCreateJson() => {

@@ -110,6 +110,7 @@ builder.Services.AddScoped<IPriceAdjustmentService, PriceAdjustmentService>();
 builder.Services.AddScoped<IInventoryTransactionService, InventoryTransactionService>();
 builder.Services.AddScoped<IInventoryItemService, InventoryItemService>();
 builder.Services.AddScoped<ILoyaltyPointsRedemptionService, LoyaltyPointsRedemptionService>();
+builder.Services.AddScoped<ILoyaltyPointsEarnedService, LoyaltyPointsEarnedService>();
 builder.Services.AddScoped<ISupportTicketService, SupportTicketService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<ICityService, CityService>();
