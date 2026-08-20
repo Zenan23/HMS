@@ -38,14 +38,12 @@ class ReservationsService {
     }
   }
 
-  Future<bool> cancelReservation(int id) async {
-    final response = await ApiService.post('/Bookings/$id/cancel', {});
-    ApiResponseParser.ensureSuccess(response);
-    return true;
-  }
-
-  Future<bool> refundReservation(int id) async {
-    final response = await ApiService.post('/Payments/booking/$id/refund', {});
+  /// Otkazivanje rezervacije. `reason` se šalje serveru (BookingsController -> CancelBooking)
+  /// i upisuje u audit log; server sam provjerava vlasništvo preko JWT-a.
+  Future<bool> cancelReservation(int id, {String? reason}) async {
+    final response = await ApiService.post('/Bookings/$id/cancel', {
+      if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+    });
     ApiResponseParser.ensureSuccess(response);
     return true;
   }

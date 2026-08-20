@@ -12,7 +12,7 @@ import '../utils/validation_utils.dart';
 import 'dart:convert';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -218,6 +218,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Odjava'),
+        content: const Text('Da li ste sigurni da se želite odjaviti?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Odustani'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Odjavi se'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final auth = context.read<AuthService>();
+    await auth.logout();
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthService>();
@@ -375,10 +401,7 @@ Widget build(BuildContext context) {
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton.icon(
-                      onPressed: () {
-                        auth.logout();
-                        Navigator.pushReplacementNamed(context, '/login');
-                      },
+                      onPressed: _confirmLogout,
                       icon: const Icon(Icons.logout),
                       label: const Text('Odjavi se'),
                       style: ElevatedButton.styleFrom(

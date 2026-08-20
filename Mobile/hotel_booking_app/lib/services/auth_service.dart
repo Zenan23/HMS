@@ -110,9 +110,79 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Server-side invalidacija tokena — ne samo lokalno brisanje (uputa: "Logout mora
+    // invalidirati token na serveru"). Best-effort: ako poziv ne uspije (npr. bez interneta),
+    // svejedno nastavljamo sa lokalnom odjavom da korisnik ne ostane "zaključan" u appu.
+    try {
+      final token = await _storage.read(key: 'jwt_token');
+      if (token != null && token.isNotEmpty) {
+        await http.post(
+          Uri.parse('${ApiService.baseUrl}/auth/logout'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        );
+      }
+    } catch (_) {
+      // Ignoriši — lokalna odjava se svejedno izvršava ispod.
+    }
+
     _user = null;
     await _storage.delete(key: _userKey);
+    await _storage.delete(key: 'jwt_token');
     notifyListeners();
+  }
+
+  /// Zatraži kod za reset lozinke emailom. Uvijek vraća generičku poruku sa servera
+  /// (bez obzira da li email postoji), ne otkriva grešku pozivaocu osim mrežnih problema.
+  Future<String?> forgotPassword(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiService.baseUrl}/auth/forgot-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+      if (response.statusCode == 200) return null;
+      try {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return data['message'] as String? ?? 'Greška pri slanju koda za reset lozinke.';
+      } catch (_) {
+        return 'Greška pri slanju koda za reset lozinke.';
+      }
+    } catch (e) {
+      return 'Greška pri povezivanju sa serverom';
+    }
+  }
+
+  /// Postavlja novu lozinku na osnovu koda poslanog emailom.
+  Future<String?> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+    required String confirmNewPassword,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiService.baseUrl}/auth/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'code': code,
+          'newPassword': newPassword,
+          'confirmNewPassword': confirmNewPassword,
+        }),
+      );
+      if (response.statusCode == 200) return null;
+      try {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return data['message'] as String? ?? 'Kod je neispravan ili je istekao.';
+      } catch (_) {
+        return 'Kod je neispravan ili je istekao.';
+      }
+    } catch (e) {
+      return 'Greška pri povezivanju sa serverom';
+    }
   }
 
   void updateLocalUser(User updated) async {

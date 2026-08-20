@@ -8,7 +8,7 @@ import '../services/auth_service.dart';
 import 'hotel_detail_screen.dart';
 
 class HotelsScreen extends StatefulWidget {
-  const HotelsScreen({Key? key}) : super(key: key);
+  const HotelsScreen({super.key});
 
   @override
   State<HotelsScreen> createState() => _HotelsScreenState();

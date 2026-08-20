@@ -120,6 +120,59 @@ namespace API.Controllers
         }
 
         /// <summary>
+        /// Pokreće reset lozinke — šalje 6-cifreni kod na email ako korisnik postoji. Uvijek
+        /// vraća generičku uspješnu poruku (sprječava enumeraciju korisnika po emailu).
+        /// </summary>
+        [HttpPost("forgot-password")]
+        public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new { message = "Unesite validnu email adresu." });
+                }
+
+                await _authenticationService.ForgotPasswordAsync(dto.Email);
+                return Ok(new { message = "Ako nalog sa ovim emailom postoji, kod za reset lozinke je poslan." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during forgot-password for {Email}", dto.Email);
+                return StatusCode(500, new { message = "Došlo je do greške. Pokušajte ponovo." });
+            }
+        }
+
+        /// <summary>
+        /// Postavlja novu lozinku na osnovu koda poslanog emailom.
+        /// </summary>
+        [HttpPost("reset-password")]
+        public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                    return BadRequest(new { message = "Provjerite unesene podatke.", errors });
+                }
+
+                var success = await _authenticationService.ResetPasswordAsync(dto);
+                if (!success)
+                {
+                    return BadRequest(new { message = "Kod je neispravan, istekao ili je već iskorišten." });
+                }
+
+                return Ok(new { message = "Lozinka je uspješno promijenjena. Prijavite se novom lozinkom." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during reset-password for {Email}", dto.Email);
+                return StatusCode(500, new { message = "Došlo je do greške. Pokušajte ponovo." });
+            }
+        }
+
+        /// <summary>
         /// Get current user profile
         /// </summary>
         /// <returns>Current user information</returns>

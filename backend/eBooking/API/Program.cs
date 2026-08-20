@@ -141,6 +141,8 @@ builder.Services.AddScoped<Application.Queries.IBookingQueries, Application.Quer
 builder.Services.AddScoped<Application.Queries.IServiceQueries, Application.Queries.ServiceQueries>();
 
 builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection(PaymentOptions.SectionName));
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 builder.Services.AddHttpClient("PayPalApi", (sp, client) =>
 {
     var baseUrl = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PaymentOptions>>().Value.PayPal.BaseUrl;

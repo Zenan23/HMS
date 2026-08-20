@@ -53,3 +53,6 @@ macos/Pods/
 # Generated artifacts (ako postoji)
 Mobile/hotel_booking_app/build/
 Desktop/hotel_system_desktop/build/
+
+_reference/
+_to_delete/

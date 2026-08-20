@@ -11,7 +11,7 @@ import '../services/api_service.dart';
 class HotelDetailScreen extends StatefulWidget {
   final Hotel hotel;
 
-  const HotelDetailScreen({Key? key, required this.hotel}) : super(key: key);
+  const HotelDetailScreen({super.key, required this.hotel});
 
   @override
   State<HotelDetailScreen> createState() => _HotelDetailScreenState();
@@ -154,67 +154,6 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildHotelHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Theme.of(context).colorScheme.primary.withOpacity(0.1),
-            Theme.of(context).colorScheme.secondary.withOpacity(0.1),
-          ],
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (widget.hotel.imageUrl.isNotEmpty) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                widget.hotel.displayImageUrl,
-                height: 180,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  height: 180,
-                  color: Colors.grey.shade300,
-                  child: const Center(child: Icon(Icons.broken_image)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-          Text(
-            widget.hotel.name,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(Icons.location_on, color: Colors.grey),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  '${widget.hotel.address}, ${widget.hotel.city}, ${widget.hotel.country}',
-                  style: const TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _buildStarRatingRow(widget.hotel.averageRating ?? widget.hotel.starRating.toDouble()),
-        ],
       ),
     );
   }

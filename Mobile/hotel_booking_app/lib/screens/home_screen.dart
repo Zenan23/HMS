@@ -9,7 +9,7 @@ import '../services/auth_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final int initialTabIndex;
-  const HomeScreen({Key? key, this.initialTabIndex = 0}) : super(key: key);
+  const HomeScreen({super.key, this.initialTabIndex = 0});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();

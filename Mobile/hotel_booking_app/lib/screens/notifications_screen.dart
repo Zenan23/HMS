@@ -6,7 +6,7 @@ import '../services/auth_service.dart';
 import '../services/notifications_service.dart';
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({Key? key}) : super(key: key);
+  const NotificationsScreen({super.key});
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -50,10 +50,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _error = 'Greška pri povezivanju sa serverom';
       });
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loading = false;
         });
+      }
     }
   }
 
