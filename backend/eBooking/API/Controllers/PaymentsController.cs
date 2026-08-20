@@ -462,7 +462,9 @@ namespace API.Controllers
         /// </summary>
         /// <param name="status">Payment status</param>
         /// <returns>List of payments</returns>
+        // Vraća plaćanja SVIH korisnika — finansijski podaci, samo za osoblje (isto kao GetAll).
         [HttpGet("status/{status}")]
+        [AuthorizeRole(UserRole.Employee)]
         public async Task<ActionResult<ApiResponse<IEnumerable<PaymentDto>>>> GetByStatus([FromRoute] PaymentStatus status)
         {
             try
@@ -482,7 +484,9 @@ namespace API.Controllers
         /// </summary>
         /// <param name="method">Payment method</param>
         /// <returns>List of payments</returns>
+        // Vraća plaćanja SVIH korisnika — finansijski podaci, samo za osoblje (isto kao GetAll).
         [HttpGet("method/{method}")]
+        [AuthorizeRole(UserRole.Employee)]
         public async Task<ActionResult<ApiResponse<IEnumerable<PaymentDto>>>> GetByPaymentMethod([FromRoute] PaymentMethod method)
         {
             try
@@ -512,6 +516,20 @@ namespace API.Controllers
                     return BadRequest(ApiResponse<IEnumerable<PaymentAuditLogDto>>.ErrorResult("Invalid payment ID."));
                 }
 
+                // Samo vlasnik plaćanja (svoja rezervacija) ili Employee/Admin smiju vidjeti audit trag —
+                // bez ovoga bilo koji prijavljeni korisnik mogao je pogađanjem ID-a čitati tuđ audit log
+                // (IP adrese, user-agent, statusne tranzicije).
+                var payment = await _paymentService.GetByIdAsync(id);
+                if (payment == null)
+                {
+                    return NotFound(ApiResponse<IEnumerable<PaymentAuditLogDto>>.ErrorResult("Payment not found."));
+                }
+
+                if (!IsSelfOrElevated(payment.UserId))
+                {
+                    return Forbid();
+                }
+
                 var auditLogs = await _paymentService.GetPaymentAuditLogsAsync(id);
                 return Ok(ApiResponse<IEnumerable<PaymentAuditLogDto>>.SuccessResult(auditLogs, "Audit logs retrieved successfully."));
             }
@@ -528,7 +546,9 @@ namespace API.Controllers
         /// <param name="fromDate">From date (optional)</param>
         /// <param name="toDate">To date (optional)</param>
         /// <returns>Payment statistics</returns>
+        // Agregatni prihodi/refundi cijelog sistema — poslovni podaci, samo za osoblje.
         [HttpGet("statistics")]
+        [AuthorizeRole(UserRole.Employee)]
         public async Task<ActionResult<ApiResponse<Contracts.DTOs.PaymentStatistics>>> GetPaymentStatistics(
             [FromQuery] DateTime? fromDate = null,
             [FromQuery] DateTime? toDate = null)

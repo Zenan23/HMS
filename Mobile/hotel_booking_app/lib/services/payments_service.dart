@@ -78,6 +78,23 @@ class PaymentsService {
     return ApiResponseParser.parseList(response, PaymentDetails.fromJson);
   }
 
+  /// Otkazuje plaćanje koje je ostalo "zaglavljeno" u statusu Processing — npr. kad korisnik
+  /// odustane/otkaže na Stripe/PayPal strani, ili capture/confirm ne uspije. Backend blokira
+  /// pokretanje novog checkout-a za istu rezervaciju dok god postoji Processing/Completed
+  /// plaćanje (vidi ValidateAndPrepareCheckoutAsync), pa je ovaj poziv OBAVEZAN nakon svakog
+  /// otkazanog/neuspjelog pokušaja da korisnik može ponovo platiti. Best-effort — greška ovdje
+  /// se ne prikazuje korisniku (ionako je već na "failed" ekranu), samo se loguje tiho.
+  Future<bool> cancelPayment(int paymentId, String reason) async {
+    try {
+      final response = await ApiService.post('/Payments/$paymentId/cancel', {
+        'reason': reason,
+      });
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Zahtjev za povrat novca za dato plaćanje. `amount` je iznos koji se refundira (obično puni
   /// iznos plaćanja), `reason` je obavezan razlog koji se šalje serveru i upisuje u audit log.
   Future<bool> refundPayment(int paymentId, num amount, String reason) async {

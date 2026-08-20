@@ -54,13 +54,14 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    # Plaćanja: env.docker (commitano) → zero-config nakon clone-a.
-    # Opcioni .env override-a iste ključeve (ne commituj .env).
+    # Plaćanja/SMTP: SVE dolazi isključivo iz env.docker (commitano) → zero-config nakon
+    # clone-a, jedan fajl za cijeli tim. Nema više opcionog .env override-a — namjerno
+    # uklonjen (razna imena varijabli su se tiho ignorisala i pravila zabunu oko toga
+    # šta je stvarno aktivno). Ako nekad zatreba lični override, dodaj ga direktno u
+    # env.docker (ne commituj stvarne produkcijske ključeve).
     env_file:
       - path: env.docker
         required: true
-      - path: .env
-        required: false
     environment:
       - ASPNETCORE_URLS=http://+:8080
       - ASPNETCORE_ENVIRONMENT=Development
@@ -71,7 +72,7 @@ services:
       - Rabbit__Host=rabbitmq
       - Rabbit__User=${RABBIT_USER:-guest}
       - Rabbit__Pass=${RABBIT_PASS:-guest}
-      # Payments* dolaze iz env.docker / .env — ne stavljati ovdje prazne ${VAR:-}
+      # Payments*/Smtp* dolaze iz env.docker — ne stavljati ovdje prazne ${VAR:-}
       # jer bi environment pregazio env_file i ugasio Stripe/PayPal.
     ports:
       - "8080:8080"
@@ -100,15 +101,13 @@ services:
     env_file:
       - path: env.docker
         required: true
-      - path: .env
-        required: false
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Server=db;Database=170028;User ID=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!};Encrypt=true;TrustServerCertificate=true;MultipleActiveResultSets=true
       - Rabbit__Host=rabbitmq
       - Rabbit__User=${RABBIT_USER:-guest}
       - Rabbit__Pass=${RABBIT_PASS:-guest}
-      # Payments* dolaze iz env.docker / .env (isto kao api) — PaymentService je posredna
+      # Payments*/Smtp* dolaze iz env.docker (isto kao api) — PaymentService je posredna
       # zavisnost BookingService-a pa Worker treba istu konfiguraciju da sastavi DI graf.
     restart: unless-stopped
 

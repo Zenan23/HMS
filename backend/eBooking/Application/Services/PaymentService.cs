@@ -483,9 +483,17 @@ namespace Application.Services
                     return false;
                 }
 
-                if (amount > payment.Amount)
+                // Provjera protiv PREOSTALOG iznosa za refund (Amount - već refundirano), ne protiv
+                // punog originalnog iznosa — inače validacija ne bi uhvatila prekoračenje kod
+                // višestrukih djelimičnih refundi (a ne bismo se smjeli oslanjati isključivo na to
+                // da će provajder odbiti prekoračenje na svojoj strani).
+                var alreadyRefunded = payment.RefundAmount ?? 0;
+                var remainingRefundable = payment.Amount - alreadyRefunded;
+                if (amount > remainingRefundable)
                 {
-                    _logger.LogWarning("Refund amount {RefundAmount} exceeds payment amount {PaymentAmount}", amount, payment.Amount);
+                    _logger.LogWarning(
+                        "Refund amount {RefundAmount} exceeds remaining refundable amount {Remaining} for payment {PaymentId}",
+                        amount, remainingRefundable, paymentId);
                     return false;
                 }
 

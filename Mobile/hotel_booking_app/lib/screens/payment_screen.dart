@@ -108,6 +108,15 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
     if (params == null || !mounted) return;
 
     if (params.isCancel) {
+      final cancelledId = params.paymentId ?? _pendingPaymentId;
+      if (cancelledId != null) {
+        // Oslobađa rezervaciju za novi pokušaj — bez ovoga Payment red ostaje zaglavljen u
+        // statusu Processing i backend odbija svaki naredni checkout za istu rezervaciju.
+        unawaited(_paymentsService.cancelPayment(
+          cancelledId,
+          'Korisnik je otkazao plaćanje (redirect nazad u app).',
+        ));
+      }
       setState(() {
         _phase = _PaymentPhase.failed;
         _error = 'Plaćanje je otkazano.';
@@ -271,6 +280,13 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
       if (!mounted) return;
       final msg = e.toString();
       final cancelled = msg.contains('Canceled') || msg.contains('cancelled');
+      final failedId = _pendingPaymentId;
+      if (failedId != null) {
+        unawaited(_paymentsService.cancelPayment(
+          failedId,
+          cancelled ? 'Korisnik je zatvorio Stripe Payment Sheet.' : 'Stripe Payment Sheet greška: $msg',
+        ));
+      }
       setState(() {
         _loading = false;
         _phase = _PaymentPhase.failed;
@@ -364,6 +380,13 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
         builder: (_) => PayPalCheckoutWebView(
           approveUrl: order.approveUrl,
           onCancel: () {
+            final cancelledId = _pendingPaymentId;
+            if (cancelledId != null) {
+              unawaited(_paymentsService.cancelPayment(
+                cancelledId,
+                'Korisnik je zatvorio PayPal WebView.',
+              ));
+            }
             if (mounted) {
               setState(() {
                 _phase = _PaymentPhase.failed;
@@ -373,6 +396,13 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
           },
           onReturn: (params) async {
             if (params.isCancel) {
+              final cancelledId = _pendingPaymentId;
+              if (cancelledId != null) {
+                unawaited(_paymentsService.cancelPayment(
+                  cancelledId,
+                  'PayPal plaćanje otkazano (cancel URL).',
+                ));
+              }
               if (mounted) {
                 setState(() {
                   _phase = _PaymentPhase.failed;
@@ -397,6 +427,11 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
                       'poveži REST app credentials u .env, i plaćaj Sandbox Personal (US) buyer nalogom. '
                       'Valuta mora biti USD.'
                   : captureError;
+              final failedId = order.paymentId;
+              unawaited(_paymentsService.cancelPayment(
+                failedId,
+                'PayPal capture nije uspio: $captureError',
+              ));
               setState(() {
                 _phase = _PaymentPhase.failed;
                 _error = friendly;

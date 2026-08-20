@@ -74,11 +74,20 @@ namespace Application.Mapper
 
             // Service mappings
             CreateMap<Service, ServiceDto>()
-                .ForMember(dest => dest.HotelName, opt => opt.MapFrom(src => src.Hotel.Name));
+                .ForMember(dest => dest.HotelName, opt => opt.MapFrom(src => src.Hotel.Name))
+                .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.ServiceCategory != null ? src.ServiceCategory.Name : string.Empty));
             CreateMap<CreateServiceDto, Service>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
             CreateMap<UpdateServiceDto, Service>()
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
+            // ServiceCategory mappings (referentna tabela — zamjena za slobodan tekst na Service.Category)
+            CreateMap<ServiceCategory, ServiceCategoryDto>();
+            CreateMap<CreateServiceCategoryDto, ServiceCategory>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+            CreateMap<UpdateServiceCategoryDto, ServiceCategory>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
             // Review mappings

@@ -7,6 +7,7 @@ namespace Contracts.DTOs
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public decimal Price { get; set; }
+        public int ServiceCategoryId { get; set; }
         public string Category { get; set; } = string.Empty;
         public bool IsAvailable { get; set; }
         public bool IsActive { get; set; }
@@ -26,9 +27,8 @@ namespace Contracts.DTOs
         [Range(0, double.MaxValue, ErrorMessage = "Price must be non-negative")]
         public decimal Price { get; set; }
 
-        [Required(ErrorMessage = "Category is required")]
-        [StringLength(50, ErrorMessage = "Category cannot exceed 50 characters")]
-        public string Category { get; set; } = string.Empty;
+        [Range(1, int.MaxValue, ErrorMessage = "Category is required")]
+        public int ServiceCategoryId { get; set; }
 
         public bool IsAvailable { get; set; } = true;
 
@@ -50,9 +50,8 @@ namespace Contracts.DTOs
         [Range(0, double.MaxValue, ErrorMessage = "Price must be non-negative")]
         public decimal Price { get; set; }
 
-        [Required(ErrorMessage = "Category is required")]
-        [StringLength(50, ErrorMessage = "Category cannot exceed 50 characters")]
-        public string Category { get; set; } = string.Empty;
+        [Range(1, int.MaxValue, ErrorMessage = "Category is required")]
+        public int ServiceCategoryId { get; set; }
 
         public bool IsAvailable { get; set; }
 

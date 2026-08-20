@@ -35,6 +35,18 @@ namespace Persistence.Data
                 await context.SaveChangesAsync();
             }
 
+            // Referentna/šifarnik tabela kategorija servisa. Mora postojati PRIJE servisa
+            // jer Service.ServiceCategoryId je obavezan FK (zamjena za slobodan tekstualni unos).
+            if (!await context.ServiceCategories.AnyAsync())
+            {
+                context.ServiceCategories.AddRange(
+                    new ServiceCategory { Name = "Spa" },
+                    new ServiceCategory { Name = "Food" },
+                    new ServiceCategory { Name = "Transport" }
+                );
+                await context.SaveChangesAsync();
+            }
+
             var hrCountry = await context.Countries.FirstAsync(c => c.Name == "Hrvatska");
             var siCountry = await context.Countries.FirstAsync(c => c.Name == "Slovenija");
             var baCountry = await context.Countries.FirstAsync(c => c.Name == "Bosna i Hercegovina");
@@ -89,14 +101,18 @@ namespace Persistence.Data
                 await context.SaveChangesAsync();
 
                 // Servisi po hotelu
+                var spaCategory = await context.ServiceCategories.FirstAsync(sc => sc.Name == "Spa");
+                var foodCategory = await context.ServiceCategories.FirstAsync(sc => sc.Name == "Food");
+                var transportCategory = await context.ServiceCategories.FirstAsync(sc => sc.Name == "Transport");
+
                 var servicesList = new List<Service>();
                 foreach (var h in hotels)
                 {
                     servicesList.AddRange(new[]
                     {
-                        new Service { HotelId = h.Id, Name = "Spa paket", Description = "Sauna i masaža 60min", Category = "Spa", Price = 30, IsAvailable = true, IsActive = true },
-                        new Service { HotelId = h.Id, Name = "Doručak", Description = "Buffet doručak", Category = "Food", Price = 8, IsAvailable = true, IsActive = true },
-                        new Service { HotelId = h.Id, Name = "Aerodrom shuttle", Description = "Prevoz do aerodroma", Category = "Transport", Price = 25, IsAvailable = true, IsActive = true },
+                        new Service { HotelId = h.Id, Name = "Spa paket", Description = "Sauna i masaža 60min", ServiceCategoryId = spaCategory.Id, Price = 30, IsAvailable = true, IsActive = true },
+                        new Service { HotelId = h.Id, Name = "Doručak", Description = "Buffet doručak", ServiceCategoryId = foodCategory.Id, Price = 8, IsAvailable = true, IsActive = true },
+                        new Service { HotelId = h.Id, Name = "Aerodrom shuttle", Description = "Prevoz do aerodroma", ServiceCategoryId = transportCategory.Id, Price = 25, IsAvailable = true, IsActive = true },
                     });
                 }
                 context.Services.AddRange(servicesList);
@@ -135,10 +151,10 @@ namespace Persistence.Data
 
                 var hotelsAll = await context.Hotels.Include(h => h.City).ToListAsync();
                 var roomsAll = await context.Rooms.ToListAsync();
-                var servicesAll = await context.Services.ToListAsync();
+                var servicesAll = await context.Services.Include(s => s.ServiceCategory).ToListAsync();
 
                 Room? RoomForHotel(int hotelId) => roomsAll.FirstOrDefault(r => r.HotelId == hotelId);
-                Service? ServiceForHotel(int hotelId, string category) => servicesAll.FirstOrDefault(s => s.HotelId == hotelId && s.Category == category);
+                Service? ServiceForHotel(int hotelId, string category) => servicesAll.FirstOrDefault(s => s.HotelId == hotelId && s.ServiceCategory != null && s.ServiceCategory.Name == category);
 
                 var today = DateTime.UtcNow.Date;
                 var bookings = new List<Booking>();
