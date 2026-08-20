@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../services/loyalty_points_redemption_service.dart';
 import '../utils/date_format_utils.dart';
 import 'date_picker_field.dart';
+import 'app_dialog_title.dart';
 
 class LoyaltyRedemptionFormDialog extends StatefulWidget {
   final LoyaltyPointsRedemption? redemption;
@@ -105,7 +106,7 @@ class _LoyaltyRedemptionFormDialogState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.redemption == null
+      title: AppDialogTitle(widget.redemption == null
           ? 'Novo iskorištenje bodova'
           : 'Uredi iskorištenje'),
       content: SizedBox(

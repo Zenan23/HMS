@@ -5,6 +5,7 @@ import 'package:hotel_system_desktop/models/service.dart';
 import '../models/hotel.dart';
 import '../services/api_service.dart';
 import '../utils/validation_utils.dart';
+import 'app_dialog_title.dart';
 
 class ServiceFormDialog extends StatefulWidget {
   final Service? service;
@@ -29,10 +30,16 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
   String? error;
   List<Hotel> _hotels = [];
 
+  // Category je na backendu i dalje slobodan tekst (nema FK tabele — vidi
+  // TODO-uskladjenost-db.md), ali ovdje ponudimo postojeće vrijednosti kao
+  // prijedloge (combobox) umjesto čistog tekstualnog polja.
+  List<String> _categorySuggestions = [];
+
   @override
   void initState() {
     super.initState();
     _fetchHotels();
+    _fetchCategorySuggestions();
     final s = widget.service;
     id = s?.id ?? 0;
     name = s?.name ?? '';
@@ -56,6 +63,25 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
       });
     } catch (e) {
       // ignore
+    }
+  }
+
+  Future<void> _fetchCategorySuggestions() async {
+    try {
+      final response =
+          await ApiService().get('/api/Services?pageNumber=1&pageSize=200');
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      final data = decoded['data'] ?? {};
+      final List items = data['items'] ?? [];
+      final categories = items
+          .map((e) => (e['category'] ?? '').toString().trim())
+          .where((c) => c.isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort();
+      if (mounted) setState(() => _categorySuggestions = categories.cast<String>());
+    } catch (_) {
+      // ignore — polje i dalje radi kao obično tekstualno polje
     }
   }
 
@@ -95,7 +121,7 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.service == null ? 'Dodaj servis' : 'Uredi servis'),
+      title: AppDialogTitle(widget.service == null ? 'Dodaj servis' : 'Uredi servis'),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -123,10 +149,22 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
                 onChanged: (v) => price = double.tryParse(v) ?? 0,
                 validator: ValidationUtils.validatePrice,
               ),
-              TextFormField(
-                initialValue: category,
-                decoration: const InputDecoration(labelText: 'Kategorija'),
-                onChanged: (v) => category = v,
+              Autocomplete<String>(
+                initialValue: TextEditingValue(text: category),
+                optionsBuilder: (v) => v.text.isEmpty
+                    ? _categorySuggestions
+                    : _categorySuggestions.where((c) =>
+                        c.toLowerCase().contains(v.text.toLowerCase())),
+                onSelected: (v) => category = v,
+                fieldViewBuilder:
+                    (context, controller, focusNode, onSubmitted) {
+                  return TextFormField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    decoration: const InputDecoration(labelText: 'Kategorija'),
+                    onChanged: (v) => category = v,
+                  );
+                },
               ),
               SwitchListTile(
                 title: const Text('Dostupno'),

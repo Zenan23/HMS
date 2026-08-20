@@ -3,6 +3,7 @@ import '../models/city.dart';
 import '../models/country.dart';
 import '../services/city_service.dart';
 import '../services/country_service.dart';
+import 'app_dialog_title.dart';
 
 class CityFormDialog extends StatefulWidget {
   final City? city;
@@ -78,7 +79,7 @@ class _CityFormDialogState extends State<CityFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.city == null ? 'Novi grad' : 'Uredi grad'),
+      title: AppDialogTitle(widget.city == null ? 'Novi grad' : 'Uredi grad'),
       content: SizedBox(
         width: 400,
         child: Form(

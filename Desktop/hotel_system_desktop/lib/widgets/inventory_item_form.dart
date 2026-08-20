@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/inventory_item.dart';
 import '../services/inventory_item_service.dart';
+import 'app_dialog_title.dart';
 
 class InventoryItemFormDialog extends StatefulWidget {
   final InventoryItem? item;
@@ -21,6 +22,13 @@ class _InventoryItemFormDialogState extends State<InventoryItemFormDialog> {
   bool isLoading = false;
   String? error;
 
+  // Category/Unit su na backendu i dalje slobodan tekst (nema FK tabele —
+  // vidi TODO-uskladjenost-db.md), ali ovdje ponudimo postojeće vrijednosti
+  // kao prijedloge (combobox) da se izbjegnu duplikati/tipfeleri, umjesto
+  // čistog tekstualnog polja.
+  List<String> _categorySuggestions = [];
+  List<String> _unitSuggestions = [];
+
   @override
   void initState() {
     super.initState();
@@ -29,6 +37,33 @@ class _InventoryItemFormDialogState extends State<InventoryItemFormDialog> {
     unit = i?.unit ?? '';
     category = i?.category ?? '';
     minimumStockLevel = i?.minimumStockLevel ?? 0;
+    _fetchSuggestions();
+  }
+
+  Future<void> _fetchSuggestions() async {
+    try {
+      final all = await _service.getAllForDropdown();
+      final categories = all
+          .map((e) => e.category.trim())
+          .where((c) => c.isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort();
+      final units = all
+          .map((e) => e.unit.trim())
+          .where((u) => u.isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort();
+      if (mounted) {
+        setState(() {
+          _categorySuggestions = categories;
+          _unitSuggestions = units;
+        });
+      }
+    } catch (_) {
+      // ignore — polja i dalje rade kao obično tekstualno polje
+    }
   }
 
   Future<void> _submit() async {
@@ -60,7 +95,7 @@ class _InventoryItemFormDialogState extends State<InventoryItemFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.item == null ? 'Novi artikal' : 'Uredi artikal'),
+      title: AppDialogTitle(widget.item == null ? 'Novi artikal' : 'Uredi artikal'),
       content: SizedBox(
         width: 420,
         child: SingleChildScrollView(
@@ -77,19 +112,44 @@ class _InventoryItemFormDialogState extends State<InventoryItemFormDialog> {
                       ? 'Naziv je obavezan.'
                       : null,
                 ),
-                TextFormField(
-                  initialValue: unit,
-                  decoration: const InputDecoration(
-                      labelText: 'Jedinica mjere (npr. kom, kg, l)'),
-                  onChanged: (v) => unit = v,
-                  validator: (v) => (v == null || v.trim().isEmpty)
-                      ? 'Jedinica mjere je obavezna.'
-                      : null,
+                Autocomplete<String>(
+                  initialValue: TextEditingValue(text: unit),
+                  optionsBuilder: (v) => v.text.isEmpty
+                      ? _unitSuggestions
+                      : _unitSuggestions.where((u) =>
+                          u.toLowerCase().contains(v.text.toLowerCase())),
+                  onSelected: (v) => unit = v,
+                  fieldViewBuilder:
+                      (context, controller, focusNode, onSubmitted) {
+                    return TextFormField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      decoration: const InputDecoration(
+                          labelText: 'Jedinica mjere (npr. kom, kg, l)'),
+                      onChanged: (v) => unit = v,
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Jedinica mjere je obavezna.'
+                          : null,
+                    );
+                  },
                 ),
-                TextFormField(
-                  initialValue: category,
-                  decoration: const InputDecoration(labelText: 'Kategorija'),
-                  onChanged: (v) => category = v,
+                Autocomplete<String>(
+                  initialValue: TextEditingValue(text: category),
+                  optionsBuilder: (v) => v.text.isEmpty
+                      ? _categorySuggestions
+                      : _categorySuggestions.where((c) =>
+                          c.toLowerCase().contains(v.text.toLowerCase())),
+                  onSelected: (v) => category = v,
+                  fieldViewBuilder:
+                      (context, controller, focusNode, onSubmitted) {
+                    return TextFormField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      decoration:
+                          const InputDecoration(labelText: 'Kategorija'),
+                      onChanged: (v) => category = v,
+                    );
+                  },
                 ),
                 TextFormField(
                   initialValue: minimumStockLevel.toString(),

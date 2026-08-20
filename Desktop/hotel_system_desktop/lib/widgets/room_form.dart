@@ -5,6 +5,7 @@ import '../models/hotel.dart';
 import '../services/api_service.dart';
 import '../utils/validation_utils.dart';
 import '../utils/display_labels.dart';
+import 'app_dialog_title.dart';
 
 class RoomFormDialog extends StatefulWidget {
   final Room? room;
@@ -95,7 +96,7 @@ class _RoomFormDialogState extends State<RoomFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.room == null ? 'Dodaj sobu' : 'Uredi sobu'),
+      title: AppDialogTitle(widget.room == null ? 'Dodaj sobu' : 'Uredi sobu'),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,

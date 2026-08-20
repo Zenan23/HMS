@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../services/pdf_report_service.dart';
 import '../utils/display_labels.dart';
 import '../widgets/room_form.dart';
+import '../widgets/app_dialog_title.dart';
 
 class RoomsScreen extends StatefulWidget {
   const RoomsScreen({super.key});
@@ -22,10 +23,31 @@ class _RoomsScreenState extends State<RoomsScreen> {
   String? _selectedRoomType;
   bool _isSearchMode = false;
 
+  // Soba mora biti vezana za hotel (obavezan FK) — dok ne postoji nijedan
+  // hotel u bazi, forma za dodavanje sobe se ne smije moći otvoriti.
+  bool _checkingHotels = true;
+  bool _hasHotels = false;
+
   @override
   void initState() {
     super.initState();
     _fetchRooms(_page);
+    _checkHotelsExist();
+  }
+
+  Future<void> _checkHotelsExist() async {
+    try {
+      final response =
+          await ApiService().get('/api/Hotels?pageNumber=1&pageSize=1');
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      final data = decoded['data'] ?? {};
+      final int totalCount = data['totalCount'] ?? 0;
+      if (mounted) setState(() => _hasHotels = totalCount > 0);
+    } catch (_) {
+      // ako provjera padne, ne blokiramo korisnika zbog mrežne greške
+      if (mounted) setState(() => _hasHotels = true);
+    }
+    if (mounted) setState(() => _checkingHotels = false);
   }
 
   Future<void> _fetchRooms(int page) async {
@@ -203,10 +225,17 @@ class _RoomsScreenState extends State<RoomsScreen> {
                       onPressed: _exportRoomsPdf,
                     ),
                     const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.add),
-                      label: const Text('Dodaj sobu'),
-                      onPressed: _openRoomForm,
+                    Tooltip(
+                      message: _checkingHotels || _hasHotels
+                          ? ''
+                          : 'Prvo dodajte barem jedan hotel — soba mora biti vezana za hotel.',
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.add),
+                        label: const Text('Dodaj sobu'),
+                        onPressed: !_checkingHotels && _hasHotels
+                            ? _openRoomForm
+                            : null,
+                      ),
                     ),
                   ],
                 ),
@@ -293,7 +322,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
                                   final confirm = await showDialog<bool>(
                                     context: context,
                                     builder: (context) => AlertDialog(
-                                      title: const Text('Potvrda brisanja'),
+                                      title: const AppDialogTitle('Potvrda brisanja'),
                                       content: Text(
                                           'Obrisati sobu ${r.roomNumber}?'),
                                       actions: [

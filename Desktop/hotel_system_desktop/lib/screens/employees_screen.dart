@@ -6,6 +6,7 @@ import '../utils/display_labels.dart';
 import '../services/api_service.dart';
 import '../services/pdf_report_service.dart';
 import 'dart:convert';
+import '../widgets/app_dialog_title.dart';
 
 class EmployeesScreen extends StatefulWidget {
   const EmployeesScreen({super.key});
@@ -258,7 +259,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                                           final confirm = await showDialog<bool>(
                                             context: context,
                                             builder: (context) => AlertDialog(
-                                              title: const Text('Potvrda brisanja'),
+                                              title: const AppDialogTitle('Potvrda brisanja'),
                                               content: const Text(
                                                   'Da li ste sigurni da želite obrisati uposlenika?'),
                                               actions: [

@@ -5,6 +5,7 @@ import '../models/price_adjustment.dart';
 import '../services/api_service.dart';
 import '../services/price_adjustment_service.dart';
 import '../widgets/date_picker_field.dart';
+import 'app_dialog_title.dart';
 
 class PriceAdjustmentFormDialog extends StatefulWidget {
   final PriceAdjustment? adjustment;
@@ -93,7 +94,7 @@ class _PriceAdjustmentFormDialogState extends State<PriceAdjustmentFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(
+      title: AppDialogTitle(
           widget.adjustment == null ? 'Novo pravilo cijene' : 'Uredi pravilo'),
       content: SizedBox(
         width: 420,

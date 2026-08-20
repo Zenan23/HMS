@@ -6,6 +6,7 @@ import '../services/pdf_report_service.dart';
 import '../utils/date_format_utils.dart';
 import '../utils/display_labels.dart';
 import 'dart:convert';
+import '../widgets/app_dialog_title.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -289,7 +290,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                           final confirm = await showDialog<bool>(
                                             context: context,
                                             builder: (context) => AlertDialog(
-                                              title: const Text('Potvrda brisanja'),
+                                              title: const AppDialogTitle('Potvrda brisanja'),
                                               content: const Text(
                                                   'Da li ste sigurni da želite obrisati korisnika?'),
                                               actions: [

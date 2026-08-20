@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../services/inventory_item_service.dart';
 import '../services/inventory_transaction_service.dart';
 import 'date_picker_field.dart';
+import 'app_dialog_title.dart';
 
 class InventoryTransactionFormDialog extends StatefulWidget {
   final InventoryTransaction? transaction;
@@ -102,7 +103,7 @@ class _InventoryTransactionFormDialogState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.transaction == null
+      title: AppDialogTitle(widget.transaction == null
           ? 'Nova transakcija'
           : 'Uredi transakciju'),
       content: SizedBox(

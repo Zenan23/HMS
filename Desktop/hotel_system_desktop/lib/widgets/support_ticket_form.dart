@@ -5,6 +5,7 @@ import '../models/user.dart';
 import '../services/api_service.dart';
 import '../services/support_ticket_service.dart';
 import '../utils/display_labels.dart';
+import 'app_dialog_title.dart';
 
 class SupportTicketFormDialog extends StatefulWidget {
   final SupportTicket? ticket;
@@ -102,7 +103,7 @@ class _SupportTicketFormDialogState extends State<SupportTicketFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.ticket == null ? 'Novi tiket' : 'Uredi tiket'),
+      title: AppDialogTitle(widget.ticket == null ? 'Novi tiket' : 'Uredi tiket'),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
