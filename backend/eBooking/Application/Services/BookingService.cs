@@ -19,6 +19,11 @@ namespace Application.Services
         private readonly IBookingRepository _bookingRepository;
         private readonly IPublishEndpoint _publishEndpoint;
 
+        // Gornja granica za list endpointe koji nemaju eksplicitnu paginaciju u ugovoru API-ja
+        // (GetByUserId/ByGuestId/ByRoomId/ByStatus/ByDateRange) — uputa tretira endpointe bez
+        // definisanog maksimalnog limita kao grešku za neprihvatanje.
+        private const int MaxUnboundedResults = 200;
+
         public BookingService(
             IRepository<Booking> repository,
             IMapper mapper,
@@ -104,7 +109,8 @@ namespace Application.Services
                 _logger.LogInformation("Getting bookings for guest ID: {GuestId}", guestId);
                 var entities = await _bookingRepository.GetAllAsync();
                 var filteredEntities = entities.Where(b => b.UserId == guestId && !b.IsDeleted)
-                                             .OrderByDescending(b => b.CreatedAt);
+                                             .OrderByDescending(b => b.CreatedAt)
+                                             .Take(MaxUnboundedResults);
                 return _mapper.Map<IEnumerable<BookingDto>>(filteredEntities);
             }
             catch (Exception ex)
@@ -121,7 +127,8 @@ namespace Application.Services
                 _logger.LogInformation("Getting bookings for user ID: {UserId}", userId);
                 var entities = await _bookingRepository.GetAllAsync();
                 var filteredEntities = entities.Where(b => b.UserId == userId && !b.IsDeleted)
-                                             .OrderByDescending(b => b.CreatedAt);
+                                             .OrderByDescending(b => b.CreatedAt)
+                                             .Take(MaxUnboundedResults);
                 return _mapper.Map<IEnumerable<BookingDto>>(filteredEntities);
             }
             catch (Exception ex)
@@ -138,7 +145,8 @@ namespace Application.Services
                 _logger.LogInformation("Getting bookings for room ID: {RoomId}", roomId);
                 var entities = await _bookingRepository.GetAllAsync();
                 var filteredEntities = entities.Where(b => b.RoomId == roomId && !b.IsDeleted)
-                                             .OrderByDescending(b => b.CreatedAt);
+                                             .OrderByDescending(b => b.CreatedAt)
+                                             .Take(MaxUnboundedResults);
                 return _mapper.Map<IEnumerable<BookingDto>>(filteredEntities);
             }
             catch (Exception ex)
@@ -155,7 +163,8 @@ namespace Application.Services
                 _logger.LogInformation("Getting bookings with status: {Status}", status);
                 var entities = await _bookingRepository.GetAllAsync();
                 var filteredEntities = entities.Where(b => b.Status == status && !b.IsDeleted)
-                                             .OrderByDescending(b => b.CreatedAt);
+                                             .OrderByDescending(b => b.CreatedAt)
+                                             .Take(MaxUnboundedResults);
                 return _mapper.Map<IEnumerable<BookingDto>>(filteredEntities);
             }
             catch (Exception ex)
@@ -165,7 +174,7 @@ namespace Application.Services
             }
         }
 
-        public async Task<bool> CancelBookingAsync(int id, int? cancelledByUserId = null)
+        public async Task<bool> CancelBookingAsync(int id, int? cancelledByUserId = null, string? reason = null)
         {
             try
             {
@@ -190,8 +199,13 @@ namespace Application.Services
 
                 await _repository.UpdateAsync(booking);
 
-                // Log status change
-                await LogBookingStatusChangeAsync(id, oldStatus, BookingStatus.Cancelled, "Booking cancelled", cancelledByUserId);
+                // Log status change (razlog otkazivanja ide u Notes istorijskog zapisa)
+                var notes = string.IsNullOrWhiteSpace(reason) ? "Booking cancelled" : $"Booking cancelled: {reason}";
+                await LogBookingStatusChangeAsync(id, oldStatus, BookingStatus.Cancelled, notes, cancelledByUserId);
+
+                // Notifikacija korisniku o otkazivanju — bez ovoga korisnik ne saznaje da je
+                // rezervacija otkazana (npr. kad admin otkaže rezervaciju).
+                await _publishEndpoint.Publish(new BookingUpdated(booking.Id, booking.Status.ToString(), booking.UserId, booking.RoomId));
 
                 _logger.LogInformation("Booking {BookingId} cancelled successfully", id);
                 return true;
@@ -216,6 +230,14 @@ namespace Application.Services
                     return false;
                 }
 
+                // Samo potvrđena rezervacija smije preći u CheckedIn — bez ovoga bi bilo moguće
+                // "prijaviti" gosta na Pending ili već otkazanu rezervaciju.
+                if (booking.Status != BookingStatus.Confirmed)
+                {
+                    _logger.LogWarning("Booking {BookingId} cannot be checked in - status is {Status}", id, booking.Status);
+                    return false;
+                }
+
                 var oldStatus = booking.Status;
                 booking.Status = BookingStatus.CheckedIn;
                 booking.UpdatedAt = DateTime.UtcNow;
@@ -235,6 +257,47 @@ namespace Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error checking in booking {BookingId}", id);
+                throw;
+            }
+        }
+
+        public async Task<bool> MarkNoShowAsync(int id, int? markedByUserId = null)
+        {
+            try
+            {
+                _logger.LogInformation("Marking booking {BookingId} as no-show", id);
+
+                var booking = await _repository.GetByIdAsync(id);
+                if (booking == null || booking.IsDeleted)
+                {
+                    _logger.LogWarning("Booking {BookingId} not found for no-show", id);
+                    return false;
+                }
+
+                // Gost se može proglasiti "no-show" samo ako je rezervacija bila potvrđena (ili je
+                // ostala Pending) i nikad nije stvarno stigao (nije CheckedIn/CheckedOut/otkazana).
+                if (booking.Status != BookingStatus.Confirmed && booking.Status != BookingStatus.Pending)
+                {
+                    _logger.LogWarning("Booking {BookingId} cannot be marked no-show - status is {Status}", id, booking.Status);
+                    return false;
+                }
+
+                var oldStatus = booking.Status;
+                booking.Status = BookingStatus.NoShow;
+                booking.UpdatedAt = DateTime.UtcNow;
+
+                await _repository.UpdateAsync(booking);
+
+                await LogBookingStatusChangeAsync(id, oldStatus, BookingStatus.NoShow, "Guest marked as no-show", markedByUserId);
+
+                await _publishEndpoint.Publish(new BookingUpdated(booking.Id, booking.Status.ToString(), booking.UserId, booking.RoomId));
+
+                _logger.LogInformation("Booking {BookingId} marked as no-show successfully", id);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking booking {BookingId} as no-show", id);
                 throw;
             }
         }
@@ -289,7 +352,8 @@ namespace Application.Services
                     !b.IsDeleted &&
                     b.CheckInDate < endDate &&
                     b.CheckOutDate > startDate)
-                    .OrderBy(b => b.CheckInDate);
+                    .OrderBy(b => b.CheckInDate)
+                    .Take(MaxUnboundedResults);
                 return _mapper.Map<IEnumerable<BookingDto>>(filteredEntities);
             }
             catch (Exception ex)
@@ -335,6 +399,15 @@ namespace Application.Services
                     throw new ArgumentException("Broj gostiju mora biti najmanje 1.");
 
                 var room = await _roomService.GetByIdAsync(createDto.RoomId) ?? throw new InvalidOperationException("Soba nije pronađena.");
+
+                if (createDto.CheckInDate >= createDto.CheckOutDate)
+                    throw new ArgumentException("Datum prijave mora biti prije datuma odjave.");
+
+                // Provjera preklapanja termina na backendu — ne smije se oslanjati samo na
+                // frontend provjeru dostupnosti, jer dva zahtjeva mogu stići istovremeno.
+                var isAvailable = await IsRoomAvailableAsync(createDto.RoomId, createDto.CheckInDate, createDto.CheckOutDate);
+                if (!isAvailable)
+                    throw new InvalidOperationException("Odabrana soba nije dostupna za izabrani period.");
 
                 var serviceSelections = createDto.Services?
                     .Select(s => (s.ServiceId, s.Quantity))

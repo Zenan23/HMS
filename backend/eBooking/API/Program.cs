@@ -38,7 +38,14 @@ builder.Services.AddApiMessaging(builder.Configuration);
 
 // Add JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JWT");
-var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
+var secretKey = jwtSettings["SecretKey"];
+if (string.IsNullOrWhiteSpace(secretKey))
+{
+    // Namjerno NEMA fallback vrijednosti — JWT ključ mora doći iz .env / okruženja
+    // (JWT__SecretKey), nikad hardkodiran u appsettings.json ili izvornom kodu.
+    throw new InvalidOperationException(
+        "JWT SecretKey nije konfigurisan. Postavite JWT_SECRET u .env fajlu (docker-compose) ili JWT__SecretKey environment varijablu.");
+}
 var key = Encoding.UTF8.GetBytes(secretKey);
 
 builder.Services.AddAuthentication(options =>
@@ -72,6 +79,20 @@ builder.Services.AddAuthentication(options =>
                 context.Token = accessToken;
             }
             return Task.CompletedTask;
+        },
+        // Server-side invalidacija tokena (logout) — token je potpisom i rokom trajanja i dalje
+        // "valjan", ali ako je jti u međuvremenu poništen (logout), zahtjev se odbija.
+        OnTokenValidated = async context =>
+        {
+            var jti = context.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
+            if (string.IsNullOrEmpty(jti))
+                return;
+
+            var revocationService = context.HttpContext.RequestServices.GetRequiredService<ITokenRevocationService>();
+            if (await revocationService.IsRevokedAsync(jti, context.HttpContext.RequestAborted))
+            {
+                context.Fail("Token je poništen (logout).");
+            }
         }
     };
 });
@@ -126,6 +147,7 @@ builder.Services.AddHttpClient("PayPalApi", (sp, client) =>
     client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
 });
 builder.Services.AddScoped<IWebhookEventDedupService, WebhookEventDedupService>();
+builder.Services.AddScoped<ITokenRevocationService, TokenRevocationService>();
 builder.Services.AddScoped<PayPalPaymentProvider>();
 builder.Services.AddScoped<StripePaymentProvider>();
 builder.Services.AddScoped<IPaymentGatewayProvider>(sp => sp.GetRequiredService<PayPalPaymentProvider>());

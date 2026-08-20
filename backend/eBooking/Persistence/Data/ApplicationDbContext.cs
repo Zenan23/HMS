@@ -23,6 +23,8 @@ namespace Persistence.Data
         public DbSet<Payment> Payments { get; set; }
         public DbSet<PaymentAuditLog> PaymentAuditLogs { get; set; }
         public DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents { get; set; }
+        public DbSet<RevokedToken> RevokedTokens { get; set; }
+        public DbSet<HotelViewHistory> HotelViewHistories { get; set; }
         public DbSet<RoomMaintenanceLog> RoomMaintenanceLogs { get; set; }
         public DbSet<PriceAdjustment> PriceAdjustments { get; set; }
         public DbSet<InventoryItem> InventoryItems { get; set; }
@@ -263,6 +265,40 @@ namespace Persistence.Data
                     .WithMany()
                     .HasForeignKey(e => e.PaymentId)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<RevokedToken>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Jti).IsRequired().HasMaxLength(64);
+                entity.HasIndex(e => e.Jti).IsUnique();
+                entity.Property(e => e.ExpiresAt).IsRequired();
+                entity.Property(e => e.RevokedAt).IsRequired();
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<HotelViewHistory>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ViewedAt).IsRequired();
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Hotel)
+                    .WithMany()
+                    .HasForeignKey(e => e.HotelId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Brzo dohvatanje "koliko puta je hotel pregledan" za popularity signal.
+                entity.HasIndex(e => e.HotelId);
+                entity.HasIndex(e => new { e.UserId, e.HotelId });
             });
 
             // PaymentAuditLog configuration

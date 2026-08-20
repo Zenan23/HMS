@@ -27,6 +27,7 @@ namespace Application.Services
         private readonly PaymentOptions _paymentOptions;
         private readonly IWebhookEventDedupService _webhookDedup;
         private readonly IRepository<LoyaltyPointsEarned> _loyaltyPointsEarnedRepository;
+        private readonly IRepository<Booking> _bookingRepository;
 
         // 1 loyalty bod na svakih 10 (EUR/USD, ovisno o Payment.Currency) uplaćenih — ista logika
         // za sve provajdere jer svi prolaze kroz MarkPaymentCompletedCoreAsync.
@@ -44,7 +45,8 @@ namespace Application.Services
             IPublishEndpoint publishEndpoint,
             IOptions<PaymentOptions> paymentOptions,
             IWebhookEventDedupService webhookDedup,
-            IRepository<LoyaltyPointsEarned> loyaltyPointsEarnedRepository)
+            IRepository<LoyaltyPointsEarned> loyaltyPointsEarnedRepository,
+            IRepository<Booking> bookingRepository)
             : base(repository, mapper, logger)
         {
             _paymentProviders = paymentProviders;
@@ -56,6 +58,33 @@ namespace Application.Services
             _paymentOptions = paymentOptions.Value;
             _webhookDedup = webhookDedup;
             _loyaltyPointsEarnedRepository = loyaltyPointsEarnedRepository;
+            _bookingRepository = bookingRepository;
+        }
+
+        /// <summary>
+        /// Server-side priprema checkout-a: SERVER (ne klijent) određuje iznos naplate na osnovu
+        /// stvarne cijene rezervacije iz baze (Booking.TotalPrice), i sprječava pokretanje novog
+        /// plaćanja ako za istu rezervaciju već postoji aktivno (Processing) ili završeno
+        /// (Completed) plaćanje. Poziva se iz sve tri "Start*" metode prije mapiranja DTO-a u Payment.
+        /// </summary>
+        private async Task<Booking> ValidateAndPrepareCheckoutAsync(CreateHostedCheckoutDto dto)
+        {
+            var booking = await _bookingRepository.GetByIdAsync(dto.BookingId);
+            if (booking == null || booking.IsDeleted)
+                throw new InvalidOperationException("Rezervacija nije pronađena.");
+
+            // Kupovina ne smije vjerovati klijentu za cijenu — server sam određuje iznos.
+            dto.Amount = booking.TotalPrice;
+
+            var existingPayments = await _repository.FindAsync(p =>
+                p.BookingId == dto.BookingId &&
+                !p.IsDeleted &&
+                (p.Status == PaymentStatus.Processing || p.Status == PaymentStatus.Completed));
+
+            if (existingPayments.Any())
+                throw new InvalidOperationException("Za ovu rezervaciju već postoji aktivno ili završeno plaćanje.");
+
+            return booking;
         }
 
         public async Task<HostedCheckoutResponseDto> StartHostedCheckoutAsync(CreateHostedCheckoutDto dto, string? userAgent = null, string? ipAddress = null)
@@ -67,6 +96,8 @@ namespace Application.Services
             {
                 throw new InvalidOperationException("Podržane su samo metode Stripe i PayPal.");
             }
+
+            await ValidateAndPrepareCheckoutAsync(dto);
 
             var paymentEntity = _mapper.Map<Payment>(dto);
             paymentEntity = await _repository.AddAsync(paymentEntity);
@@ -153,6 +184,8 @@ namespace Application.Services
             if (string.IsNullOrWhiteSpace(_paymentOptions.Stripe.SecretKey) || string.IsNullOrWhiteSpace(_paymentOptions.Stripe.PublishableKey))
                 throw new InvalidOperationException("Stripe SecretKey ili PublishableKey nisu konfigurisani.");
 
+            await ValidateAndPrepareCheckoutAsync(dto);
+
             var paymentEntity = _mapper.Map<Payment>(dto);
             paymentEntity = await _repository.AddAsync(paymentEntity);
 
@@ -193,6 +226,8 @@ namespace Application.Services
 
             if (dto.PaymentMethod != DomainPaymentMethod.PayPal)
                 throw new InvalidOperationException("Ovaj endpoint podržava samo PayPal.");
+
+            await ValidateAndPrepareCheckoutAsync(dto);
 
             var paymentEntity = _mapper.Map<Payment>(dto);
             paymentEntity = await _repository.AddAsync(paymentEntity);

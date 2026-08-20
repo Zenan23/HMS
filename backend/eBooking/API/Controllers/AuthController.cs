@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Persistence.Interfaces;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace API.Controllers
@@ -11,12 +12,59 @@ namespace API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthenticationService _authenticationService;
+        private readonly ITokenRevocationService _tokenRevocationService;
+        private readonly IJwtService _jwtService;
         private readonly ILogger<AuthController> _logger;
 
-        public AuthController(IAuthenticationService authenticationService, ILogger<AuthController> logger)
+        public AuthController(
+            IAuthenticationService authenticationService,
+            ITokenRevocationService tokenRevocationService,
+            IJwtService jwtService,
+            ILogger<AuthController> logger)
         {
             _authenticationService = authenticationService;
+            _tokenRevocationService = tokenRevocationService;
+            _jwtService = jwtService;
             _logger = logger;
+        }
+
+        /// <summary>
+        /// Odjava korisnika — poništava trenutni JWT token na serveru (upisuje jti u listu
+        /// poništenih tokena) umjesto da se token samo lokalno obriše na klijentu.
+        /// </summary>
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<ActionResult> Logout()
+        {
+            try
+            {
+                var jti = User.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                if (string.IsNullOrEmpty(jti) || string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                {
+                    return Unauthorized(new { message = "Nevažeći token." });
+                }
+
+                var authHeader = Request.Headers.Authorization.ToString();
+                var rawToken = authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                    ? authHeader["Bearer ".Length..]
+                    : authHeader;
+
+                var expiresAt = string.IsNullOrWhiteSpace(rawToken)
+                    ? DateTime.UtcNow.AddDays(2) // sigurnosna margina ako token nije dostupan u header-u
+                    : _jwtService.GetTokenExpiration(rawToken);
+
+                await _tokenRevocationService.RevokeAsync(jti, userId, expiresAt);
+
+                _logger.LogInformation("User {UserId} logged out, token {Jti} revoked", userId, jti);
+                return Ok(new { message = "Odjava uspješna." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during logout");
+                return StatusCode(500, new { message = "Došlo je do greške pri odjavi." });
+            }
         }
 
         /// <summary>

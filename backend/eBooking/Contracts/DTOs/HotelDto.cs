@@ -16,6 +16,13 @@ namespace Contracts.DTOs
         public double AverageRating { get; set; }
         public int ReviewsCount { get; set; }
         public string ImageUrl { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Popunjava se SAMO u odgovoru recommender endpointa — objašnjava korisniku zbog čega je
+        /// baš ovaj hotel preporučen (npr. "slični korisnici ga visoko ocjenjuju"). Uputa: "Recommender
+        /// mora korisniku objašnjavati zbog čega se određeni sadržaj preporučuje - objašnjive preporuke."
+        /// </summary>
+        public string? RecommendationReason { get; set; }
     }
 
     public class CreateHotelDto : CreateBaseEntityDto
