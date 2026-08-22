@@ -73,7 +73,7 @@ services:
       - Rabbit__User=${RABBIT_USER:-guest}
       - Rabbit__Pass=${RABBIT_PASS:-guest}
       # Payments*/Smtp* dolaze iz env.docker — ne stavljati ovdje prazne ${VAR:-}
-      # jer bi environment pregazio env_file i ugasio Stripe/PayPal.
+      # jer bi environment pregazio env_file i ugasio Stripe.
     ports:
       - "8080:8080"
     volumes:

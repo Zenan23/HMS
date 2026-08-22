@@ -56,22 +56,6 @@ class PaymentsService {
     }
   }
 
-  /// PayPal narudžba za in-app WebView.
-  Future<PayPalNativeOrderResponse?> startPayPalOrder(CreateHostedCheckoutDto dto) async {
-    final response = await ApiService.post('/Payments/paypal/order', dto.toJson());
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      return null;
-    }
-    try {
-      final map = jsonDecode(response.body) as Map<String, dynamic>;
-      final data = map['data'] as Map<String, dynamic>?;
-      if (data == null) return null;
-      return PayPalNativeOrderResponse.fromJson(data);
-    } catch (_) {
-      return null;
-    }
-  }
-
   /// Sva plaćanja vezana za rezervaciju (koristi se za pronalazak plaćanja koje se refundira).
   Future<List<PaymentDetails>> getPaymentsByBooking(int bookingId) async {
     final response = await ApiService.get('/Payments/booking/$bookingId');
@@ -79,7 +63,7 @@ class PaymentsService {
   }
 
   /// Otkazuje plaćanje koje je ostalo "zaglavljeno" u statusu Processing — npr. kad korisnik
-  /// odustane/otkaže na Stripe/PayPal strani, ili capture/confirm ne uspije. Backend blokira
+  /// odustane/otkaže na Stripe strani, ili capture/confirm ne uspije. Backend blokira
   /// pokretanje novog checkout-a za istu rezervaciju dok god postoji Processing/Completed
   /// plaćanje (vidi ValidateAndPrepareCheckoutAsync), pa je ovaj poziv OBAVEZAN nakon svakog
   /// otkazanog/neuspjelog pokušaja da korisnik može ponovo platiti. Best-effort — greška ovdje
@@ -125,7 +109,7 @@ class PaymentsService {
     return details?.isCompleted ?? false;
   }
 
-  /// Nakon povratka iz preglednika: PayPal capture ili Stripe finalize preko checkoutId.
+  /// Nakon povratka iz preglednika: Stripe finalize preko checkoutId.
   Future<void> confirmPaymentAfterReturn(int paymentId, PaymentMethod method) async {
     if (await isPaymentCompleted(paymentId)) return;
 
@@ -136,9 +120,6 @@ class PaymentsService {
     if (checkoutId == null || checkoutId.isEmpty) return;
 
     switch (method) {
-      case PaymentMethod.paypal:
-        await capturePayPalOrder(checkoutId);
-        break;
       case PaymentMethod.stripe:
         if (checkoutId.startsWith('pi_')) {
           await confirmStripePaymentIntent(checkoutId);
@@ -188,22 +169,6 @@ class PaymentsService {
       return data == true;
     } catch (_) {
       return false;
-    }
-  }
-
-  /// PayPal: nakon odobrenja (token = order id). Vraća null ako je OK, inače poruku greške.
-  Future<String?> capturePayPalOrder(String orderId) async {
-    final response = await ApiService.post('/Payments/paypal/capture', {
-      'token': orderId,
-    });
-    try {
-      final map = jsonDecode(response.body) as Map<String, dynamic>;
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        if (map['data'] == true) return null;
-      }
-      return map['message']?.toString() ?? 'PayPal capture nije uspio.';
-    } catch (_) {
-      return 'PayPal capture nije uspio.';
     }
   }
 

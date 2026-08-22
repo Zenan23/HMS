@@ -49,12 +49,4 @@ namespace Persistence.Interfaces
         public string? PaymentIntentId { get; set; }
         public string? ErrorMessage { get; set; }
     }
-
-    public class PayPalNativeOrderResult
-    {
-        public bool IsSuccess { get; set; }
-        public string? OrderId { get; set; }
-        public string? ApproveUrl { get; set; }
-        public string? ErrorMessage { get; set; }
-    }
 }

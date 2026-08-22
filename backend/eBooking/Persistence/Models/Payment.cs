@@ -10,7 +10,7 @@ namespace Persistence.Models
         public PaymentMethod PaymentMethod { get; set; }
         public PaymentStatus Status { get; set; }
         public string? TransactionId { get; set; }
-        /// <summary>Stripe Checkout Session id or PayPal Order id during hosted checkout.</summary>
+        /// <summary>Stripe Checkout Session id / PaymentIntent id during hosted checkout.</summary>
         public string? CheckoutId { get; set; }
         public string? PaymentProviderResponse { get; set; }
         public DateTime? ProcessedAt { get; set; }

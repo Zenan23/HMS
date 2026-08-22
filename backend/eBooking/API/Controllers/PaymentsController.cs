@@ -134,40 +134,7 @@ namespace API.Controllers
         }
 
         /// <summary>
-        /// PayPal narudžba za in-app WebView (approve URL).
-        /// </summary>
-        [HttpPost("paypal/order")]
-        public async Task<ActionResult<ApiResponse<PayPalNativeOrderResponseDto>>> PayPalOrder([FromBody] CreateHostedCheckoutDto dto)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
-                    return BadRequest(ApiResponse<PayPalNativeOrderResponseDto>.ErrorResult("Validation failed.", errors));
-                }
-
-                var authError = await AuthorizeAndPrepareCheckoutAsync(dto);
-                if (authError != null) return authError;
-
-                var userAgent = Request.Headers["User-Agent"].ToString();
-                var ipAddress = GetClientIpAddress();
-                var result = await _paymentService.StartPayPalNativeOrderAsync(dto, userAgent, ipAddress);
-                return Ok(ApiResponse<PayPalNativeOrderResponseDto>.SuccessResult(result, "PayPal narudžba kreirana."));
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ApiResponse<PayPalNativeOrderResponseDto>.ErrorResult(ex.Message));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "PayPal order greška");
-                return StatusCode(500, ApiResponse<PayPalNativeOrderResponseDto>.ErrorResult("Greška pri kreiranju PayPal narudžbe."));
-            }
-        }
-
-        /// <summary>
-        /// Započinje hosted checkout (Stripe ili PayPal). Vraća URL za redirect u preglednik.
+        /// Započinje hosted checkout (Stripe). Vraća URL za redirect u preglednik.
         /// </summary>
         [HttpPost("hosted-checkout")]
         public async Task<ActionResult<ApiResponse<HostedCheckoutResponseDto>>> HostedCheckout([FromBody] CreateHostedCheckoutDto dto)
@@ -196,41 +163,6 @@ namespace API.Controllers
             {
                 _logger.LogError(ex, "Hosted checkout greška");
                 return StatusCode(500, ApiResponse<HostedCheckoutResponseDto>.ErrorResult("Greška pri kreiranju plaćanja."));
-            }
-        }
-
-        /// <summary>
-        /// Nakon povratka sa PayPal-a: capture narudžbe (token = order id iz query stringa).
-        /// </summary>
-        [HttpPost("paypal/capture")]
-        public async Task<ActionResult<ApiResponse<bool>>> PayPalCapture([FromBody] PayPalCaptureRequestDto request)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Validation failed.", errors));
-                }
-
-                int? userId = null;
-                var uidClaim = User.FindFirst("userId") ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-                if (uidClaim != null && int.TryParse(uidClaim.Value, out var uid))
-                    userId = uid;
-
-                var ok = await _paymentService.CapturePayPalAfterReturnAsync(request.Token, userId);
-                if (!ok)
-                    return BadRequest(ApiResponse<bool>.ErrorResult("PayPal capture nije uspio."));
-                return Ok(ApiResponse<bool>.SuccessResult(true, "Plaćanje potvrđeno."));
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ApiResponse<bool>.ErrorResult(ex.Message));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "PayPal capture greška");
-                return StatusCode(500, ApiResponse<bool>.ErrorResult("Greška pri PayPal capture-u."));
             }
         }
 

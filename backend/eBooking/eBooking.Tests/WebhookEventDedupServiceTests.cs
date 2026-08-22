@@ -32,8 +32,8 @@ public class WebhookEventDedupServiceTests
         await using (var ctx = new ApplicationDbContext(options))
         {
             var svc = new WebhookEventDedupService(ctx);
-            Assert.True(await svc.TryMarkProcessedAsync("PayPal", "t1"));
-            Assert.True(await svc.TryMarkProcessedAsync("PayPal", "t2"));
+            Assert.True(await svc.TryMarkProcessedAsync("Stripe", "t1"));
+            Assert.True(await svc.TryMarkProcessedAsync("Stripe", "t2"));
         }
     }
 }

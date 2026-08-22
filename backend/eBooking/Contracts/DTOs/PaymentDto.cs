@@ -18,7 +18,7 @@ namespace Contracts.DTOs
         public DateTime? RefundedAt { get; set; }
         public decimal? RefundAmount { get; set; }
 
-        /// <summary>Stripe session id or PayPal order id while checkout is in progress.</summary>
+        /// <summary>Stripe session/PaymentIntent id while checkout is in progress.</summary>
         public string? CheckoutId { get; set; }
 
         // Additional info
@@ -26,7 +26,7 @@ namespace Contracts.DTOs
         public string BookingReference { get; set; } = string.Empty;
     }
 
-    /// <summary>Starts hosted checkout (Stripe Checkout or PayPal order).</summary>
+    /// <summary>Starts hosted checkout (Stripe Checkout).</summary>
     public class CreateHostedCheckoutDto
     {
         [Required(ErrorMessage = "User ID is required")]
@@ -70,7 +70,6 @@ namespace Contracts.DTOs
         public bool UseHostedCheckout { get; set; }
         public string? StripePublishableKey { get; set; }
         public bool StripeConfigured { get; set; }
-        public bool PayPalConfigured { get; set; }
     }
 
     /// <summary>Stripe PaymentIntent for in-app Payment Sheet.</summary>
@@ -80,14 +79,6 @@ namespace Contracts.DTOs
         public string ClientSecret { get; set; } = string.Empty;
         public string PaymentIntentId { get; set; } = string.Empty;
         public string Currency { get; set; } = string.Empty;
-    }
-
-    /// <summary>PayPal order for in-app WebView approval.</summary>
-    public class PayPalNativeOrderResponseDto
-    {
-        public int PaymentId { get; set; }
-        public string OrderId { get; set; } = string.Empty;
-        public string ApproveUrl { get; set; } = string.Empty;
     }
 
     /// <summary>Legacy DTO kept for API compatibility; prefer <see cref="CreateHostedCheckoutDto"/>.</summary>

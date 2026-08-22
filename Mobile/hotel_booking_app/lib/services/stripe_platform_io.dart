@@ -2,9 +2,7 @@ import 'package:flutter_stripe/flutter_stripe.dart' hide PaymentMethod, Card;
 
 enum StripeCheckoutUi { paymentSheet, paymentElement, unsupported }
 
-Future<void> initStripePlatform() async {
-  Stripe.merchantIdentifier = 'merchant.com.example.hotel_booking_app';
-}
+Future<void> initStripePlatform() async {}
 
 Future<void> configureStripePublishableKey(String publishableKey) async {
   Stripe.publishableKey = publishableKey;
@@ -19,6 +17,10 @@ Future<void> presentStripePaymentSheet({
     paymentSheetParameters: SetupPaymentSheetParameters(
       paymentIntentClientSecret: clientSecret,
       merchantDisplayName: merchantDisplayName,
+      googlePay: const PaymentSheetGooglePay(
+        merchantCountryCode: 'BA',
+        testEnv: true,
+      ),
     ),
   );
   await Stripe.instance.presentPaymentSheet();

@@ -1,14 +1,11 @@
 /// Usklađeno sa backend [Contracts.Enums.PaymentMethod]
 enum PaymentMethod {
-  paypal,
   stripe,
 }
 
 extension PaymentMethodExt on PaymentMethod {
   int get apiValue {
     switch (this) {
-      case PaymentMethod.paypal:
-        return 2;
       case PaymentMethod.stripe:
         return 4;
     }
@@ -73,14 +70,12 @@ class PaymentConfig {
   final bool useHostedCheckout;
   final String? stripePublishableKey;
   final bool stripeConfigured;
-  final bool payPalConfigured;
 
   PaymentConfig({
     required this.enableNativeCheckout,
     required this.useHostedCheckout,
     this.stripePublishableKey,
     required this.stripeConfigured,
-    required this.payPalConfigured,
   });
 
   factory PaymentConfig.fromJson(Map<String, dynamic> json) {
@@ -89,7 +84,6 @@ class PaymentConfig {
       useHostedCheckout: json['useHostedCheckout'] as bool? ?? true,
       stripePublishableKey: json['stripePublishableKey'] as String?,
       stripeConfigured: json['stripeConfigured'] as bool? ?? false,
-      payPalConfigured: json['payPalConfigured'] as bool? ?? false,
     );
   }
 }
@@ -113,26 +107,6 @@ class StripeIntentResponse {
       clientSecret: json['clientSecret'] as String,
       paymentIntentId: json['paymentIntentId'] as String,
       currency: json['currency'] as String? ?? 'EUR',
-    );
-  }
-}
-
-class PayPalNativeOrderResponse {
-  final int paymentId;
-  final String orderId;
-  final String approveUrl;
-
-  PayPalNativeOrderResponse({
-    required this.paymentId,
-    required this.orderId,
-    required this.approveUrl,
-  });
-
-  factory PayPalNativeOrderResponse.fromJson(Map<String, dynamic> json) {
-    return PayPalNativeOrderResponse(
-      paymentId: (json['paymentId'] as num).toInt(),
-      orderId: json['orderId'] as String,
-      approveUrl: json['approveUrl'] as String,
     );
   }
 }
@@ -182,9 +156,7 @@ class PaymentDetails {
   factory PaymentDetails.fromJson(Map<String, dynamic> json) {
     final methodRaw = (json['paymentMethod'] as num?)?.toInt();
     PaymentMethod? method;
-    if (methodRaw == 2) {
-      method = PaymentMethod.paypal;
-    } else if (methodRaw == 4) {
+    if (methodRaw == 4) {
       method = PaymentMethod.stripe;
     }
     return PaymentDetails(

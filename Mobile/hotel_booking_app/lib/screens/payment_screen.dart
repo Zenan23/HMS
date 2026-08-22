@@ -11,14 +11,12 @@ import '../services/auth_service.dart';
 import '../services/stripe_platform.dart';
 import '../screens/home_screen.dart';
 import '../utils/payment_deep_link.dart';
-import '../widgets/paypal_checkout_webview.dart';
 import '../widgets/stripe_payment_element.dart';
 
 enum _PaymentPhase {
   idle,
   processing,
   browserOpen,
-  paypalWebView,
   stripeElement,
   confirming,
   completed,
@@ -43,7 +41,7 @@ class PaymentScreen extends StatefulWidget {
 class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserver {
   final _formKey = GlobalKey<FormState>();
   final _paymentsService = PaymentsService();
-  PaymentMethod _method = PaymentMethod.stripe;
+  final PaymentMethod _method = PaymentMethod.stripe;
   String? _description;
   bool _loading = false;
   bool _configLoading = true;
@@ -77,12 +75,9 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
 
     setState(() {
       _config = config;
-      // In-app Stripe (Payment Sheet / Payment Element). PayPal native samo van weba.
-      _useNative = canUseInAppStripe || (enableNative && !kIsWeb && (config?.payPalConfigured ?? false));
+      // In-app Stripe (Payment Sheet / Payment Element, uključuje i Google Pay na Androidu).
+      _useNative = canUseInAppStripe;
       _configLoading = false;
-      if (config != null && !config.stripeConfigured && config.payPalConfigured) {
-        _method = PaymentMethod.paypal;
-      }
     });
 
     if (canUseInAppStripe &&
@@ -135,11 +130,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
     });
 
     if (params.sessionId != null && params.sessionId!.isNotEmpty) {
-      _method = PaymentMethod.stripe;
       await _paymentsService.finalizeStripeSession(params.sessionId!);
-    } else if (params.payPalToken != null && params.payPalToken!.isNotEmpty) {
-      _method = PaymentMethod.paypal;
-      await _paymentsService.capturePayPalOrder(params.payPalToken!);
     }
 
     if (paymentId != null && mounted) {
@@ -165,24 +156,17 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
   }
 
   CreateHostedCheckoutDto _buildCheckoutDto(int userId) {
-    // PayPal sandbox često odbija EUR (COMPLIANCE_VIOLATION) — koristi USD za PayPal.
-    final currency = _method == PaymentMethod.paypal ? 'USD' : widget.currency;
-    // PayPal odbija privatne IP (10.0.2.2). Koristi javni HTTPS host — WebView ga
-    // presreće prije stvarnog mrežnog učitavanja (vidi payment_deep_link.dart).
-    const payPalReturnHost = 'https://ebooking.app';
     return CreateHostedCheckoutDto(
       userId: userId,
       bookingId: widget.bookingId,
       amount: widget.amount,
       paymentMethod: _method,
-      currency: currency,
+      currency: widget.currency,
       description: _description,
-      returnUrl: _method == PaymentMethod.paypal ? '$payPalReturnHost/payment-return' : null,
-      cancelUrl: _method == PaymentMethod.paypal ? '$payPalReturnHost/payment-cancel' : null,
     );
   }
 
-  /// Plaćanje je nepovratna akcija (novac se skida sa kartice/PayPal naloga) — traži potvrdu
+  /// Plaćanje je nepovratna akcija (novac se skida sa kartice) — traži potvrdu
   /// prije pokretanja stvarnog checkout flow-a.
   Future<void> _confirmAndStartPayment() async {
     final confirmed = await showDialog<bool>(
@@ -221,14 +205,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
     }
 
     if (_useNative) {
-      if (_method == PaymentMethod.stripe) {
-        await _startStripeNative(userId);
-      } else if (kIsWeb) {
-        // PayPal WebView nije pouzdan na Flutter web — hosted redirect.
-        await _startHostedCheckout(userId);
-      } else {
-        await _startPayPalNative(userId);
-      }
+      await _startStripeNative(userId);
     } else {
       await _startHostedCheckout(userId);
     }
@@ -260,7 +237,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
     _stripePaymentIntentId = intent.paymentIntentId;
     _stripeClientSecret = intent.clientSecret;
 
-    // Web: ugrađeni Payment Element. Mobile: Payment Sheet.
+    // Web: ugrađeni Payment Element. Mobile: Payment Sheet (kartica + Google Pay).
     if (stripeCheckoutUi == StripeCheckoutUi.paymentElement) {
       if (!mounted) return;
       setState(() {
@@ -344,107 +321,6 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
     await _waitForCompletion(paymentId, PaymentMethod.stripe, tryProviderConfirm: true);
   }
 
-  Future<void> _startPayPalNative(int userId) async {
-    if (_config?.payPalConfigured != true) {
-      setState(() => _error = 'PayPal nije konfigurisan na serveru.');
-      return;
-    }
-
-    setState(() {
-      _loading = true;
-      _error = null;
-      _phase = _PaymentPhase.processing;
-    });
-
-    final order = await _paymentsService.startPayPalOrder(_buildCheckoutDto(userId));
-    if (order == null) {
-      setState(() {
-        _loading = false;
-        _phase = _PaymentPhase.failed;
-        _error = 'Neuspješno kreiranje PayPal narudžbe.';
-      });
-      return;
-    }
-
-    _pendingPaymentId = order.paymentId;
-
-    if (!mounted) return;
-    setState(() {
-      _loading = false;
-      _phase = _PaymentPhase.paypalWebView;
-    });
-
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => PayPalCheckoutWebView(
-          approveUrl: order.approveUrl,
-          onCancel: () {
-            final cancelledId = _pendingPaymentId;
-            if (cancelledId != null) {
-              unawaited(_paymentsService.cancelPayment(
-                cancelledId,
-                'Korisnik je zatvorio PayPal WebView.',
-              ));
-            }
-            if (mounted) {
-              setState(() {
-                _phase = _PaymentPhase.failed;
-                _error = 'PayPal plaćanje je otkazano.';
-              });
-            }
-          },
-          onReturn: (params) async {
-            if (params.isCancel) {
-              final cancelledId = _pendingPaymentId;
-              if (cancelledId != null) {
-                unawaited(_paymentsService.cancelPayment(
-                  cancelledId,
-                  'PayPal plaćanje otkazano (cancel URL).',
-                ));
-              }
-              if (mounted) {
-                setState(() {
-                  _phase = _PaymentPhase.failed;
-                  _error = 'PayPal plaćanje je otkazano.';
-                });
-              }
-              return;
-            }
-
-            final token = params.payPalToken ?? order.orderId;
-            if (!mounted) return;
-            setState(() {
-              _phase = _PaymentPhase.confirming;
-              _error = null;
-            });
-            final captureError = await _paymentsService.capturePayPalOrder(token);
-            if (!mounted) return;
-            if (captureError != null) {
-              final friendly = captureError.contains('COMPLIANCE_VIOLATION')
-                  ? 'PayPal sandbox je odbio transakciju (COMPLIANCE_VIOLATION).\n\n'
-                      'U PayPal Developer Dashboardu kreiraj novi Sandbox Business (US) nalog, '
-                      'poveži REST app credentials u .env, i plaćaj Sandbox Personal (US) buyer nalogom. '
-                      'Valuta mora biti USD.'
-                  : captureError;
-              final failedId = order.paymentId;
-              unawaited(_paymentsService.cancelPayment(
-                failedId,
-                'PayPal capture nije uspio: $captureError',
-              ));
-              setState(() {
-                _phase = _PaymentPhase.failed;
-                _error = friendly;
-              });
-              return;
-            }
-            await _waitForCompletion(order.paymentId, PaymentMethod.paypal, tryProviderConfirm: true);
-          },
-        ),
-      ),
-    );
-  }
-
   Future<void> _startHostedCheckout(int userId) async {
     setState(() {
       _loading = true;
@@ -456,7 +332,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
     if (checkout == null) {
       setState(() {
         _loading = false;
-        _error = 'Neuspješno kreiranje plaćanja. Provjerite API i Stripe/PayPal ključeve.';
+        _error = 'Neuspješno kreiranje plaćanja. Provjerite API i Stripe ključeve.';
       });
       return;
     }
@@ -555,10 +431,9 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
     });
   }
 
-  String get _providerLabel => _method == PaymentMethod.stripe ? 'Stripe' : 'PayPal';
+  String get _providerLabel => 'Stripe';
 
   bool get _stripeAvailable => _config?.stripeConfigured ?? false;
-  bool get _payPalAvailable => _config?.payPalConfigured ?? false;
 
   @override
   Widget build(BuildContext context) {
@@ -591,32 +466,15 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
                     ),
                     const SizedBox(height: 28),
                     if (_phase == _PaymentPhase.idle) ...[
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _MethodTile(
-                              selected: _method == PaymentMethod.stripe,
-                              enabled: _stripeAvailable || !_useNative,
-                              icon: Icons.credit_card,
-                              label: 'Kartica',
-                              color: const Color(0xFF635BFF),
-                              onTap: () => setState(() => _method = PaymentMethod.stripe),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _MethodTile(
-                              selected: _method == PaymentMethod.paypal,
-                              enabled: _payPalAvailable || !_useNative,
-                              icon: Icons.account_balance_wallet_outlined,
-                              label: 'PayPal',
-                              color: const Color(0xFF003087),
-                              onTap: () => setState(() => _method = PaymentMethod.paypal),
-                            ),
-                          ),
-                        ],
+                      _MethodTile(
+                        selected: true,
+                        enabled: _stripeAvailable || !_useNative,
+                        icon: Icons.credit_card,
+                        label: 'Kartica / Google Pay',
+                        color: const Color(0xFF635BFF),
+                        onTap: () {},
                       ),
-                      if (_useNative && !_stripeAvailable && !_payPalAvailable)
+                      if (_useNative && !_stripeAvailable)
                         Padding(
                           padding: const EdgeInsets.only(top: 12),
                           child: Text(

@@ -1,18 +1,15 @@
-/// Deep link / return URL parametri nakon Stripe/PayPal checkout-a.
+/// Deep link / return URL parametri nakon Stripe checkout-a.
 /// Primjeri:
-/// - ebooking://payment-return?paymentId=5&token=...
-/// - http://10.0.2.2:8080/payment-return?paymentId=5&token=...
-/// - PayPal genericError?...&token=...&cancelLink=ebooking://payment-return?...
+/// - ebooking://payment-return?paymentId=5&session_id=...
+/// - http://10.0.2.2:8080/payment-return?paymentId=5&session_id=...
 class PaymentReturnParams {
   final int? paymentId;
   final String? sessionId;
-  final String? payPalToken;
   final bool isCancel;
 
   const PaymentReturnParams({
     this.paymentId,
     this.sessionId,
-    this.payPalToken,
     this.isCancel = false,
   });
 
@@ -24,7 +21,7 @@ class PaymentReturnParams {
       return _fromDeepLinkHost(uri);
     }
 
-    // 2) HTTP/HTTPS API fallback / WebView return host (ebooking.app)
+    // 2) HTTP/HTTPS API fallback return host (ebooking.app)
     final path = uri.path.toLowerCase();
     final isReturnPath =
         path.endsWith('/payment-return') || path == '/payment-return';
@@ -34,41 +31,7 @@ class PaymentReturnParams {
       return PaymentReturnParams(
         paymentId: int.tryParse(uri.queryParameters['paymentId'] ?? ''),
         sessionId: uri.queryParameters['session_id'],
-        payPalToken: uri.queryParameters['token'],
         isCancel: isCancelPath,
-      );
-    }
-
-    // 3) PayPal genericError — često sadrži token + cancelLink s PayerID (odobreno, ali deep link pao)
-    final host = uri.host.toLowerCase();
-    final isPayPalError = host.contains('paypal.com') &&
-        (path.contains('genericerror') || path.contains('genericError'));
-    if (isPayPalError || uri.queryParameters.containsKey('cancelLink')) {
-      final fromCancelLink = _fromCancelLink(uri.queryParameters['cancelLink']);
-      if (fromCancelLink != null) return fromCancelLink;
-
-      final token = uri.queryParameters['token'];
-      if (token != null && token.isNotEmpty) {
-        // Ako ima PayerID u cancelLink-u ili queryju — tretiraj kao uspješan return.
-        final payerId = uri.queryParameters['PayerID'];
-        if (payerId != null && payerId.isNotEmpty) {
-          return PaymentReturnParams(payPalToken: token);
-        }
-        // genericError s tokenom — ipak pokušaj capture (order je često APPROVED)
-        return PaymentReturnParams(payPalToken: token);
-      }
-    }
-
-    // 4) Bilo koji URL s PayPal token + PayerID (uspješno odobrenje)
-    final token = uri.queryParameters['token'];
-    final payerId = uri.queryParameters['PayerID'];
-    if (token != null &&
-        token.isNotEmpty &&
-        payerId != null &&
-        payerId.isNotEmpty) {
-      return PaymentReturnParams(
-        paymentId: int.tryParse(uri.queryParameters['paymentId'] ?? ''),
-        payPalToken: token,
       );
     }
 
@@ -83,7 +46,6 @@ class PaymentReturnParams {
       return PaymentReturnParams(
         paymentId: paymentId,
         sessionId: uri.queryParameters['session_id'],
-        payPalToken: uri.queryParameters['token'],
       );
     }
     if (host == 'payment-cancel') {
@@ -93,17 +55,5 @@ class PaymentReturnParams {
       );
     }
     return null;
-  }
-
-  static PaymentReturnParams? _fromCancelLink(String? cancelLink) {
-    if (cancelLink == null || cancelLink.isEmpty) return null;
-    final decoded = Uri.decodeComponent(cancelLink);
-    final nested = Uri.tryParse(decoded);
-    if (nested == null) return null;
-    if (nested.scheme == scheme) {
-      return _fromDeepLinkHost(nested);
-    }
-    // Nested može biti i HTTP payment-return
-    return tryParse(nested);
   }
 }

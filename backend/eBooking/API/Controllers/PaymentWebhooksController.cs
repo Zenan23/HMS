@@ -43,35 +43,5 @@ namespace API.Controllers
                 return StatusCode(500);
             }
         }
-
-        [HttpPost("paypal")]
-        public async Task<IActionResult> PayPalWebhook()
-        {
-            Request.Body.Position = 0;
-            using var reader = new StreamReader(Request.Body, leaveOpen: true);
-            var json = await reader.ReadToEndAsync();
-            Request.Body.Position = 0;
-
-            var transmissionId = Request.Headers["PAYPAL-TRANSMISSION-ID"].ToString();
-            var transmissionTime = Request.Headers["PAYPAL-TRANSMISSION-TIME"].ToString();
-            var certUrl = Request.Headers["PAYPAL-CERT-URL"].ToString();
-            var authAlgo = Request.Headers["PAYPAL-AUTH-ALGO"].ToString();
-            var transmissionSig = Request.Headers["PAYPAL-TRANSMISSION-SIG"].ToString();
-
-            if (string.IsNullOrEmpty(transmissionId))
-                return BadRequest();
-
-            try
-            {
-                var ok = await _paymentService.ProcessPayPalWebhookAsync(
-                    json, transmissionId, transmissionTime, certUrl, authAlgo, transmissionSig);
-                return ok ? Ok() : BadRequest();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "PayPal webhook obrada");
-                return StatusCode(500);
-            }
-        }
     }
 }
