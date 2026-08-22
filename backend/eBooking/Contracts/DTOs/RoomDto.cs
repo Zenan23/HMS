@@ -17,51 +17,51 @@ namespace Contracts.DTOs
 
     public class CreateRoomDto : CreateBaseEntityDto
     {
-        [Required(ErrorMessage = "Room number is required")]
-        [StringLength(10, ErrorMessage = "Room number cannot exceed 10 characters")]
+        [Required(ErrorMessage = "Broj sobe je obavezan.")]
+        [StringLength(10, ErrorMessage = "Broj sobe ne smije imati više od 10 karaktera.")]
         public string RoomNumber { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Room type is required")]
+        [Required(ErrorMessage = "Tip sobe je obavezan.")]
         public RoomType RoomType { get; set; }
 
-        [Required(ErrorMessage = "Price per night is required")]
-        [Range(0.01, double.MaxValue, ErrorMessage = "Price per night must be greater than 0")]
+        [Required(ErrorMessage = "Cijena po noćenju je obavezna.")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Cijena po noćenju mora biti veća od 0.")]
         public decimal PricePerNight { get; set; }
 
-        [Required(ErrorMessage = "Max occupancy is required")]
-        [Range(1, int.MaxValue, ErrorMessage = "Max occupancy must be at least 1")]
+        [Required(ErrorMessage = "Maksimalan broj gostiju je obavezan.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Maksimalan broj gostiju mora biti najmanje 1.")]
         public int MaxOccupancy { get; set; }
 
         public string Description { get; set; } = string.Empty;
 
         public bool IsAvailable { get; set; } = true;
 
-        [Required(ErrorMessage = "Hotel ID is required")]
+        [Required(ErrorMessage = "ID hotela je obavezan.")]
         public int HotelId { get; set; }
     }
 
     public class UpdateRoomDto : UpdateBaseEntityDto
     {
-        [Required(ErrorMessage = "Room number is required")]
-        [StringLength(10, ErrorMessage = "Room number cannot exceed 10 characters")]
+        [Required(ErrorMessage = "Broj sobe je obavezan.")]
+        [StringLength(10, ErrorMessage = "Broj sobe ne smije imati više od 10 karaktera.")]
         public string RoomNumber { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Room type is required")]
+        [Required(ErrorMessage = "Tip sobe je obavezan.")]
         public RoomType RoomType { get; set; }
 
-        [Required(ErrorMessage = "Price per night is required")]
-        [Range(0.01, double.MaxValue, ErrorMessage = "Price per night must be greater than 0")]
+        [Required(ErrorMessage = "Cijena po noćenju je obavezna.")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Cijena po noćenju mora biti veća od 0.")]
         public decimal PricePerNight { get; set; }
 
-        [Required(ErrorMessage = "Max occupancy is required")]
-        [Range(1, int.MaxValue, ErrorMessage = "Max occupancy must be at least 1")]
+        [Required(ErrorMessage = "Maksimalan broj gostiju je obavezan.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Maksimalan broj gostiju mora biti najmanje 1.")]
         public int MaxOccupancy { get; set; }
 
         public string Description { get; set; } = string.Empty;
 
         public bool IsAvailable { get; set; }
 
-        [Required(ErrorMessage = "Hotel ID is required")]
+        [Required(ErrorMessage = "ID hotela je obavezan.")]
         public int HotelId { get; set; }
     }
 

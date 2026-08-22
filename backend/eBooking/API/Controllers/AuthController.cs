@@ -89,7 +89,7 @@ namespace API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during login for {Email}", loginDto.Email);
-                return StatusCode(500, new { message = "An error occurred during login" });
+                return StatusCode(500, new { message = "Došlo je do greške prilikom prijave." });
             }
         }
 
@@ -115,7 +115,7 @@ namespace API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during registration for {Email}", registerDto.Email);
-                return StatusCode(500, new { message = "An error occurred during registration" });
+                return StatusCode(500, new { message = "Došlo je do greške prilikom registracije." });
             }
         }
 
@@ -185,13 +185,13 @@ namespace API.Controllers
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
                 {
-                    return Unauthorized(new { message = "Invalid token" });
+                    return Unauthorized(new { message = "Nevažeći token." });
                 }
 
                 var user = await _authenticationService.GetUserByIdAsync(userId);
                 if (user == null)
                 {
-                    return NotFound(new { message = "User not found" });
+                    return NotFound(new { message = "Korisnik nije pronađen." });
                 }
 
                 return Ok(user);
@@ -199,7 +199,7 @@ namespace API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting user profile");
-                return StatusCode(500, new { message = "An error occurred while retrieving profile" });
+                return StatusCode(500, new { message = "Došlo je do greške pri dohvatanju profila." });
             }
         }
 
@@ -219,7 +219,7 @@ namespace API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error checking email availability");
-                return StatusCode(500, new { message = "An error occurred while checking email availability" });
+                return StatusCode(500, new { message = "Došlo je do greške pri provjeri dostupnosti email-a." });
             }
         }
 
@@ -239,7 +239,7 @@ namespace API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error checking username availability");
-                return StatusCode(500, new { message = "An error occurred while checking username availability" });
+                return StatusCode(500, new { message = "Došlo je do greške pri provjeri dostupnosti korisničkog imena." });
             }
         }
     }

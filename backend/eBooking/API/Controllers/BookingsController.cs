@@ -75,7 +75,7 @@ namespace API.Controllers
             }
 
             var bookings = await _bookingService.GetPaidBookingsByUserIdAsync(userId);
-            return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Paid bookings retrieved successfully."));
+            return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Plaćene rezervacije su uspješno učitane."));
         }
 
         [HttpGet("user/{userId}/nopaid")]
@@ -87,7 +87,7 @@ namespace API.Controllers
             }
 
             var bookings = await _bookingService.GetNoPaidBookingsByUserIdAsync(userId);
-            return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Paid bookings retrieved successfully."));
+            return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Neplaćene rezervacije su uspješno učitane."));
         }
 
         /// <summary>
@@ -102,7 +102,7 @@ namespace API.Controllers
             {
                 if (guestId <= 0)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<BookingDto>>.ErrorResult("Invalid guest ID."));
+                    return BadRequest(ApiResponse<IEnumerable<BookingDto>>.ErrorResult("Nevažeći ID gosta."));
                 }
 
                 if (!IsSelfOrElevated(guestId))
@@ -111,12 +111,12 @@ namespace API.Controllers
                 }
 
                 var bookings = await _bookingService.GetByGuestIdAsync(guestId);
-                return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Bookings retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Rezervacije su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving bookings for guest ID: {GuestId}", guestId);
-                return StatusCode(500, ApiResponse<IEnumerable<BookingDto>>.ErrorResult("An error occurred while retrieving bookings."));
+                return StatusCode(500, ApiResponse<IEnumerable<BookingDto>>.ErrorResult("Došlo je do greške pri učitavanju rezervacija."));
             }
         }
 
@@ -132,7 +132,7 @@ namespace API.Controllers
             {
                 if (userId <= 0)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<BookingDto>>.ErrorResult("Invalid user ID."));
+                    return BadRequest(ApiResponse<IEnumerable<BookingDto>>.ErrorResult("Nevažeći ID korisnika."));
                 }
 
                 if (!IsSelfOrElevated(userId))
@@ -141,12 +141,12 @@ namespace API.Controllers
                 }
 
                 var bookings = await _bookingService.GetByUserIdAsync(userId);
-                return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Bookings retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Rezervacije su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving bookings for user ID: {UserId}", userId);
-                return StatusCode(500, ApiResponse<IEnumerable<BookingDto>>.ErrorResult("An error occurred while retrieving bookings."));
+                return StatusCode(500, ApiResponse<IEnumerable<BookingDto>>.ErrorResult("Došlo je do greške pri učitavanju rezervacija."));
             }
         }
 
@@ -163,16 +163,16 @@ namespace API.Controllers
             {
                 if (roomId <= 0)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<BookingDto>>.ErrorResult("Invalid room ID."));
+                    return BadRequest(ApiResponse<IEnumerable<BookingDto>>.ErrorResult("Nevažeći ID sobe."));
                 }
 
                 var bookings = await _bookingService.GetByRoomIdAsync(roomId);
-                return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Bookings retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Rezervacije su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving bookings for room ID: {RoomId}", roomId);
-                return StatusCode(500, ApiResponse<IEnumerable<BookingDto>>.ErrorResult("An error occurred while retrieving bookings."));
+                return StatusCode(500, ApiResponse<IEnumerable<BookingDto>>.ErrorResult("Došlo je do greške pri učitavanju rezervacija."));
             }
         }
 
@@ -188,12 +188,12 @@ namespace API.Controllers
             try
             {
                 var bookings = await _bookingService.GetByStatusAsync(status);
-                return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Bookings retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Rezervacije su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving bookings with status: {Status}", status);
-                return StatusCode(500, ApiResponse<IEnumerable<BookingDto>>.ErrorResult("An error occurred while retrieving bookings."));
+                return StatusCode(500, ApiResponse<IEnumerable<BookingDto>>.ErrorResult("Došlo je do greške pri učitavanju rezervacija."));
             }
         }
 
@@ -213,16 +213,16 @@ namespace API.Controllers
             {
                 if (startDate >= endDate)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<BookingDto>>.ErrorResult("Start date must be before end date."));
+                    return BadRequest(ApiResponse<IEnumerable<BookingDto>>.ErrorResult("Početni datum mora biti prije krajnjeg datuma."));
                 }
 
                 var bookings = await _bookingService.GetBookingsByDateRangeAsync(startDate, endDate);
-                return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Bookings retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<BookingDto>>.SuccessResult(bookings, "Rezervacije su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving bookings for date range {StartDate} to {EndDate}", startDate, endDate);
-                return StatusCode(500, ApiResponse<IEnumerable<BookingDto>>.ErrorResult("An error occurred while retrieving bookings."));
+                return StatusCode(500, ApiResponse<IEnumerable<BookingDto>>.ErrorResult("Došlo je do greške pri učitavanju rezervacija."));
             }
         }
 
@@ -245,21 +245,21 @@ namespace API.Controllers
             {
                 if (roomId <= 0)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Invalid room ID."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Nevažeći ID sobe."));
                 }
 
                 if (checkIn >= checkOut)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Check-in date must be before check-out date."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Datum dolaska mora biti prije datuma odlaska."));
                 }
 
                 var isAvailable = await _bookingService.IsRoomAvailableAsync(roomId, checkIn, checkOut, excludeBookingId);
-                return Ok(ApiResponse<bool>.SuccessResult(isAvailable, $"Room availability checked. Available: {isAvailable}"));
+                return Ok(ApiResponse<bool>.SuccessResult(isAvailable, $"Dostupnost sobe provjerena. Dostupna: {isAvailable}"));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error checking room {RoomId} availability", roomId);
-                return StatusCode(500, ApiResponse<bool>.ErrorResult("An error occurred while checking room availability."));
+                return StatusCode(500, ApiResponse<bool>.ErrorResult("Došlo je do greške pri provjeri dostupnosti sobe."));
             }
         }
 
@@ -277,13 +277,13 @@ namespace API.Controllers
             {
                 if (id <= 0)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Invalid booking ID."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Nevažeći ID rezervacije."));
                 }
 
                 var existing = await _bookingService.GetByIdAsync(id);
                 if (existing == null)
                 {
-                    return NotFound(ApiResponse<bool>.ErrorResult($"Booking with ID {id} not found."));
+                    return NotFound(ApiResponse<bool>.ErrorResult($"Rezervacija sa ID {id} nije pronađena."));
                 }
 
                 if (!IsSelfOrElevated(existing.UserId))
@@ -323,15 +323,15 @@ namespace API.Controllers
 
                 if (!result)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Operation cannot be completed. Check booking status."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Operacija se ne može izvršiti. Provjerite status rezervacije."));
                 }
 
-                return Ok(ApiResponse<bool>.SuccessResult(true, $"Booking operation executed successfully."));
+                return Ok(ApiResponse<bool>.SuccessResult(true, $"Operacija nad rezervacijom je uspješno izvršena."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating booking status for ID: {BookingId}", id);
-                return StatusCode(500, ApiResponse<bool>.ErrorResult("An error occurred while updating the booking status."));
+                return StatusCode(500, ApiResponse<bool>.ErrorResult("Došlo je do greške pri ažuriranju statusa rezervacije."));
             }
         }
 
@@ -348,13 +348,13 @@ namespace API.Controllers
             {
                 if (id <= 0)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Invalid booking ID."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Nevažeći ID rezervacije."));
                 }
 
                 var existing = await _bookingService.GetByIdAsync(id);
                 if (existing == null)
                 {
-                    return NotFound(ApiResponse<bool>.ErrorResult($"Booking with ID {id} not found."));
+                    return NotFound(ApiResponse<bool>.ErrorResult($"Rezervacija sa ID {id} nije pronađena."));
                 }
 
                 // Vlasništvo: gost smije otkazati samo svoju rezervaciju; userId se uzima iz JWT-a,
@@ -368,15 +368,15 @@ namespace API.Controllers
 
                 if (!result)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Booking cannot be cancelled. Check booking status."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Rezervacija se ne može otkazati. Provjerite status rezervacije."));
                 }
 
-                return Ok(ApiResponse<bool>.SuccessResult(result, "Booking cancelled successfully."));
+                return Ok(ApiResponse<bool>.SuccessResult(result, "Rezervacija je uspješno otkazana."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error cancelling booking with ID: {BookingId}", id);
-                return StatusCode(500, ApiResponse<bool>.ErrorResult("An error occurred while cancelling the booking."));
+                return StatusCode(500, ApiResponse<bool>.ErrorResult("Došlo je do greške pri otkazivanju rezervacije."));
             }
         }
 
@@ -394,22 +394,22 @@ namespace API.Controllers
             {
                 if (id <= 0)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Invalid booking ID."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Nevažeći ID rezervacije."));
                 }
 
                 var result = await _bookingService.CheckInAsync(id, GetCurrentUserId());
 
                 if (!result)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Booking cannot be checked in. Check booking status."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Za rezervaciju se ne može izvršiti check-in. Provjerite status rezervacije."));
                 }
 
-                return Ok(ApiResponse<bool>.SuccessResult(result, "Booking checked in successfully."));
+                return Ok(ApiResponse<bool>.SuccessResult(result, "Check-in je uspješno izvršen."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error checking in booking with ID: {BookingId}", id);
-                return StatusCode(500, ApiResponse<bool>.ErrorResult("An error occurred while checking in the booking."));
+                return StatusCode(500, ApiResponse<bool>.ErrorResult("Došlo je do greške pri check-in-u rezervacije."));
             }
         }
 
@@ -427,22 +427,22 @@ namespace API.Controllers
             {
                 if (id <= 0)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Invalid booking ID."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Nevažeći ID rezervacije."));
                 }
 
                 var result = await _bookingService.CheckOutAsync(id, GetCurrentUserId());
 
                 if (!result)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Booking cannot be checked out. Check booking status."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Za rezervaciju se ne može izvršiti check-out. Provjerite status rezervacije."));
                 }
 
-                return Ok(ApiResponse<bool>.SuccessResult(result, "Booking checked out successfully."));
+                return Ok(ApiResponse<bool>.SuccessResult(result, "Check-out je uspješno izvršen."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error checking out booking with ID: {BookingId}", id);
-                return StatusCode(500, ApiResponse<bool>.ErrorResult("An error occurred while checking out the booking."));
+                return StatusCode(500, ApiResponse<bool>.ErrorResult("Došlo je do greške pri check-out-u rezervacije."));
             }
         }
     }

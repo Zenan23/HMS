@@ -20,7 +20,6 @@ namespace Application.Services
     {
         private readonly IEnumerable<IPaymentGatewayProvider> _paymentProviders;
         private readonly StripePaymentProvider _stripePaymentProvider;
-        private readonly PayPalPaymentProvider _payPalPaymentProvider;
         private readonly IPaymentAuditLogService _auditLogService;
         private readonly IBookingQueries _bookingQueries;
         private readonly IPublishEndpoint _publishEndpoint;
@@ -39,7 +38,6 @@ namespace Application.Services
             ILogger<PaymentService> logger,
             IEnumerable<IPaymentGatewayProvider> paymentProviders,
             StripePaymentProvider stripePaymentProvider,
-            PayPalPaymentProvider payPalPaymentProvider,
             IPaymentAuditLogService auditLogService,
             IBookingQueries bookingQueries,
             IPublishEndpoint publishEndpoint,
@@ -51,7 +49,6 @@ namespace Application.Services
         {
             _paymentProviders = paymentProviders;
             _stripePaymentProvider = stripePaymentProvider;
-            _payPalPaymentProvider = payPalPaymentProvider;
             _auditLogService = auditLogService;
             _bookingQueries = bookingQueries;
             _publishEndpoint = publishEndpoint;
@@ -92,9 +89,9 @@ namespace Application.Services
             if (!_paymentOptions.UseHostedCheckout)
                 throw new InvalidOperationException("Hosted checkout je onemogućen (Payments:UseHostedCheckout).");
 
-            if (dto.PaymentMethod is not DomainPaymentMethod.Stripe and not DomainPaymentMethod.PayPal)
+            if (dto.PaymentMethod is not DomainPaymentMethod.Stripe)
             {
-                throw new InvalidOperationException("Podržane su samo metode Stripe i PayPal.");
+                throw new InvalidOperationException("Podržana je samo metoda Stripe.");
             }
 
             await ValidateAndPrepareCheckoutAsync(dto);
@@ -113,23 +110,11 @@ namespace Application.Services
                 throw new InvalidOperationException($"Nema provajdera za {dto.PaymentMethod}.");
             }
 
-            HostedCheckoutUrls urls;
-            if (dto.PaymentMethod == DomainPaymentMethod.Stripe)
+            var urls = new HostedCheckoutUrls
             {
-                urls = new HostedCheckoutUrls
-                {
-                    SuccessUrl = $"{_paymentOptions.Stripe.SuccessUrl.TrimEnd('/')}?paymentId={paymentEntity.Id}",
-                    CancelUrl = $"{_paymentOptions.Stripe.CancelUrl.TrimEnd('/')}?paymentId={paymentEntity.Id}",
-                };
-            }
-            else
-            {
-                urls = new HostedCheckoutUrls
-                {
-                    SuccessUrl = $"{_paymentOptions.PayPal.ReturnUrl.TrimEnd('/')}?paymentId={paymentEntity.Id}",
-                    CancelUrl = $"{_paymentOptions.PayPal.CancelUrl.TrimEnd('/')}?paymentId={paymentEntity.Id}",
-                };
-            }
+                SuccessUrl = $"{_paymentOptions.Stripe.SuccessUrl.TrimEnd('/')}?paymentId={paymentEntity.Id}",
+                CancelUrl = $"{_paymentOptions.Stripe.CancelUrl.TrimEnd('/')}?paymentId={paymentEntity.Id}",
+            };
 
             var sessionResult = await provider.CreateHostedCheckoutAsync(paymentEntity, urls);
             if (!sessionResult.IsSuccess || string.IsNullOrEmpty(sessionResult.RedirectUrl))
@@ -160,8 +145,6 @@ namespace Application.Services
         {
             var stripeOk = !string.IsNullOrWhiteSpace(_paymentOptions.Stripe.SecretKey)
                 && !string.IsNullOrWhiteSpace(_paymentOptions.Stripe.PublishableKey);
-            var payPalOk = !string.IsNullOrWhiteSpace(_paymentOptions.PayPal.ClientId)
-                && !string.IsNullOrWhiteSpace(_paymentOptions.PayPal.ClientSecret);
 
             return new PaymentConfigDto
             {
@@ -169,7 +152,6 @@ namespace Application.Services
                 UseHostedCheckout = _paymentOptions.UseHostedCheckout,
                 StripePublishableKey = stripeOk ? _paymentOptions.Stripe.PublishableKey : null,
                 StripeConfigured = stripeOk,
-                PayPalConfigured = payPalOk,
             };
         }
 
@@ -216,52 +198,6 @@ namespace Application.Services
                 ClientSecret = intentResult.ClientSecret,
                 PaymentIntentId = intentResult.PaymentIntentId,
                 Currency = dto.Currency,
-            };
-        }
-
-        public async Task<PayPalNativeOrderResponseDto> StartPayPalNativeOrderAsync(CreateHostedCheckoutDto dto, string? userAgent = null, string? ipAddress = null)
-        {
-            if (!_paymentOptions.EnableNativeCheckout)
-                throw new InvalidOperationException("In-app checkout je onemogućen (Payments:EnableNativeCheckout).");
-
-            if (dto.PaymentMethod != DomainPaymentMethod.PayPal)
-                throw new InvalidOperationException("Ovaj endpoint podržava samo PayPal.");
-
-            await ValidateAndPrepareCheckoutAsync(dto);
-
-            var paymentEntity = _mapper.Map<Payment>(dto);
-            paymentEntity = await _repository.AddAsync(paymentEntity);
-
-            await LogPaymentActionAsync(paymentEntity.Id, PaymentStatus.Pending, PaymentStatus.Processing,
-                "PayPalNativeOrder", $"Kreiranje PayPal narudžbe za {dto.Amount:C}",
-                null, userAgent, ipAddress, dto.UserId);
-
-            var orderResult = await _payPalPaymentProvider.CreateNativeOrderAsync(
-                paymentEntity,
-                paymentEntity.Id,
-                dto.ReturnUrl,
-                dto.CancelUrl);
-            if (!orderResult.IsSuccess || string.IsNullOrEmpty(orderResult.OrderId) || string.IsNullOrEmpty(orderResult.ApproveUrl))
-            {
-                await UpdatePaymentStatus(paymentEntity.Id, PaymentStatus.Failed, orderResult.ErrorMessage, userAgent, ipAddress, dto.UserId);
-                throw new InvalidOperationException(orderResult.ErrorMessage ?? "PayPal narudžba nije kreirana.");
-            }
-
-            paymentEntity.Status = PaymentStatus.Processing;
-            paymentEntity.CheckoutId = orderResult.OrderId;
-            paymentEntity.PaymentProviderResponse = "paypal_order_created";
-            paymentEntity.UpdatedAt = DateTime.UtcNow;
-            await _repository.UpdateAsync(paymentEntity);
-
-            await LogPaymentActionAsync(paymentEntity.Id, PaymentStatus.Processing, PaymentStatus.Processing,
-                "PayPalNativeOrder", $"Order kreiran. Id={orderResult.OrderId}",
-                null, userAgent, ipAddress, dto.UserId);
-
-            return new PayPalNativeOrderResponseDto
-            {
-                PaymentId = paymentEntity.Id,
-                OrderId = orderResult.OrderId,
-                ApproveUrl = orderResult.ApproveUrl,
             };
         }
 
@@ -365,103 +301,9 @@ namespace Application.Services
             }
         }
 
-        private async Task TryLinkWebhookPaymentAsync(string provider, string eventId, int paymentId)
-        {
-            try
-            {
-                await _webhookDedup.LinkPaymentAsync(provider, eventId, paymentId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Nije moguće povezati webhook event {Provider}/{EventId} sa Payment zapisom (nekritično).", provider, eventId);
-            }
-        }
-
-        public async Task<bool> ProcessPayPalWebhookAsync(string rawBody, string transmissionId, string transmissionTime, string certUrl, string authAlgo, string transmissionSig)
-        {
-            if (string.IsNullOrWhiteSpace(transmissionId))
-                return false;
-
-            if (!await _payPalPaymentProvider.VerifyWebhookAsync(transmissionId, transmissionTime, certUrl, authAlgo, transmissionSig, rawBody))
-            {
-                _logger.LogWarning("PayPal webhook verifikacija nije uspjela.");
-                return false;
-            }
-
-            if (!await _webhookDedup.TryMarkProcessedAsync("PayPal", transmissionId))
-                return true;
-
-            using var doc = System.Text.Json.JsonDocument.Parse(rawBody);
-            var root = doc.RootElement;
-            if (!root.TryGetProperty("event_type", out var et))
-                return true;
-
-            var eventType = et.GetString();
-            if (eventType != "PAYMENT.CAPTURE.COMPLETED")
-                return true;
-
-            if (!root.TryGetProperty("resource", out var resource))
-                return true;
-
-            var captureId = resource.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
-            string? customId = null;
-            if (resource.TryGetProperty("custom_id", out var cid))
-                customId = cid.GetString();
-
-            var paymentId = 0;
-            if (!int.TryParse(customId, out paymentId))
-            {
-                string? orderId = null;
-                if (resource.TryGetProperty("supplementary_data", out var sup) &&
-                    sup.TryGetProperty("related_ids", out var rel) &&
-                    rel.TryGetProperty("order_id", out var oid))
-                {
-                    orderId = oid.GetString();
-                }
-
-                if (!string.IsNullOrEmpty(orderId))
-                {
-                    var matches = await _repository.FindAsync(p => p.CheckoutId == orderId && !p.IsDeleted);
-                    var pay = matches.OrderByDescending(p => p.Id).FirstOrDefault();
-                    if (pay != null)
-                        paymentId = pay.Id;
-                }
-            }
-
-            if (paymentId == 0)
-            {
-                _logger.LogWarning("PayPal webhook: nije moguće mapirati payment id.");
-                return true;
-            }
-
-            await TryLinkWebhookPaymentAsync("PayPal", transmissionId, paymentId);
-
-            return await MarkPayPalPaymentCompletedAsync(paymentId, captureId, rawBody);
-        }
-
-        public async Task<bool> CapturePayPalAfterReturnAsync(string orderId, int? userId = null)
-        {
-            var result = await _payPalPaymentProvider.CaptureOrderAsync(orderId);
-            if (!result.IsSuccess || string.IsNullOrEmpty(result.CaptureId))
-            {
-                _logger.LogWarning("PayPal capture nije uspio: {Msg}", result.ErrorMessage);
-                throw new InvalidOperationException(result.ErrorMessage ?? "PayPal capture nije uspio.");
-            }
-
-            var payments = await _repository.FindAsync(p => p.CheckoutId == orderId && !p.IsDeleted);
-            var paymentEntity = payments.OrderByDescending(p => p.Id).FirstOrDefault();
-            if (paymentEntity == null)
-            {
-                _logger.LogWarning("Nije pronađen Payment za PayPal order {OrderId}", orderId);
-                throw new InvalidOperationException("Nije pronađeno plaćanje za PayPal narudžbu.");
-            }
-
-            return await MarkPayPalPaymentCompletedAsync(paymentEntity.Id, result.CaptureId, $"capture_status:{result.OrderStatus}");
-        }
-
         public Task<PaymentDto> ProcessPaymentAsync(CreatePaymentDto createPaymentDto, string? userAgent = null, string? ipAddress = null)
         {
-            return Task.FromException<PaymentDto>(new InvalidOperationException("Koristite POST api/Payments/hosted-checkout (hosted Stripe/PayPal checkout)."));
+            return Task.FromException<PaymentDto>(new InvalidOperationException("Koristite POST api/Payments/hosted-checkout (hosted Stripe checkout)."));
         }
 
         public async Task<bool> RefundPaymentAsync(int paymentId, decimal amount, string reason, int? initiatedByUserId = null)
@@ -858,21 +700,6 @@ namespace Application.Services
                 return true;
 
             return await MarkPaymentCompletedCoreAsync(payment, intent.Id, $"stripe_payment_intent:{intent.Id}");
-        }
-
-        private async Task<bool> MarkPayPalPaymentCompletedAsync(int paymentId, string? captureId, string? providerResponse)
-        {
-            var payment = await _repository.GetByIdAsync(paymentId);
-            if (payment == null || payment.PaymentMethod != DomainPaymentMethod.PayPal)
-                return false;
-
-            if (payment.Status == PaymentStatus.Completed)
-                return true;
-
-            if (string.IsNullOrEmpty(captureId))
-                return false;
-
-            return await MarkPaymentCompletedCoreAsync(payment, captureId, providerResponse);
         }
 
         private async Task<bool> MarkPaymentCompletedCoreAsync(Payment payment, string transactionId, string? providerResponse)

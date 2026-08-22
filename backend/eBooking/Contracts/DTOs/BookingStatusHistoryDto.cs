@@ -17,19 +17,19 @@ namespace Contracts.DTOs
 
     public class CreateBookingStatusHistoryDto : CreateBaseEntityDto
     {
-        [Required(ErrorMessage = "From status is required")]
+        [Required(ErrorMessage = "Prethodni status je obavezan.")]
         public BookingStatus FromStatus { get; set; }
 
-        [Required(ErrorMessage = "To status is required")]
+        [Required(ErrorMessage = "Novi status je obavezan.")]
         public BookingStatus ToStatus { get; set; }
 
-        [StringLength(200, ErrorMessage = "Reason cannot exceed 200 characters")]
+        [StringLength(200, ErrorMessage = "Razlog ne smije imati više od 200 karaktera.")]
         public string? Reason { get; set; }
 
-        [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters")]
+        [StringLength(500, ErrorMessage = "Napomene ne smiju imati više od 500 karaktera.")]
         public string? Notes { get; set; }
 
-        [Required(ErrorMessage = "Booking ID is required")]
+        [Required(ErrorMessage = "ID rezervacije je obavezan.")]
         public int BookingId { get; set; }
 
         public int? ChangedByUserId { get; set; }
@@ -37,10 +37,10 @@ namespace Contracts.DTOs
 
     public class UpdateBookingStatusHistoryDto : UpdateBaseEntityDto
     {
-        [StringLength(200, ErrorMessage = "Reason cannot exceed 200 characters")]
+        [StringLength(200, ErrorMessage = "Razlog ne smije imati više od 200 karaktera.")]
         public string? Reason { get; set; }
 
-        [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters")]
+        [StringLength(500, ErrorMessage = "Napomene ne smiju imati više od 500 karaktera.")]
         public string? Notes { get; set; }
     }
 }

@@ -16,7 +16,6 @@ import 'screens/inventory_transactions_screen.dart';
 import 'screens/inventory_items_screen.dart';
 import 'screens/loyalty_redemptions_screen.dart';
 import 'screens/cities_screen.dart';
-import 'screens/reference_data_screen.dart';
 import 'screens/reports_screen.dart';
 import 'utils/role_utils.dart';
 
@@ -91,7 +90,6 @@ class _MainTabsState extends State<MainTabs>
       _tabs = const [
         Tab(text: 'Hoteli'),
         Tab(text: 'Gradovi'),
-        Tab(text: 'Šifarnici'),
         Tab(text: 'Rezervacije'),
         Tab(text: 'Sobe'),
         Tab(text: 'Servisi'),
@@ -106,7 +104,6 @@ class _MainTabsState extends State<MainTabs>
       _tabViews = const [
         HotelsScreen(),
         CitiesScreen(),
-        ReferenceDataScreen(),
         BookingsScreen(),
         RoomsScreen(),
         ServicesScreen(),

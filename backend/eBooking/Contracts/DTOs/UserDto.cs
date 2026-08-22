@@ -18,28 +18,29 @@ namespace Contracts.DTOs
 
     public class CreateUserDto : CreateBaseEntityDto
     {
-        [Required(ErrorMessage = "Username is required")]
-        [StringLength(50, ErrorMessage = "Username cannot exceed 50 characters")]
+        [Required(ErrorMessage = "Korisničko ime je obavezno.")]
+        [StringLength(50, ErrorMessage = "Korisničko ime ne smije imati više od 50 karaktera.")]
         public string Username { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Invalid email format")]
-        [StringLength(100, ErrorMessage = "Email cannot exceed 100 characters")]
+        [Required(ErrorMessage = "Email je obavezan.")]
+        [EmailAddress(ErrorMessage = "Nevažeći format email-a.")]
+        [StringLength(100, ErrorMessage = "Email ne smije imati više od 100 karaktera.")]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Password is required")]
-        [StringLength(100, MinimumLength = 6, ErrorMessage = "Password must be at least 6 characters")]
+        [Required(ErrorMessage = "Lozinka je obavezna.")]
+        [StringLength(100, MinimumLength = 6, ErrorMessage = "Lozinka mora imati najmanje 6 karaktera.")]
         public string Password { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "First name is required")]
-        [StringLength(50, ErrorMessage = "First name cannot exceed 50 characters")]
+        [Required(ErrorMessage = "Ime je obavezno.")]
+        [StringLength(50, ErrorMessage = "Ime ne smije imati više od 50 karaktera.")]
         public string FirstName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Last name is required")]
-        [StringLength(50, ErrorMessage = "Last name cannot exceed 50 characters")]
+        [Required(ErrorMessage = "Prezime je obavezno.")]
+        [StringLength(50, ErrorMessage = "Prezime ne smije imati više od 50 karaktera.")]
         public string LastName { get; set; } = string.Empty;
 
-        [StringLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
+        [Required(ErrorMessage = "Broj telefona je obavezan.")]
+        [StringLength(20, ErrorMessage = "Broj telefona ne smije imati više od 20 karaktera.")]
         public string PhoneNumber { get; set; } = string.Empty;
 
         public UserRole Role { get; set; }
@@ -49,24 +50,25 @@ namespace Contracts.DTOs
 
     public class UpdateUserDto : UpdateBaseEntityDto
     {
-        [Required(ErrorMessage = "Username is required")]
-        [StringLength(50, ErrorMessage = "Username cannot exceed 50 characters")]
+        [Required(ErrorMessage = "Korisničko ime je obavezno.")]
+        [StringLength(50, ErrorMessage = "Korisničko ime ne smije imati više od 50 karaktera.")]
         public string Username { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Invalid email format")]
-        [StringLength(100, ErrorMessage = "Email cannot exceed 100 characters")]
+        [Required(ErrorMessage = "Email je obavezan.")]
+        [EmailAddress(ErrorMessage = "Nevažeći format email-a.")]
+        [StringLength(100, ErrorMessage = "Email ne smije imati više od 100 karaktera.")]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "First name is required")]
-        [StringLength(50, ErrorMessage = "First name cannot exceed 50 characters")]
+        [Required(ErrorMessage = "Ime je obavezno.")]
+        [StringLength(50, ErrorMessage = "Ime ne smije imati više od 50 karaktera.")]
         public string FirstName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Last name is required")]
-        [StringLength(50, ErrorMessage = "Last name cannot exceed 50 characters")]
+        [Required(ErrorMessage = "Prezime je obavezno.")]
+        [StringLength(50, ErrorMessage = "Prezime ne smije imati više od 50 karaktera.")]
         public string LastName { get; set; } = string.Empty;
 
-        [StringLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
+        [Required(ErrorMessage = "Broj telefona je obavezan.")]
+        [StringLength(20, ErrorMessage = "Broj telefona ne smije imati više od 20 karaktera.")]
         public string PhoneNumber { get; set; } = string.Empty;
 
         public UserRole Role { get; set; }

@@ -1,6 +1,6 @@
 namespace Persistence.Models
 {
-    /// <summary>Idempotent webhook processing (Stripe event id / PayPal transmission id).</summary>
+    /// <summary>Idempotent webhook processing (Stripe event id).</summary>
     public class ProcessedWebhookEvent
     {
         public int Id { get; set; }

@@ -91,7 +91,7 @@ namespace API.Controllers
                 if (!ModelState.IsValid)
                 {
                     var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
-                    return BadRequest(ApiResponse<StripeIntentResponseDto>.ErrorResult("Validation failed.", errors));
+                    return BadRequest(ApiResponse<StripeIntentResponseDto>.ErrorResult("Validacija nije uspjela.", errors));
                 }
 
                 var authError = await AuthorizeAndPrepareCheckoutAsync(dto);
@@ -134,40 +134,7 @@ namespace API.Controllers
         }
 
         /// <summary>
-        /// PayPal narudžba za in-app WebView (approve URL).
-        /// </summary>
-        [HttpPost("paypal/order")]
-        public async Task<ActionResult<ApiResponse<PayPalNativeOrderResponseDto>>> PayPalOrder([FromBody] CreateHostedCheckoutDto dto)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
-                    return BadRequest(ApiResponse<PayPalNativeOrderResponseDto>.ErrorResult("Validation failed.", errors));
-                }
-
-                var authError = await AuthorizeAndPrepareCheckoutAsync(dto);
-                if (authError != null) return authError;
-
-                var userAgent = Request.Headers["User-Agent"].ToString();
-                var ipAddress = GetClientIpAddress();
-                var result = await _paymentService.StartPayPalNativeOrderAsync(dto, userAgent, ipAddress);
-                return Ok(ApiResponse<PayPalNativeOrderResponseDto>.SuccessResult(result, "PayPal narudžba kreirana."));
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ApiResponse<PayPalNativeOrderResponseDto>.ErrorResult(ex.Message));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "PayPal order greška");
-                return StatusCode(500, ApiResponse<PayPalNativeOrderResponseDto>.ErrorResult("Greška pri kreiranju PayPal narudžbe."));
-            }
-        }
-
-        /// <summary>
-        /// Započinje hosted checkout (Stripe ili PayPal). Vraća URL za redirect u preglednik.
+        /// Započinje hosted checkout (Stripe). Vraća URL za redirect u preglednik.
         /// </summary>
         [HttpPost("hosted-checkout")]
         public async Task<ActionResult<ApiResponse<HostedCheckoutResponseDto>>> HostedCheckout([FromBody] CreateHostedCheckoutDto dto)
@@ -177,7 +144,7 @@ namespace API.Controllers
                 if (!ModelState.IsValid)
                 {
                     var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
-                    return BadRequest(ApiResponse<HostedCheckoutResponseDto>.ErrorResult("Validation failed.", errors));
+                    return BadRequest(ApiResponse<HostedCheckoutResponseDto>.ErrorResult("Validacija nije uspjela.", errors));
                 }
 
                 var authError = await AuthorizeAndPrepareCheckoutAsync(dto);
@@ -196,41 +163,6 @@ namespace API.Controllers
             {
                 _logger.LogError(ex, "Hosted checkout greška");
                 return StatusCode(500, ApiResponse<HostedCheckoutResponseDto>.ErrorResult("Greška pri kreiranju plaćanja."));
-            }
-        }
-
-        /// <summary>
-        /// Nakon povratka sa PayPal-a: capture narudžbe (token = order id iz query stringa).
-        /// </summary>
-        [HttpPost("paypal/capture")]
-        public async Task<ActionResult<ApiResponse<bool>>> PayPalCapture([FromBody] PayPalCaptureRequestDto request)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Validation failed.", errors));
-                }
-
-                int? userId = null;
-                var uidClaim = User.FindFirst("userId") ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-                if (uidClaim != null && int.TryParse(uidClaim.Value, out var uid))
-                    userId = uid;
-
-                var ok = await _paymentService.CapturePayPalAfterReturnAsync(request.Token, userId);
-                if (!ok)
-                    return BadRequest(ApiResponse<bool>.ErrorResult("PayPal capture nije uspio."));
-                return Ok(ApiResponse<bool>.SuccessResult(true, "Plaćanje potvrđeno."));
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ApiResponse<bool>.ErrorResult(ex.Message));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "PayPal capture greška");
-                return StatusCode(500, ApiResponse<bool>.ErrorResult("Greška pri PayPal capture-u."));
             }
         }
 
@@ -266,14 +198,14 @@ namespace API.Controllers
                 {
                     var errors = ModelState.Values.SelectMany(v => v.Errors)
                                                   .Select(e => e.ErrorMessage);
-                    return BadRequest(ApiResponse<PaymentDto>.ErrorResult("Validation failed.", errors));
+                    return BadRequest(ApiResponse<PaymentDto>.ErrorResult("Validacija nije uspjela.", errors));
                 }
 
                 var userAgent = Request.Headers["User-Agent"].ToString();
                 var ipAddress = GetClientIpAddress();
 
                 var payment = await _paymentService.ProcessPaymentAsync(createPaymentDto, userAgent, ipAddress);
-                return Ok(ApiResponse<PaymentDto>.SuccessResult(payment, "Payment processed successfully."));
+                return Ok(ApiResponse<PaymentDto>.SuccessResult(payment, "Plaćanje je uspješno obrađeno."));
             }
             catch (InvalidOperationException ex)
             {
@@ -282,7 +214,7 @@ namespace API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing payment");
-                return StatusCode(500, ApiResponse<PaymentDto>.ErrorResult("An error occurred while processing the payment."));
+                return StatusCode(500, ApiResponse<PaymentDto>.ErrorResult("Došlo je do greške pri obradi plaćanja."));
             }
         }
 
@@ -299,20 +231,20 @@ namespace API.Controllers
             {
                 if (id <= 0)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Invalid payment ID."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Nevažeći ID plaćanja."));
                 }
 
                 if (!ModelState.IsValid)
                 {
                     var errors = ModelState.Values.SelectMany(v => v.Errors)
                                                   .Select(e => e.ErrorMessage);
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Validation failed.", errors));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Validacija nije uspjela.", errors));
                 }
 
                 var payment = await _paymentService.GetByIdAsync(id);
                 if (payment == null)
                 {
-                    return NotFound(ApiResponse<bool>.ErrorResult("Payment not found."));
+                    return NotFound(ApiResponse<bool>.ErrorResult("Plaćanje nije pronađeno."));
                 }
 
                 // Samo vlasnik plaćanja (svoja rezervacija) ili Employee/Admin smiju zatražiti povrat —
@@ -328,15 +260,15 @@ namespace API.Controllers
 
                 if (!result)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Payment cannot be refunded. Check payment status and refund amount."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Plaćanje se ne može refundirati. Provjerite status plaćanja i iznos povrata."));
                 }
 
-                return Ok(ApiResponse<bool>.SuccessResult(result, "Payment refunded successfully."));
+                return Ok(ApiResponse<bool>.SuccessResult(result, "Plaćanje je uspješno refundirano."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error refunding payment with ID: {PaymentId}", id);
-                return StatusCode(500, ApiResponse<bool>.ErrorResult("An error occurred while processing the refund."));
+                return StatusCode(500, ApiResponse<bool>.ErrorResult("Došlo je do greške pri obradi povrata novca."));
             }
         }
 
@@ -353,20 +285,20 @@ namespace API.Controllers
             {
                 if (id <= 0)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Invalid payment ID."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Nevažeći ID plaćanja."));
                 }
 
                 if (!ModelState.IsValid)
                 {
                     var errors = ModelState.Values.SelectMany(v => v.Errors)
                                                   .Select(e => e.ErrorMessage);
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Validation failed.", errors));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Validacija nije uspjela.", errors));
                 }
 
                 var payment = await _paymentService.GetByIdAsync(id);
                 if (payment == null)
                 {
-                    return NotFound(ApiResponse<bool>.ErrorResult("Payment not found."));
+                    return NotFound(ApiResponse<bool>.ErrorResult("Plaćanje nije pronađeno."));
                 }
 
                 if (!IsSelfOrElevated(payment.UserId))
@@ -378,15 +310,15 @@ namespace API.Controllers
 
                 if (!result)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Payment cannot be cancelled. Only pending or processing payments can be cancelled."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Plaćanje se ne može otkazati. Otkazati se mogu samo plaćanja na čekanju ili u obradi."));
                 }
 
-                return Ok(ApiResponse<bool>.SuccessResult(result, "Payment cancelled successfully."));
+                return Ok(ApiResponse<bool>.SuccessResult(result, "Plaćanje je uspješno otkazano."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error cancelling payment with ID: {PaymentId}", id);
-                return StatusCode(500, ApiResponse<bool>.ErrorResult("An error occurred while cancelling the payment."));
+                return StatusCode(500, ApiResponse<bool>.ErrorResult("Došlo je do greške pri otkazivanju plaćanja."));
             }
         }
 
@@ -402,7 +334,7 @@ namespace API.Controllers
             {
                 if (userId <= 0)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("Invalid user ID."));
+                    return BadRequest(ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("Nevažeći ID korisnika."));
                 }
 
                 if (!IsSelfOrElevated(userId))
@@ -411,12 +343,12 @@ namespace API.Controllers
                 }
 
                 var payments = await _paymentService.GetByUserIdAsync(userId);
-                return Ok(ApiResponse<IEnumerable<PaymentDto>>.SuccessResult(payments, "Payments retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<PaymentDto>>.SuccessResult(payments, "Plaćanja su uspješno učitana."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving payments for user ID: {UserId}", userId);
-                return StatusCode(500, ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("An error occurred while retrieving payments."));
+                return StatusCode(500, ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("Došlo je do greške pri učitavanju plaćanja."));
             }
         }
 
@@ -432,13 +364,13 @@ namespace API.Controllers
             {
                 if (bookingId <= 0)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("Invalid booking ID."));
+                    return BadRequest(ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("Nevažeći ID rezervacije."));
                 }
 
                 var booking = await _bookingService.GetByIdAsync(bookingId);
                 if (booking == null)
                 {
-                    return NotFound(ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("Booking not found."));
+                    return NotFound(ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("Rezervacija nije pronađena."));
                 }
 
                 // Samo vlasnik rezervacije ili Employee/Admin smiju vidjeti plaćanja vezana za nju.
@@ -448,12 +380,12 @@ namespace API.Controllers
                 }
 
                 var payments = await _paymentService.GetByBookingIdAsync(bookingId);
-                return Ok(ApiResponse<IEnumerable<PaymentDto>>.SuccessResult(payments, "Payments retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<PaymentDto>>.SuccessResult(payments, "Plaćanja su uspješno učitana."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving payments for booking ID: {BookingId}", bookingId);
-                return StatusCode(500, ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("An error occurred while retrieving payments."));
+                return StatusCode(500, ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("Došlo je do greške pri učitavanju plaćanja."));
             }
         }
 
@@ -470,12 +402,12 @@ namespace API.Controllers
             try
             {
                 var payments = await _paymentService.GetByStatusAsync(status);
-                return Ok(ApiResponse<IEnumerable<PaymentDto>>.SuccessResult(payments, "Payments retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<PaymentDto>>.SuccessResult(payments, "Plaćanja su uspješno učitana."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving payments with status: {Status}", status);
-                return StatusCode(500, ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("An error occurred while retrieving payments."));
+                return StatusCode(500, ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("Došlo je do greške pri učitavanju plaćanja."));
             }
         }
 
@@ -492,12 +424,12 @@ namespace API.Controllers
             try
             {
                 var payments = await _paymentService.GetByPaymentMethodAsync(method);
-                return Ok(ApiResponse<IEnumerable<PaymentDto>>.SuccessResult(payments, "Payments retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<PaymentDto>>.SuccessResult(payments, "Plaćanja su uspješno učitana."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving payments with method: {Method}", method);
-                return StatusCode(500, ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("An error occurred while retrieving payments."));
+                return StatusCode(500, ApiResponse<IEnumerable<PaymentDto>>.ErrorResult("Došlo je do greške pri učitavanju plaćanja."));
             }
         }
 
@@ -513,7 +445,7 @@ namespace API.Controllers
             {
                 if (id <= 0)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<PaymentAuditLogDto>>.ErrorResult("Invalid payment ID."));
+                    return BadRequest(ApiResponse<IEnumerable<PaymentAuditLogDto>>.ErrorResult("Nevažeći ID plaćanja."));
                 }
 
                 // Samo vlasnik plaćanja (svoja rezervacija) ili Employee/Admin smiju vidjeti audit trag —
@@ -522,7 +454,7 @@ namespace API.Controllers
                 var payment = await _paymentService.GetByIdAsync(id);
                 if (payment == null)
                 {
-                    return NotFound(ApiResponse<IEnumerable<PaymentAuditLogDto>>.ErrorResult("Payment not found."));
+                    return NotFound(ApiResponse<IEnumerable<PaymentAuditLogDto>>.ErrorResult("Plaćanje nije pronađeno."));
                 }
 
                 if (!IsSelfOrElevated(payment.UserId))
@@ -531,12 +463,12 @@ namespace API.Controllers
                 }
 
                 var auditLogs = await _paymentService.GetPaymentAuditLogsAsync(id);
-                return Ok(ApiResponse<IEnumerable<PaymentAuditLogDto>>.SuccessResult(auditLogs, "Audit logs retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<PaymentAuditLogDto>>.SuccessResult(auditLogs, "Audit log je uspješno učitan."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving audit logs for payment ID: {PaymentId}", id);
-                return StatusCode(500, ApiResponse<IEnumerable<PaymentAuditLogDto>>.ErrorResult("An error occurred while retrieving audit logs."));
+                return StatusCode(500, ApiResponse<IEnumerable<PaymentAuditLogDto>>.ErrorResult("Došlo je do greške pri učitavanju audit loga."));
             }
         }
 
@@ -556,12 +488,12 @@ namespace API.Controllers
             try
             {
                 var statistics = await _paymentService.GetPaymentStatisticsAsync(fromDate, toDate);
-                return Ok(ApiResponse<Contracts.DTOs.PaymentStatistics>.SuccessResult(statistics, "Payment statistics retrieved successfully."));
+                return Ok(ApiResponse<Contracts.DTOs.PaymentStatistics>.SuccessResult(statistics, "Statistika plaćanja je uspješno učitana."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving payment statistics");
-                return StatusCode(500, ApiResponse<Contracts.DTOs.PaymentStatistics>.ErrorResult("An error occurred while retrieving payment statistics."));
+                return StatusCode(500, ApiResponse<Contracts.DTOs.PaymentStatistics>.ErrorResult("Došlo je do greške pri učitavanju statistike plaćanja."));
             }
         }
 
@@ -576,18 +508,18 @@ namespace API.Controllers
             {
                 ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
             }
-            return ipAddress ?? "Unknown";
+            return ipAddress ?? "Nepoznato";
         }
     }
 
     public class RefundRequest
     {
-        [Required(ErrorMessage = "Amount is required")]
-        [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than 0")]
+        [Required(ErrorMessage = "Iznos je obavezan.")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Iznos mora biti veći od 0.")]
         public decimal Amount { get; set; }
 
-        [Required(ErrorMessage = "Reason is required")]
-        [StringLength(500, ErrorMessage = "Reason cannot exceed 500 characters")]
+        [Required(ErrorMessage = "Razlog je obavezan.")]
+        [StringLength(500, ErrorMessage = "Razlog ne smije imati više od 500 karaktera.")]
         public string Reason { get; set; } = string.Empty;
 
         public int? InitiatedByUserId { get; set; }
@@ -595,8 +527,8 @@ namespace API.Controllers
 
     public class CancelPaymentRequest
     {
-        [Required(ErrorMessage = "Reason is required")]
-        [StringLength(500, ErrorMessage = "Reason cannot exceed 500 characters")]
+        [Required(ErrorMessage = "Razlog je obavezan.")]
+        [StringLength(500, ErrorMessage = "Razlog ne smije imati više od 500 karaktera.")]
         public string Reason { get; set; } = string.Empty;
 
         public int? InitiatedByUserId { get; set; }

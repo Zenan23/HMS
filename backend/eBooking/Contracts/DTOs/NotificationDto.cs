@@ -19,25 +19,25 @@ namespace Contracts.DTOs
 
     public class CreateNotificationDto : CreateBaseEntityDto
     {
-        [Required(ErrorMessage = "Title is required")]
-        [StringLength(100, ErrorMessage = "Title cannot exceed 100 characters")]
+        [Required(ErrorMessage = "Naslov je obavezan.")]
+        [StringLength(100, ErrorMessage = "Naslov ne smije imati više od 100 karaktera.")]
         public string Title { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Message is required")]
-        [StringLength(1000, ErrorMessage = "Message cannot exceed 1000 characters")]
+        [Required(ErrorMessage = "Poruka je obavezna.")]
+        [StringLength(1000, ErrorMessage = "Poruka ne smije imati više od 1000 karaktera.")]
         public string Message { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Type is required")]
-        [StringLength(50, ErrorMessage = "Type cannot exceed 50 characters")]
+        [Required(ErrorMessage = "Tip je obavezan.")]
+        [StringLength(50, ErrorMessage = "Tip ne smije imati više od 50 karaktera.")]
         public string Type { get; set; } = string.Empty;
 
-        [StringLength(20, ErrorMessage = "Priority cannot exceed 20 characters")]
+        [StringLength(20, ErrorMessage = "Prioritet ne smije imati više od 20 karaktera.")]
         public string Priority { get; set; } = "Normal";
 
-        [Url(ErrorMessage = "Action URL must be a valid URL")]
+        [Url(ErrorMessage = "URL za akciju mora biti validan URL.")]
         public string? ActionUrl { get; set; }
 
-        [Required(ErrorMessage = "User ID is required")]
+        [Required(ErrorMessage = "ID korisnika je obavezan.")]
         public int UserId { get; set; }
 
         public int? BookingId { get; set; }
@@ -45,24 +45,24 @@ namespace Contracts.DTOs
 
     public class UpdateNotificationDto : UpdateBaseEntityDto
     {
-        [Required(ErrorMessage = "Title is required")]
-        [StringLength(100, ErrorMessage = "Title cannot exceed 100 characters")]
+        [Required(ErrorMessage = "Naslov je obavezan.")]
+        [StringLength(100, ErrorMessage = "Naslov ne smije imati više od 100 karaktera.")]
         public string Title { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Message is required")]
-        [StringLength(1000, ErrorMessage = "Message cannot exceed 1000 characters")]
+        [Required(ErrorMessage = "Poruka je obavezna.")]
+        [StringLength(1000, ErrorMessage = "Poruka ne smije imati više od 1000 karaktera.")]
         public string Message { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Type is required")]
-        [StringLength(50, ErrorMessage = "Type cannot exceed 50 characters")]
+        [Required(ErrorMessage = "Tip je obavezan.")]
+        [StringLength(50, ErrorMessage = "Tip ne smije imati više od 50 karaktera.")]
         public string Type { get; set; } = string.Empty;
 
         public bool IsRead { get; set; }
 
-        [StringLength(20, ErrorMessage = "Priority cannot exceed 20 characters")]
+        [StringLength(20, ErrorMessage = "Prioritet ne smije imati više od 20 karaktera.")]
         public string Priority { get; set; } = "Normal";
 
-        [Url(ErrorMessage = "Action URL must be a valid URL")]
+        [Url(ErrorMessage = "URL za akciju mora biti validan URL.")]
         public string? ActionUrl { get; set; }
     }
 

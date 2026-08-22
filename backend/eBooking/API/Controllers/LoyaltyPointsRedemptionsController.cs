@@ -42,7 +42,7 @@ namespace API.Controllers
         {
             if (userId <= 0)
             {
-                return BadRequest(ApiResponse<int>.ErrorResult("Invalid user ID."));
+                return BadRequest(ApiResponse<int>.ErrorResult("Nevažeći ID korisnika."));
             }
 
             if (!IsSelfOrElevated(userId))
@@ -54,7 +54,7 @@ namespace API.Controllers
             var used = await _loyaltyPointsRedemptionService.GetTotalPointsUsedForUserAsync(userId);
             var balance = earned - used;
 
-            return Ok(ApiResponse<int>.SuccessResult(balance, "Loyalty balance retrieved successfully."));
+            return Ok(ApiResponse<int>.SuccessResult(balance, "Loyalty balans je uspješno učitan."));
         }
 
         /// <summary>
@@ -115,7 +115,7 @@ namespace API.Controllers
         {
             if (userId <= 0)
             {
-                return BadRequest(ApiResponse<IEnumerable<LoyaltyPointsRedemptionDto>>.ErrorResult("Invalid user ID."));
+                return BadRequest(ApiResponse<IEnumerable<LoyaltyPointsRedemptionDto>>.ErrorResult("Nevažeći ID korisnika."));
             }
 
             if (!IsSelfOrElevated(userId))
@@ -124,7 +124,7 @@ namespace API.Controllers
             }
 
             var redemptions = await _loyaltyPointsRedemptionService.GetByUserIdAsync(userId);
-            return Ok(ApiResponse<IEnumerable<LoyaltyPointsRedemptionDto>>.SuccessResult(redemptions, "Loyalty redemptions retrieved successfully."));
+            return Ok(ApiResponse<IEnumerable<LoyaltyPointsRedemptionDto>>.SuccessResult(redemptions, "Iskorišteni loyalty bodovi su uspješno učitani."));
         }
 
         [HttpGet("booking/{bookingId}")]
@@ -132,11 +132,11 @@ namespace API.Controllers
         {
             if (bookingId <= 0)
             {
-                return BadRequest(ApiResponse<IEnumerable<LoyaltyPointsRedemptionDto>>.ErrorResult("Invalid booking ID."));
+                return BadRequest(ApiResponse<IEnumerable<LoyaltyPointsRedemptionDto>>.ErrorResult("Nevažeći ID rezervacije."));
             }
 
             var redemptions = await _loyaltyPointsRedemptionService.GetByBookingIdAsync(bookingId);
-            return Ok(ApiResponse<IEnumerable<LoyaltyPointsRedemptionDto>>.SuccessResult(redemptions, "Loyalty redemptions retrieved successfully."));
+            return Ok(ApiResponse<IEnumerable<LoyaltyPointsRedemptionDto>>.SuccessResult(redemptions, "Iskorišteni loyalty bodovi su uspješno učitani."));
         }
     }
 }

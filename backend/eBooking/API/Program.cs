@@ -144,16 +144,9 @@ builder.Services.AddScoped<Application.Queries.IServiceQueries, Application.Quer
 builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection(PaymentOptions.SectionName));
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
-builder.Services.AddHttpClient("PayPalApi", (sp, client) =>
-{
-    var baseUrl = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PaymentOptions>>().Value.PayPal.BaseUrl;
-    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
-});
 builder.Services.AddScoped<IWebhookEventDedupService, WebhookEventDedupService>();
 builder.Services.AddScoped<ITokenRevocationService, TokenRevocationService>();
-builder.Services.AddScoped<PayPalPaymentProvider>();
 builder.Services.AddScoped<StripePaymentProvider>();
-builder.Services.AddScoped<IPaymentGatewayProvider>(sp => sp.GetRequiredService<PayPalPaymentProvider>());
 builder.Services.AddScoped<IPaymentGatewayProvider>(sp => sp.GetRequiredService<StripePaymentProvider>());
 
 // Add base services

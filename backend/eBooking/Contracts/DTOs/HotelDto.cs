@@ -27,28 +27,28 @@ namespace Contracts.DTOs
 
     public class CreateHotelDto : CreateBaseEntityDto
     {
-        [Required(ErrorMessage = "Hotel name is required")]
-        [StringLength(100, ErrorMessage = "Hotel name cannot exceed 100 characters")]
+        [Required(ErrorMessage = "Naziv hotela je obavezan.")]
+        [StringLength(100, ErrorMessage = "Naziv hotela ne smije imati više od 100 karaktera.")]
         public string Name { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Address is required")]
-        [StringLength(200, ErrorMessage = "Address cannot exceed 200 characters")]
+        [Required(ErrorMessage = "Adresa je obavezna.")]
+        [StringLength(200, ErrorMessage = "Adresa ne smije imati više od 200 karaktera.")]
         public string Address { get; set; } = string.Empty;
 
-        [Range(1, int.MaxValue, ErrorMessage = "City is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "Grad je obavezan.")]
         public int CityId { get; set; }
 
-        [StringLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
+        [StringLength(20, ErrorMessage = "Broj telefona ne smije imati više od 20 karaktera.")]
         public string PhoneNumber { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Invalid email format")]
-        [StringLength(100, ErrorMessage = "Email cannot exceed 100 characters")]
+        [Required(ErrorMessage = "Email je obavezan.")]
+        [EmailAddress(ErrorMessage = "Nevažeći format email-a.")]
+        [StringLength(100, ErrorMessage = "Email ne smije imati više od 100 karaktera.")]
         public string Email { get; set; } = string.Empty;
 
         public string Description { get; set; } = string.Empty;
 
-        [Range(0, 5, ErrorMessage = "Star rating must be between 0 and 5")]
+        [Range(0, 5, ErrorMessage = "Ocjena hotela mora biti između 0 i 5.")]
         public int StarRating { get; set; }
 
         public string ImageUrl { get; set; } = string.Empty;
@@ -56,28 +56,28 @@ namespace Contracts.DTOs
 
     public class UpdateHotelDto : UpdateBaseEntityDto
     {
-        [Required(ErrorMessage = "Hotel name is required")]
-        [StringLength(100, ErrorMessage = "Hotel name cannot exceed 100 characters")]
+        [Required(ErrorMessage = "Naziv hotela je obavezan.")]
+        [StringLength(100, ErrorMessage = "Naziv hotela ne smije imati više od 100 karaktera.")]
         public string Name { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Address is required")]
-        [StringLength(200, ErrorMessage = "Address cannot exceed 200 characters")]
+        [Required(ErrorMessage = "Adresa je obavezna.")]
+        [StringLength(200, ErrorMessage = "Adresa ne smije imati više od 200 karaktera.")]
         public string Address { get; set; } = string.Empty;
 
-        [Range(1, int.MaxValue, ErrorMessage = "City is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "Grad je obavezan.")]
         public int CityId { get; set; }
 
-        [StringLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
+        [StringLength(20, ErrorMessage = "Broj telefona ne smije imati više od 20 karaktera.")]
         public string PhoneNumber { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Invalid email format")]
-        [StringLength(100, ErrorMessage = "Email cannot exceed 100 characters")]
+        [Required(ErrorMessage = "Email je obavezan.")]
+        [EmailAddress(ErrorMessage = "Nevažeći format email-a.")]
+        [StringLength(100, ErrorMessage = "Email ne smije imati više od 100 karaktera.")]
         public string Email { get; set; } = string.Empty;
 
         public string Description { get; set; } = string.Empty;
 
-        [Range(0, 5, ErrorMessage = "Star rating must be between 0 and 5")]
+        [Range(0, 5, ErrorMessage = "Ocjena hotela mora biti između 0 i 5.")]
         public int StarRating { get; set; }
 
         public string ImageUrl { get; set; } = string.Empty;

@@ -32,7 +32,7 @@ namespace API.Controllers
             {
                 if (userId <= 0)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<NotificationDto>>.ErrorResult("Invalid user ID."));
+                    return BadRequest(ApiResponse<IEnumerable<NotificationDto>>.ErrorResult("Nevažeći ID korisnika."));
                 }
 
                 if (!IsSelfOrElevated(userId))
@@ -41,12 +41,12 @@ namespace API.Controllers
                 }
 
                 var notifications = await _notificationService.GetByUserIdAsync(userId);
-                return Ok(ApiResponse<IEnumerable<NotificationDto>>.SuccessResult(notifications, "Notifications retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<NotificationDto>>.SuccessResult(notifications, "Notifikacije su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving notifications for user ID: {UserId}", userId);
-                return StatusCode(500, ApiResponse<IEnumerable<NotificationDto>>.ErrorResult("An error occurred while retrieving notifications."));
+                return StatusCode(500, ApiResponse<IEnumerable<NotificationDto>>.ErrorResult("Došlo je do greške pri učitavanju notifikacija."));
             }
         }
 
@@ -60,12 +60,12 @@ namespace API.Controllers
             try
             {
                 var notifications = await _notificationService.GetUnreadNotificationsAsync();
-                return Ok(ApiResponse<IEnumerable<NotificationDto>>.SuccessResult(notifications, "Unread notifications retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<NotificationDto>>.SuccessResult(notifications, "Nepročitane notifikacije su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving unread notifications");
-                return StatusCode(500, ApiResponse<IEnumerable<NotificationDto>>.ErrorResult("An error occurred while retrieving unread notifications."));
+                return StatusCode(500, ApiResponse<IEnumerable<NotificationDto>>.ErrorResult("Došlo je do greške pri učitavanju nepročitanih notifikacija."));
             }
         }
 
@@ -79,7 +79,7 @@ namespace API.Controllers
             {
                 if (userId <= 0)
                 {
-                    return BadRequest(ApiResponse<int>.ErrorResult("Invalid user ID."));
+                    return BadRequest(ApiResponse<int>.ErrorResult("Nevažeći ID korisnika."));
                 }
 
                 if (!IsSelfOrElevated(userId))
@@ -89,12 +89,12 @@ namespace API.Controllers
 
                 var unread = await _notificationService.GetUnreadNotificationsAsync();
                 var count = unread.Count(n => n.UserId == userId);
-                return Ok(ApiResponse<int>.SuccessResult(count, "Unread count retrieved successfully."));
+                return Ok(ApiResponse<int>.SuccessResult(count, "Broj nepročitanih notifikacija je uspješno učitan."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving unread count for user ID: {UserId}", userId);
-                return StatusCode(500, ApiResponse<int>.ErrorResult("An error occurred while retrieving unread count."));
+                return StatusCode(500, ApiResponse<int>.ErrorResult("Došlo je do greške pri učitavanju broja nepročitanih notifikacija."));
             }
         }
 
@@ -110,13 +110,13 @@ namespace API.Controllers
             {
                 if (id <= 0)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Invalid notification ID."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Nevažeći ID notifikacije."));
                 }
 
                 var notification = await _notificationService.GetByIdAsync(id);
                 if (notification == null)
                 {
-                    return NotFound(ApiResponse<bool>.ErrorResult($"Notification with ID {id} not found."));
+                    return NotFound(ApiResponse<bool>.ErrorResult($"Notifikacija sa ID {id} nije pronađena."));
                 }
 
                 if (!IsSelfOrElevated(notification.UserId))
@@ -136,12 +136,12 @@ namespace API.Controllers
                 };
 
                 var result = await _notificationService.UpdateAsync(id, updateDto);
-                return Ok(ApiResponse<bool>.SuccessResult(result, "Notification marked as read successfully."));
+                return Ok(ApiResponse<bool>.SuccessResult(result, "Notifikacija je označena kao pročitana."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error marking notification as read with ID: {Id}", id);
-                return StatusCode(500, ApiResponse<bool>.ErrorResult("An error occurred while marking notification as read."));
+                return StatusCode(500, ApiResponse<bool>.ErrorResult("Došlo je do greške pri označavanju notifikacije kao pročitane."));
             }
         }
     }

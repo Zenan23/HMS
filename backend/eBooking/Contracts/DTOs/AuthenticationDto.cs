@@ -6,54 +6,55 @@ namespace Contracts.DTOs
 {
     public class LoginDto
     {
-        [Required]
-        [EmailAddress]
+        [Required(ErrorMessage = "Email je obavezan.")]
+        [EmailAddress(ErrorMessage = "Nevažeći format email-a.")]
         public string Email { get; set; } = string.Empty;
 
-        [Required]
-        [MinLength(6)]
+        [Required(ErrorMessage = "Lozinka je obavezna.")]
+        [MinLength(6, ErrorMessage = "Lozinka mora imati najmanje 6 karaktera.")]
         public string Password { get; set; } = string.Empty;
     }
 
     public class RegisterDto
     {
-        [Required]
-        [EmailAddress]
+        [Required(ErrorMessage = "Email je obavezan.")]
+        [EmailAddress(ErrorMessage = "Nevažeći format email-a.")]
         public string Email { get; set; } = string.Empty;
 
-        [Required]
-        [MinLength(3)]
+        [Required(ErrorMessage = "Korisničko ime je obavezno.")]
+        [MinLength(3, ErrorMessage = "Korisničko ime mora imati najmanje 3 karaktera.")]
         public string Username { get; set; } = string.Empty;
 
-        [Required]
-        [MinLength(6)]
+        [Required(ErrorMessage = "Lozinka je obavezna.")]
+        [MinLength(6, ErrorMessage = "Lozinka mora imati najmanje 6 karaktera.")]
         public string Password { get; set; } = string.Empty;
 
-        [Required]
-        [Compare("Password")]
+        [Required(ErrorMessage = "Potvrda lozinke je obavezna.")]
+        [Compare("Password", ErrorMessage = "Lozinke se ne poklapaju.")]
         public string ConfirmPassword { get; set; } = string.Empty;
 
-        [Required]
+        [Required(ErrorMessage = "Ime je obavezno.")]
         public string FirstName { get; set; } = string.Empty;
 
-        [Required]
+        [Required(ErrorMessage = "Prezime je obavezno.")]
         public string LastName { get; set; } = string.Empty;
 
-        [Phone]
+        [Required(ErrorMessage = "Broj telefona je obavezan.")]
+        [Phone(ErrorMessage = "Nevažeći format broja telefona.")]
         public string PhoneNumber { get; set; } = string.Empty;
     }
 
     public class ForgotPasswordDto
     {
-        [Required]
-        [EmailAddress]
+        [Required(ErrorMessage = "Email je obavezan.")]
+        [EmailAddress(ErrorMessage = "Nevažeći format email-a.")]
         public string Email { get; set; } = string.Empty;
     }
 
     public class ResetPasswordDto
     {
-        [Required]
-        [EmailAddress]
+        [Required(ErrorMessage = "Email je obavezan.")]
+        [EmailAddress(ErrorMessage = "Nevažeći format email-a.")]
         public string Email { get; set; } = string.Empty;
 
         [Required]

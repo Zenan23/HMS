@@ -16,39 +16,39 @@ namespace Contracts.DTOs
 
     public class CreateInventoryTransactionDto : CreateBaseEntityDto
     {
-        [Required(ErrorMessage = "Inventory item ID is required")]
+        [Required(ErrorMessage = "ID artikla je obavezan.")]
         public int InventoryItemId { get; set; }
 
-        [Required(ErrorMessage = "Quantity change is required")]
+        [Required(ErrorMessage = "Promjena količine je obavezna.")]
         public int QuantityChange { get; set; }
 
-        [Required(ErrorMessage = "Transaction date is required")]
+        [Required(ErrorMessage = "Datum transakcije je obavezan.")]
         public DateTime TransactionDate { get; set; }
 
-        [Required(ErrorMessage = "Staff user ID is required")]
+        [Required(ErrorMessage = "ID zaposlenika je obavezan.")]
         public int StaffUserId { get; set; }
 
-        [Required(ErrorMessage = "Reason is required")]
-        [StringLength(500, ErrorMessage = "Reason cannot exceed 500 characters")]
+        [Required(ErrorMessage = "Razlog je obavezan.")]
+        [StringLength(500, ErrorMessage = "Razlog ne smije imati više od 500 karaktera.")]
         public string Reason { get; set; } = string.Empty;
     }
 
     public class UpdateInventoryTransactionDto : UpdateBaseEntityDto
     {
-        [Required(ErrorMessage = "Inventory item ID is required")]
+        [Required(ErrorMessage = "ID artikla je obavezan.")]
         public int InventoryItemId { get; set; }
 
-        [Required(ErrorMessage = "Quantity change is required")]
+        [Required(ErrorMessage = "Promjena količine je obavezna.")]
         public int QuantityChange { get; set; }
 
-        [Required(ErrorMessage = "Transaction date is required")]
+        [Required(ErrorMessage = "Datum transakcije je obavezan.")]
         public DateTime TransactionDate { get; set; }
 
-        [Required(ErrorMessage = "Staff user ID is required")]
+        [Required(ErrorMessage = "ID zaposlenika je obavezan.")]
         public int StaffUserId { get; set; }
 
-        [Required(ErrorMessage = "Reason is required")]
-        [StringLength(500, ErrorMessage = "Reason cannot exceed 500 characters")]
+        [Required(ErrorMessage = "Razlog je obavezan.")]
+        [StringLength(500, ErrorMessage = "Razlog ne smije imati više od 500 karaktera.")]
         public string Reason { get; set; } = string.Empty;
     }
 }

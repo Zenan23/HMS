@@ -20,18 +20,18 @@ namespace Contracts.DTOs
 
     public class CreateReviewDto : CreateBaseEntityDto
     {
-        [Required(ErrorMessage = "Rating is required")]
-        [Range(1, 5, ErrorMessage = "Rating must be between 1 and 5")]
+        [Required(ErrorMessage = "Ocjena je obavezna.")]
+        [Range(1, 5, ErrorMessage = "Ocjena mora biti između 1 i 5.")]
         public int Rating { get; set; }
 
-        [Required(ErrorMessage = "Comment is required")]
-        [StringLength(1000, ErrorMessage = "Comment cannot exceed 1000 characters")]
+        [Required(ErrorMessage = "Komentar je obavezan.")]
+        [StringLength(1000, ErrorMessage = "Komentar ne smije imati više od 1000 karaktera.")]
         public string Comment { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Hotel ID is required")]
+        [Required(ErrorMessage = "ID hotela je obavezan.")]
         public int HotelId { get; set; }
 
-        [Required(ErrorMessage = "User ID is required")]
+        [Required(ErrorMessage = "ID korisnika je obavezan.")]
         public int UserId { get; set; }
 
         public int? BookingId { get; set; }
@@ -41,12 +41,12 @@ namespace Contracts.DTOs
 
     public class UpdateReviewDto : UpdateBaseEntityDto
     {
-        [Required(ErrorMessage = "Rating is required")]
-        [Range(1, 5, ErrorMessage = "Rating must be between 1 and 5")]
+        [Required(ErrorMessage = "Ocjena je obavezna.")]
+        [Range(1, 5, ErrorMessage = "Ocjena mora biti između 1 i 5.")]
         public int Rating { get; set; }
 
-        [Required(ErrorMessage = "Comment is required")]
-        [StringLength(1000, ErrorMessage = "Comment cannot exceed 1000 characters")]
+        [Required(ErrorMessage = "Komentar je obavezan.")]
+        [StringLength(1000, ErrorMessage = "Komentar ne smije imati više od 1000 karaktera.")]
         public string Comment { get; set; } = string.Empty;
 
         public bool IsApproved { get; set; }

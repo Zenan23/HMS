@@ -44,12 +44,12 @@ namespace API.Controllers
 
                 return Ok(ApiResponse<IEnumerable<RoomDto>>.SuccessResult(
                     roomDtos,
-                    $"Rooms for hotel {hotelId} retrieved successfully."));
+                    $"Sobe za hotel {hotelId} su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving rooms for hotel: {HotelId}", hotelId);
-                return StatusCode(500, ApiResponse<IEnumerable<RoomDto>>.ErrorResult("An error occurred while retrieving rooms."));
+                return StatusCode(500, ApiResponse<IEnumerable<RoomDto>>.ErrorResult("Došlo je do greške pri učitavanju soba."));
             }
         }
 
@@ -70,12 +70,12 @@ namespace API.Controllers
             {
                 if (checkIn >= checkOut)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<RoomDto>>.ErrorResult("Check-in date must be before check-out date."));
+                    return BadRequest(ApiResponse<IEnumerable<RoomDto>>.ErrorResult("Datum dolaska mora biti prije datuma odlaska."));
                 }
 
                 if (checkIn < DateTime.Today)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<RoomDto>>.ErrorResult("Check-in date cannot be in the past."));
+                    return BadRequest(ApiResponse<IEnumerable<RoomDto>>.ErrorResult("Datum dolaska ne može biti u prošlosti."));
                 }
 
                 var rooms = await _roomService.GetAvailableRoomsAsync(hotelId, checkIn, checkOut);
@@ -83,12 +83,12 @@ namespace API.Controllers
 
                 return Ok(ApiResponse<IEnumerable<RoomDto>>.SuccessResult(
                     roomDtos,
-                    $"Available rooms retrieved successfully."));
+                    $"Dostupne sobe su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving available rooms for hotel {HotelId}", hotelId);
-                return StatusCode(500, ApiResponse<IEnumerable<RoomDto>>.ErrorResult("An error occurred while retrieving available rooms."));
+                return StatusCode(500, ApiResponse<IEnumerable<RoomDto>>.ErrorResult("Došlo je do greške pri učitavanju dostupnih soba."));
             }
         }
 
@@ -107,12 +107,12 @@ namespace API.Controllers
 
                 return Ok(ApiResponse<IEnumerable<RoomDto>>.SuccessResult(
                     roomDtos,
-                    $"Rooms of type {roomType} retrieved successfully."));
+                    $"Sobe tipa {roomType} su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving rooms by type: {RoomType}", roomType);
-                return StatusCode(500, ApiResponse<IEnumerable<RoomDto>>.ErrorResult("An error occurred while retrieving rooms."));
+                return StatusCode(500, ApiResponse<IEnumerable<RoomDto>>.ErrorResult("Došlo je do greške pri učitavanju soba."));
             }
         }
 
@@ -131,7 +131,7 @@ namespace API.Controllers
             {
                 if (minPrice < 0 || maxPrice < 0 || minPrice > maxPrice)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<RoomDto>>.ErrorResult("Invalid price range."));
+                    return BadRequest(ApiResponse<IEnumerable<RoomDto>>.ErrorResult("Nevažeći cjenovni raspon."));
                 }
 
                 var rooms = await _roomService.GetRoomsByPriceRangeAsync(minPrice, maxPrice);
@@ -139,12 +139,12 @@ namespace API.Controllers
 
                 return Ok(ApiResponse<IEnumerable<RoomDto>>.SuccessResult(
                     roomDtos,
-                    $"Rooms in price range ${minPrice}-${maxPrice} retrieved successfully."));
+                    $"Sobe u cjenovnom rasponu {minPrice}-{maxPrice} su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving rooms by price range: {MinPrice}-{MaxPrice}", minPrice, maxPrice);
-                return StatusCode(500, ApiResponse<IEnumerable<RoomDto>>.ErrorResult("An error occurred while retrieving rooms."));
+                return StatusCode(500, ApiResponse<IEnumerable<RoomDto>>.ErrorResult("Došlo je do greške pri učitavanju soba."));
             }
         }
 
@@ -166,16 +166,16 @@ namespace API.Controllers
             {
                 if (checkIn >= checkOut)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Check-in date must be before check-out date."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Datum dolaska mora biti prije datuma odlaska."));
                 }
 
                 var isAvailable = await _roomService.IsRoomAvailableAsync(roomId, checkIn, checkOut);
-                return Ok(ApiResponse<bool>.SuccessResult(isAvailable, "Room availability checked successfully."));
+                return Ok(ApiResponse<bool>.SuccessResult(isAvailable, "Dostupnost sobe je uspješno provjerena."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error checking room availability for room {RoomId}", roomId);
-                return StatusCode(500, ApiResponse<bool>.ErrorResult("An error occurred while checking room availability."));
+                return StatusCode(500, ApiResponse<bool>.ErrorResult("Došlo je do greške pri provjeri dostupnosti sobe."));
             }
         }
 
@@ -196,9 +196,9 @@ namespace API.Controllers
             [FromQuery] string? services = null)
         {
             if (checkIn >= checkOut)
-                return BadRequest(ApiResponse<decimal>.ErrorResult("Check-in date must be before check-out date."));
+                return BadRequest(ApiResponse<decimal>.ErrorResult("Datum dolaska mora biti prije datuma odlaska."));
             if (guests <= 0)
-                return BadRequest(ApiResponse<decimal>.ErrorResult("Number of guests must be at least 1."));
+                return BadRequest(ApiResponse<decimal>.ErrorResult("Broj gostiju mora biti najmanje 1."));
 
             try
             {
@@ -206,16 +206,16 @@ namespace API.Controllers
                 {
                     var parsed = ParseServicesQuery(services);
                     var price1 = await _roomService.CalculatePriceAsync(roomId, checkIn, checkOut, guests, parsed);
-                    return Ok(ApiResponse<decimal>.SuccessResult(price1, "Total price calculated successfully (with services)."));
+                    return Ok(ApiResponse<decimal>.SuccessResult(price1, "Ukupna cijena je uspješno izračunata (sa dodatnim uslugama)."));
                 }
 
                 var price = await _roomService.CalculatePriceAsync(roomId, checkIn, checkOut, guests);
-                return Ok(ApiResponse<decimal>.SuccessResult(price, "Total price calculated successfully."));
+                return Ok(ApiResponse<decimal>.SuccessResult(price, "Ukupna cijena je uspješno izračunata."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error calculating price for room {RoomId}", roomId);
-                return StatusCode(500, ApiResponse<decimal>.ErrorResult("An error occurred while calculating price."));
+                return StatusCode(500, ApiResponse<decimal>.ErrorResult("Došlo je do greške pri izračunavanju cijene."));
             }
         }
 

@@ -18,15 +18,15 @@ namespace Contracts.DTOs
 
     public class CreateSupportTicketDto : CreateBaseEntityDto
     {
-        [Required(ErrorMessage = "User ID is required")]
+        [Required(ErrorMessage = "ID korisnika je obavezan.")]
         public int UserId { get; set; }
 
-        [Required(ErrorMessage = "Subject is required")]
-        [StringLength(200, ErrorMessage = "Subject cannot exceed 200 characters")]
+        [Required(ErrorMessage = "Naslov je obavezan.")]
+        [StringLength(200, ErrorMessage = "Naslov ne smije imati više od 200 karaktera.")]
         public string Subject { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Message body is required")]
-        [StringLength(5000, ErrorMessage = "Message body cannot exceed 5000 characters")]
+        [Required(ErrorMessage = "Sadržaj poruke je obavezan.")]
+        [StringLength(5000, ErrorMessage = "Sadržaj poruke ne smije imati više od 5000 karaktera.")]
         public string MessageBody { get; set; } = string.Empty;
 
         public SupportTicketStatus Status { get; set; } = SupportTicketStatus.Open;
@@ -35,26 +35,26 @@ namespace Contracts.DTOs
 
     public class UpdateSupportTicketDto : UpdateBaseEntityDto
     {
-        [Required(ErrorMessage = "User ID is required")]
+        [Required(ErrorMessage = "ID korisnika je obavezan.")]
         public int UserId { get; set; }
 
-        [Required(ErrorMessage = "Subject is required")]
-        [StringLength(200, ErrorMessage = "Subject cannot exceed 200 characters")]
+        [Required(ErrorMessage = "Naslov je obavezan.")]
+        [StringLength(200, ErrorMessage = "Naslov ne smije imati više od 200 karaktera.")]
         public string Subject { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Message body is required")]
-        [StringLength(5000, ErrorMessage = "Message body cannot exceed 5000 characters")]
+        [Required(ErrorMessage = "Sadržaj poruke je obavezan.")]
+        [StringLength(5000, ErrorMessage = "Sadržaj poruke ne smije imati više od 5000 karaktera.")]
         public string MessageBody { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Status is required")]
+        [Required(ErrorMessage = "Status je obavezan.")]
         public SupportTicketStatus Status { get; set; }
 
-        [Required(ErrorMessage = "Priority is required")]
+        [Required(ErrorMessage = "Prioritet je obavezan.")]
         public SupportTicketPriority Priority { get; set; }
 
         // Odgovor osoblja — opciono, samo Employee/Admin smiju ga stvarno postaviti
         // (provjera i stamp RespondedAt/RespondedByUserId rade se u SupportTicketsController.Update).
-        [StringLength(5000, ErrorMessage = "Response cannot exceed 5000 characters")]
+        [StringLength(5000, ErrorMessage = "Odgovor ne smije imati više od 5000 karaktera.")]
         public string? AdminResponse { get; set; }
     }
 }

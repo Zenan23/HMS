@@ -17,47 +17,47 @@ namespace Contracts.DTOs
 
     public class CreateServiceDto : CreateBaseEntityDto
     {
-        [Required(ErrorMessage = "Service name is required")]
-        [StringLength(100, ErrorMessage = "Service name cannot exceed 100 characters")]
+        [Required(ErrorMessage = "Naziv usluge je obavezan.")]
+        [StringLength(100, ErrorMessage = "Naziv usluge ne smije imati više od 100 karaktera.")]
         public string Name { get; set; } = string.Empty;
 
         public string Description { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Price is required")]
-        [Range(0, double.MaxValue, ErrorMessage = "Price must be non-negative")]
+        [Required(ErrorMessage = "Cijena je obavezna.")]
+        [Range(0, double.MaxValue, ErrorMessage = "Cijena ne smije biti negativna.")]
         public decimal Price { get; set; }
 
-        [Range(1, int.MaxValue, ErrorMessage = "Category is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "Kategorija je obavezna.")]
         public int ServiceCategoryId { get; set; }
 
         public bool IsAvailable { get; set; } = true;
 
         public bool IsActive { get; set; } = true;
 
-        [Required(ErrorMessage = "Hotel ID is required")]
+        [Required(ErrorMessage = "ID hotela je obavezan.")]
         public int HotelId { get; set; }
     }
 
     public class UpdateServiceDto : UpdateBaseEntityDto
     {
-        [Required(ErrorMessage = "Service name is required")]
-        [StringLength(100, ErrorMessage = "Service name cannot exceed 100 characters")]
+        [Required(ErrorMessage = "Naziv usluge je obavezan.")]
+        [StringLength(100, ErrorMessage = "Naziv usluge ne smije imati više od 100 karaktera.")]
         public string Name { get; set; } = string.Empty;
 
         public string Description { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Price is required")]
-        [Range(0, double.MaxValue, ErrorMessage = "Price must be non-negative")]
+        [Required(ErrorMessage = "Cijena je obavezna.")]
+        [Range(0, double.MaxValue, ErrorMessage = "Cijena ne smije biti negativna.")]
         public decimal Price { get; set; }
 
-        [Range(1, int.MaxValue, ErrorMessage = "Category is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "Kategorija je obavezna.")]
         public int ServiceCategoryId { get; set; }
 
         public bool IsAvailable { get; set; }
 
         public bool IsActive { get; set; }
 
-        [Required(ErrorMessage = "Hotel ID is required")]
+        [Required(ErrorMessage = "ID hotela je obavezan.")]
         public int HotelId { get; set; }
     }
 

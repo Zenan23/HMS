@@ -33,7 +33,3 @@ Stripe (test mode) — kartica:
 broj: 4242 4242 4242 4242
 datum isteka: bilo koji budući datum (npr. 12/34)
 CVC: bilo koja 3 cifre (npr. 123)
-
-PayPal (sandbox nalog):
-email: buyerbooking@demo.com
-pw: Booking123!
