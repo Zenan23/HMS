@@ -9,7 +9,7 @@ services:
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_PID=Developer
-      - SA_PASSWORD=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!}
+      - SA_PASSWORD=${MSSQL_SA_PASSWORD}
     ports:
       - "1433:1433"
     volumes:
@@ -25,8 +25,8 @@ services:
     image: rabbitmq:3.13-management
     container_name: ebooking-rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBIT_USER:-guest}
-      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASS:-guest}
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASS}
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -54,25 +54,25 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    # Plaćanja/SMTP: SVE dolazi isključivo iz env.docker (commitano) → zero-config nakon
-    # clone-a, jedan fajl za cijeli tim. Nema više opcionog .env override-a — namjerno
-    # uklonjen (razna imena varijabli su se tiho ignorisala i pravila zabunu oko toga
-    # šta je stvarno aktivno). Ako nekad zatreba lični override, dodaj ga direktno u
-    # env.docker (ne commituj stvarne produkcijske ključeve).
+    # Plaćanja/SMTP dolaze iz env.secret (NIJE komitovan — kopiraj env.secret.example i
+    # popuni prave vrijednosti, vidi README "Konfiguracija / .env"). Infra tajne (DB lozinka,
+    # JWT ključ, RabbitMQ kredencijali) dolaze iz root .env fajla (isto nekomitovan, vidi
+    # .env.example) preko ${VAR} supstitucije ispod — nema više hardkodiranih defaulta u
+    # ovom fajlu koji bi završili u javnom repou.
     env_file:
-      - path: env.docker
+      - path: env.secret
         required: true
     environment:
       - ASPNETCORE_URLS=http://+:8080
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=db;Database=170028;User ID=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!};Encrypt=true;TrustServerCertificate=true;MultipleActiveResultSets=true
-      - JWT__SecretKey=${JWT_SECRET:-ChangeThisToAStrongSecretKey_AtLeast32Chars}
+      - ConnectionStrings__DefaultConnection=Server=db;Database=170028;User ID=sa;Password=${MSSQL_SA_PASSWORD};Encrypt=true;TrustServerCertificate=true;MultipleActiveResultSets=true
+      - JWT__SecretKey=${JWT_SECRET}
       - JWT__Issuer=eBooking
       - JWT__Audience=eBookingUsers
       - Rabbit__Host=rabbitmq
-      - Rabbit__User=${RABBIT_USER:-guest}
-      - Rabbit__Pass=${RABBIT_PASS:-guest}
-      # Payments*/Smtp* dolaze iz env.docker — ne stavljati ovdje prazne ${VAR:-}
+      - Rabbit__User=${RABBIT_USER}
+      - Rabbit__Pass=${RABBIT_PASS}
+      # Payments*/Smtp* dolaze iz env.secret — ne stavljati ovdje prazne ${VAR:-}
       # jer bi environment pregazio env_file i ugasio Stripe.
     ports:
       - "8080:8080"
@@ -99,15 +99,15 @@ services:
       rabbitmq:
         condition: service_healthy
     env_file:
-      - path: env.docker
+      - path: env.secret
         required: true
     environment:
       - DOTNET_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=db;Database=170028;User ID=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!};Encrypt=true;TrustServerCertificate=true;MultipleActiveResultSets=true
+      - ConnectionStrings__DefaultConnection=Server=db;Database=170028;User ID=sa;Password=${MSSQL_SA_PASSWORD};Encrypt=true;TrustServerCertificate=true;MultipleActiveResultSets=true
       - Rabbit__Host=rabbitmq
-      - Rabbit__User=${RABBIT_USER:-guest}
-      - Rabbit__Pass=${RABBIT_PASS:-guest}
-      # Payments*/Smtp* dolaze iz env.docker (isto kao api) — PaymentService je posredna
+      - Rabbit__User=${RABBIT_USER}
+      - Rabbit__Pass=${RABBIT_PASS}
+      # Payments*/Smtp* dolaze iz env.secret (isto kao api) — PaymentService je posredna
       # zavisnost BookingService-a pa Worker treba istu konfiguraciju da sastavi DI graf.
     restart: unless-stopped
 

@@ -6,7 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Worker</RootNamespace>
     <InvariantGlobalization>false</InvariantGlobalization>
-    <UserSecretsId>eBooking-Worker</UserSecretsId>
+    <!-- Isti ID kao API projekat — dijele isti lokalni secrets.json (ista baza/connection string). -->
+    <UserSecretsId>eBooking-Local</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

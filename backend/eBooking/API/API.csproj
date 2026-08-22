@@ -4,6 +4,10 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Dijeli isti secrets store sa Worker projektom (ista baza, isti DefaultConnection) —
+         vidi README "Konfiguracija / .env" za dotnet user-secrets komandu za lokalni razvoj
+         izvan Dockera. -->
+    <UserSecretsId>eBooking-Local</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

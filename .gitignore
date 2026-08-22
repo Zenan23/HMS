@@ -10,6 +10,7 @@ Thumbs.db
 
 # Docker
 .env
+env.secret
 artifacts/
 *.tar
 
