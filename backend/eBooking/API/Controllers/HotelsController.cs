@@ -55,7 +55,7 @@ namespace API.Controllers
             {
                 if (string.IsNullOrWhiteSpace(city))
                 {
-                    return BadRequest(ApiResponse<IEnumerable<HotelDto>>.ErrorResult("City parameter cannot be empty."));
+                    return BadRequest(ApiResponse<IEnumerable<HotelDto>>.ErrorResult("Parametar grada ne smije biti prazan."));
                 }
 
                 var hotels = await _hotelService.GetHotelsByCityAsync(city);
@@ -63,12 +63,12 @@ namespace API.Controllers
 
                 return Ok(ApiResponse<IEnumerable<HotelDto>>.SuccessResult(
                     hotelDtos,
-                    $"Hotels in {city} retrieved successfully."));
+                    $"Hoteli u gradu {city} su uspješno učitani."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving hotels for city: {City}", city);
-                return StatusCode(500, ApiResponse<IEnumerable<HotelDto>>.ErrorResult("An error occurred while retrieving hotels."));
+                return StatusCode(500, ApiResponse<IEnumerable<HotelDto>>.ErrorResult("Došlo je do greške pri učitavanju hotela."));
             }
         }
 
@@ -84,7 +84,7 @@ namespace API.Controllers
             {
                 if (string.IsNullOrWhiteSpace(name))
                 {
-                    return BadRequest(ApiResponse<IEnumerable<HotelDto>>.ErrorResult("City parameter cannot be empty."));
+                    return BadRequest(ApiResponse<IEnumerable<HotelDto>>.ErrorResult("Parametar grada ne smije biti prazan."));
                 }
 
                 var hotels = await _hotelService.GetHotelsByNameAsync(name);
@@ -92,12 +92,12 @@ namespace API.Controllers
 
                 return Ok(ApiResponse<IEnumerable<HotelDto>>.SuccessResult(
                     hotelDtos,
-                    $"Hotels in {name} retrieved successfully."));
+                    $"Hoteli za naziv {name} su uspješno učitani."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving hotels for name: {name}", name);
-                return StatusCode(500, ApiResponse<IEnumerable<HotelDto>>.ErrorResult("An error occurred while retrieving hotels."));
+                return StatusCode(500, ApiResponse<IEnumerable<HotelDto>>.ErrorResult("Došlo je do greške pri učitavanju hotela."));
             }
         }
 
@@ -113,7 +113,7 @@ namespace API.Controllers
             {
                 if (starRating < 1 || starRating > 5)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<HotelDto>>.ErrorResult("Star rating must be between 1 and 5."));
+                    return BadRequest(ApiResponse<IEnumerable<HotelDto>>.ErrorResult("Broj zvjezdica mora biti između 1 i 5."));
                 }
 
                 // Get all hotels and filter by star rating
@@ -123,12 +123,12 @@ namespace API.Controllers
 
                 return Ok(ApiResponse<IEnumerable<HotelDto>>.SuccessResult(
                     filteredHotels,
-                    $"Hotels with {starRating} star rating retrieved successfully."));
+                    $"Hoteli sa {starRating} zvjezdica su uspješno učitani."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving hotels with star rating: {StarRating}", starRating);
-                return StatusCode(500, ApiResponse<IEnumerable<HotelDto>>.ErrorResult("An error occurred while retrieving hotels."));
+                return StatusCode(500, ApiResponse<IEnumerable<HotelDto>>.ErrorResult("Došlo je do greške pri učitavanju hotela."));
             }
         }
 
@@ -243,21 +243,21 @@ namespace API.Controllers
             {
                 if (userId <= 0)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<HotelDto>>.ErrorResult("Invalid user ID."));
+                    return BadRequest(ApiResponse<IEnumerable<HotelDto>>.ErrorResult("Nevažeći ID korisnika."));
                 }
 
                 if (maxRecommendations <= 0 || maxRecommendations > 20)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<HotelDto>>.ErrorResult("Max recommendations must be between 1 and 20."));
+                    return BadRequest(ApiResponse<IEnumerable<HotelDto>>.ErrorResult("Broj preporuka mora biti između 1 i 20."));
                 }
 
                 var hotels = await _hotelService.GetUserBasedHotelRecommendationsAsync(userId, maxRecommendations);
-                return Ok(ApiResponse<IEnumerable<HotelDto>>.SuccessResult(hotels, "Recommended hotels retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<HotelDto>>.SuccessResult(hotels, "Preporučeni hoteli su uspješno učitani."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving recommended hotels for user ID: {UserId}", userId);
-                return StatusCode(500, ApiResponse<IEnumerable<HotelDto>>.ErrorResult("An error occurred while retrieving recommended hotels."));
+                return StatusCode(500, ApiResponse<IEnumerable<HotelDto>>.ErrorResult("Došlo je do greške pri učitavanju preporučenih hotela."));
             }
         }
     }

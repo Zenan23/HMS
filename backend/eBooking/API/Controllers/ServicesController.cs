@@ -32,16 +32,16 @@ namespace API.Controllers
             {
                 if (hotelId <= 0)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<ServiceDto>>.ErrorResult("Invalid hotel ID."));
+                    return BadRequest(ApiResponse<IEnumerable<ServiceDto>>.ErrorResult("Nevažeći ID hotela."));
                 }
 
                 var services = await _serviceService.GetByHotelIdAsync(hotelId);
-                return Ok(ApiResponse<IEnumerable<ServiceDto>>.SuccessResult(services, "Services retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<ServiceDto>>.SuccessResult(services, "Usluge su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving services for hotel ID: {HotelId}", hotelId);
-                return StatusCode(500, ApiResponse<IEnumerable<ServiceDto>>.ErrorResult("An error occurred while retrieving services."));
+                return StatusCode(500, ApiResponse<IEnumerable<ServiceDto>>.ErrorResult("Došlo je do greške pri učitavanju usluga."));
             }
         }
 
@@ -57,16 +57,16 @@ namespace API.Controllers
             {
                 if (string.IsNullOrWhiteSpace(category))
                 {
-                    return BadRequest(ApiResponse<IEnumerable<ServiceDto>>.ErrorResult("Service category is required."));
+                    return BadRequest(ApiResponse<IEnumerable<ServiceDto>>.ErrorResult("Kategorija usluge je obavezna."));
                 }
 
                 var services = await _serviceService.GetByCategoryAsync(category);
-                return Ok(ApiResponse<IEnumerable<ServiceDto>>.SuccessResult(services, "Services retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<ServiceDto>>.SuccessResult(services, "Usluge su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving services for category: {Category}", category);
-                return StatusCode(500, ApiResponse<IEnumerable<ServiceDto>>.ErrorResult("An error occurred while retrieving services."));
+                return StatusCode(500, ApiResponse<IEnumerable<ServiceDto>>.ErrorResult("Došlo je do greške pri učitavanju usluga."));
             }
         }
 
@@ -80,12 +80,12 @@ namespace API.Controllers
             try
             {
                 var services = await _serviceService.GetAvailableServicesAsync();
-                return Ok(ApiResponse<IEnumerable<ServiceDto>>.SuccessResult(services, "Available services retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<ServiceDto>>.SuccessResult(services, "Dostupne usluge su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving available services");
-                return StatusCode(500, ApiResponse<IEnumerable<ServiceDto>>.ErrorResult("An error occurred while retrieving available services."));
+                return StatusCode(500, ApiResponse<IEnumerable<ServiceDto>>.ErrorResult("Došlo je do greške pri učitavanju dostupnih usluga."));
             }
         }
     }

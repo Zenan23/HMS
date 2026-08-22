@@ -46,7 +46,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_selectedIndex],
+      // IndexedStack umjesto direktnog indeksiranja liste — tabovi ostaju
+      // mountovani u pozadini pa se ne uništavaju usred async operacije
+      // (npr. dijalog za iskorištavanje loyalty bodova na Profil tabu), što je
+      // uzrokovalo pad aplikacije ("_dependents.isEmpty") ako bi korisnik
+      // promijenio tab dok je async poziv u toku.
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,

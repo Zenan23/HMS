@@ -18,39 +18,39 @@ namespace Contracts.DTOs
     // greške) — automatsko zarađivanje ide direktno kroz DbContext u PaymentService, ne preko ovog DTO-a.
     public class CreateLoyaltyPointsEarnedDto : CreateBaseEntityDto
     {
-        [Required(ErrorMessage = "User ID is required")]
+        [Required(ErrorMessage = "ID korisnika je obavezan.")]
         public int UserId { get; set; }
 
         public int? BookingId { get; set; }
 
-        [Required(ErrorMessage = "Points earned is required")]
-        [Range(1, int.MaxValue, ErrorMessage = "Points earned must be greater than 0")]
+        [Required(ErrorMessage = "Broj osvojenih bodova je obavezan.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Broj osvojenih bodova mora biti veći od 0.")]
         public int PointsEarned { get; set; }
 
-        [Required(ErrorMessage = "Earned date is required")]
+        [Required(ErrorMessage = "Datum osvajanja bodova je obavezan.")]
         public DateTime EarnedAt { get; set; }
 
-        [Required(ErrorMessage = "Reason is required")]
-        [StringLength(200, ErrorMessage = "Reason cannot exceed 200 characters")]
+        [Required(ErrorMessage = "Razlog je obavezan.")]
+        [StringLength(200, ErrorMessage = "Razlog ne smije imati više od 200 karaktera.")]
         public string Reason { get; set; } = string.Empty;
     }
 
     public class UpdateLoyaltyPointsEarnedDto : UpdateBaseEntityDto
     {
-        [Required(ErrorMessage = "User ID is required")]
+        [Required(ErrorMessage = "ID korisnika je obavezan.")]
         public int UserId { get; set; }
 
         public int? BookingId { get; set; }
 
-        [Required(ErrorMessage = "Points earned is required")]
-        [Range(1, int.MaxValue, ErrorMessage = "Points earned must be greater than 0")]
+        [Required(ErrorMessage = "Broj osvojenih bodova je obavezan.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Broj osvojenih bodova mora biti veći od 0.")]
         public int PointsEarned { get; set; }
 
-        [Required(ErrorMessage = "Earned date is required")]
+        [Required(ErrorMessage = "Datum osvajanja bodova je obavezan.")]
         public DateTime EarnedAt { get; set; }
 
-        [Required(ErrorMessage = "Reason is required")]
-        [StringLength(200, ErrorMessage = "Reason cannot exceed 200 characters")]
+        [Required(ErrorMessage = "Razlog je obavezan.")]
+        [StringLength(200, ErrorMessage = "Razlog ne smije imati više od 200 karaktera.")]
         public string Reason { get; set; } = string.Empty;
     }
 }

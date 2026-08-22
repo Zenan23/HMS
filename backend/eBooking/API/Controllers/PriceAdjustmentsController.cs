@@ -28,7 +28,7 @@ namespace API.Controllers
             [FromQuery] DateTime? atDate, [FromQuery] int? hotelId)
         {
             var activeAdjustments = await _priceAdjustmentService.GetActiveAdjustmentsAsync(atDate ?? DateTime.UtcNow, hotelId);
-            return Ok(ApiResponse<IEnumerable<PriceAdjustmentDto>>.SuccessResult(activeAdjustments, "Active price adjustments retrieved successfully."));
+            return Ok(ApiResponse<IEnumerable<PriceAdjustmentDto>>.SuccessResult(activeAdjustments, "Aktivne korekcije cijena su uspješno učitane."));
         }
 
         // Server-side postavljanje CreatedByUserId iz JWT-a — klijent ga ne šalje/ne može falsifikovati.

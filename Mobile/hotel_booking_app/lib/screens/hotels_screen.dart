@@ -383,11 +383,14 @@ class _HotelsScreenState extends State<HotelsScreen> {
                 children: [
                   const Icon(Icons.phone, size: 16, color: Colors.grey),
                   const SizedBox(width: 4),
-                  Text(
-                    hotel.phoneNumber,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
+                  Flexible(
+                    child: Text(
+                      hotel.phoneNumber,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
                     ),
                   ),
                   const Spacer(),

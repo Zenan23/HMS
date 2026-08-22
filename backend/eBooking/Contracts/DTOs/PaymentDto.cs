@@ -29,22 +29,22 @@ namespace Contracts.DTOs
     /// <summary>Starts hosted checkout (Stripe Checkout).</summary>
     public class CreateHostedCheckoutDto
     {
-        [Required(ErrorMessage = "User ID is required")]
+        [Required(ErrorMessage = "ID korisnika je obavezan.")]
         public int UserId { get; set; }
 
-        [Required(ErrorMessage = "Booking ID is required")]
+        [Required(ErrorMessage = "ID rezervacije je obavezan.")]
         public int BookingId { get; set; }
 
-        [Required(ErrorMessage = "Amount is required")]
+        [Required(ErrorMessage = "Iznos je obavezan.")]
         public decimal Amount { get; set; }
 
-        [Required(ErrorMessage = "Payment method is required")]
+        [Required(ErrorMessage = "Način plaćanja je obavezan.")]
         public PaymentMethod PaymentMethod { get; set; }
 
-        [StringLength(3, ErrorMessage = "Currency code must be 3 characters")]
+        [StringLength(3, ErrorMessage = "Kod valute mora imati tačno 3 karaktera.")]
         public string Currency { get; set; } = "USD";
 
-        [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
+        [StringLength(500, ErrorMessage = "Opis ne smije imati više od 500 karaktera.")]
         public string? Description { get; set; }
 
         /// <summary>Opciono: HTTP return URL za in-app WebView (npr. http://10.0.2.2:8080/payment-return).</summary>
@@ -84,23 +84,23 @@ namespace Contracts.DTOs
     /// <summary>Legacy DTO kept for API compatibility; prefer <see cref="CreateHostedCheckoutDto"/>.</summary>
     public class CreatePaymentDto : CreateBaseEntityDto
     {
-        [Required(ErrorMessage = "User ID is required")]
+        [Required(ErrorMessage = "ID korisnika je obavezan.")]
         public int UserId { get; set; }
 
-        [Required(ErrorMessage = "Booking ID is required")]
+        [Required(ErrorMessage = "ID rezervacije je obavezan.")]
         public int BookingId { get; set; }
 
-        [Required(ErrorMessage = "Amount is required")]
-      //  [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than 0")]
+        [Required(ErrorMessage = "Iznos je obavezan.")]
+      //  [Range(0.01, double.MaxValue, ErrorMessage = "Iznos mora biti veći od 0.")]
         public decimal Amount { get; set; }
 
-        [Required(ErrorMessage = "Payment method is required")]
+        [Required(ErrorMessage = "Način plaćanja je obavezan.")]
         public PaymentMethod PaymentMethod { get; set; }
 
-        [StringLength(3, ErrorMessage = "Currency code must be 3 characters")]
+        [StringLength(3, ErrorMessage = "Kod valute mora imati tačno 3 karaktera.")]
         public string Currency { get; set; } = "USD";
 
-        [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
+        [StringLength(500, ErrorMessage = "Opis ne smije imati više od 500 karaktera.")]
         public string? Description { get; set; }
     }
 

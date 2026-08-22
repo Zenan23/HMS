@@ -49,16 +49,16 @@ namespace API.Controllers
             {
                 if (bookingId <= 0)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<BookingStatusHistoryDto>>.ErrorResult("Invalid booking ID."));
+                    return BadRequest(ApiResponse<IEnumerable<BookingStatusHistoryDto>>.ErrorResult("Nevažeći ID rezervacije."));
                 }
 
                 var history = await _bookingStatusHistoryService.GetByBookingIdAsync(bookingId);
-                return Ok(ApiResponse<IEnumerable<BookingStatusHistoryDto>>.SuccessResult(history, "Booking status history retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<BookingStatusHistoryDto>>.SuccessResult(history, "Istorija statusa rezervacije je uspješno učitana."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving booking status history for booking ID: {BookingId}", bookingId);
-                return StatusCode(500, ApiResponse<IEnumerable<BookingStatusHistoryDto>>.ErrorResult("An error occurred while retrieving booking status history."));
+                return StatusCode(500, ApiResponse<IEnumerable<BookingStatusHistoryDto>>.ErrorResult("Došlo je do greške pri učitavanju istorije statusa rezervacije."));
             }
         }
 
@@ -74,7 +74,7 @@ namespace API.Controllers
             {
                 if (userId <= 0)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<BookingStatusHistoryDto>>.ErrorResult("Invalid user ID."));
+                    return BadRequest(ApiResponse<IEnumerable<BookingStatusHistoryDto>>.ErrorResult("Nevažeći ID korisnika."));
                 }
 
                 if (!IsSelfOrElevated(userId))
@@ -83,12 +83,12 @@ namespace API.Controllers
                 }
 
                 var history = await _bookingStatusHistoryService.GetByUserIdAsync(userId);
-                return Ok(ApiResponse<IEnumerable<BookingStatusHistoryDto>>.SuccessResult(history, "Booking status history retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<BookingStatusHistoryDto>>.SuccessResult(history, "Istorija statusa rezervacije je uspješno učitana."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving booking status history for user ID: {UserId}", userId);
-                return StatusCode(500, ApiResponse<IEnumerable<BookingStatusHistoryDto>>.ErrorResult("An error occurred while retrieving booking status history."));
+                return StatusCode(500, ApiResponse<IEnumerable<BookingStatusHistoryDto>>.ErrorResult("Došlo je do greške pri učitavanju istorije statusa rezervacije."));
             }
         }
     }

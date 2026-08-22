@@ -42,11 +42,11 @@ namespace API.Controllers
         {
             if (roomId <= 0)
             {
-                return BadRequest(ApiResponse<IEnumerable<RoomMaintenanceLogDto>>.ErrorResult("Invalid room ID."));
+                return BadRequest(ApiResponse<IEnumerable<RoomMaintenanceLogDto>>.ErrorResult("Nevažeći ID sobe."));
             }
 
             var logs = await _roomMaintenanceLogService.GetByRoomIdAsync(roomId);
-            return Ok(ApiResponse<IEnumerable<RoomMaintenanceLogDto>>.SuccessResult(logs, "Maintenance logs retrieved successfully."));
+            return Ok(ApiResponse<IEnumerable<RoomMaintenanceLogDto>>.SuccessResult(logs, "Zapisi o održavanju su uspješno učitani."));
         }
     }
 }

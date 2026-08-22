@@ -316,12 +316,12 @@ namespace API.Controllers
             try
             {
                 var count = await _service.CountAsync();
-                return Ok(ApiResponse<int>.SuccessResult(count, "Total entity count retrieved."));
+                return Ok(ApiResponse<int>.SuccessResult(count, "Ukupan broj zapisa je uspješno učitan."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting entity count");
-                return StatusCode(500, ApiResponse<int>.ErrorResult("An error occurred while getting entity count."));
+                return StatusCode(500, ApiResponse<int>.ErrorResult("Došlo je do greške pri dohvatanju broja zapisa."));
             }
         }
     }

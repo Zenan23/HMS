@@ -17,17 +17,17 @@ namespace Contracts.DTOs
 
     public class CreatePriceAdjustmentDto : CreateBaseEntityDto
     {
-        [Required(ErrorMessage = "Name is required")]
-        [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
+        [Required(ErrorMessage = "Naziv je obavezan.")]
+        [StringLength(100, ErrorMessage = "Naziv ne smije imati više od 100 karaktera.")]
         public string Name { get; set; } = string.Empty;
 
-        [Range(-100, 1000, ErrorMessage = "Percentage modifier must be between -100 and 1000")]
+        [Range(-100, 1000, ErrorMessage = "Procentualni modifikator mora biti između -100 i 1000.")]
         public decimal PercentageModifier { get; set; }
 
-        [Required(ErrorMessage = "Start date is required")]
+        [Required(ErrorMessage = "Datum početka je obavezan.")]
         public DateTime StartDate { get; set; }
 
-        [Required(ErrorMessage = "End date is required")]
+        [Required(ErrorMessage = "Datum završetka je obavezan.")]
         public DateTime EndDate { get; set; }
 
         public bool IsCumulative { get; set; }
@@ -41,17 +41,17 @@ namespace Contracts.DTOs
 
     public class UpdatePriceAdjustmentDto : UpdateBaseEntityDto
     {
-        [Required(ErrorMessage = "Name is required")]
-        [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
+        [Required(ErrorMessage = "Naziv je obavezan.")]
+        [StringLength(100, ErrorMessage = "Naziv ne smije imati više od 100 karaktera.")]
         public string Name { get; set; } = string.Empty;
 
-        [Range(-100, 1000, ErrorMessage = "Percentage modifier must be between -100 and 1000")]
+        [Range(-100, 1000, ErrorMessage = "Procentualni modifikator mora biti između -100 i 1000.")]
         public decimal PercentageModifier { get; set; }
 
-        [Required(ErrorMessage = "Start date is required")]
+        [Required(ErrorMessage = "Datum početka je obavezan.")]
         public DateTime StartDate { get; set; }
 
-        [Required(ErrorMessage = "End date is required")]
+        [Required(ErrorMessage = "Datum završetka je obavezan.")]
         public DateTime EndDate { get; set; }
 
         public bool IsCumulative { get; set; }

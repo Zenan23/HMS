@@ -31,7 +31,7 @@ namespace API.Controllers
         {
             if (userId <= 0)
             {
-                return BadRequest(ApiResponse<IEnumerable<SupportTicketDto>>.ErrorResult("Invalid user ID."));
+                return BadRequest(ApiResponse<IEnumerable<SupportTicketDto>>.ErrorResult("Nevažeći ID korisnika."));
             }
 
             if (!IsSelfOrElevated(userId))
@@ -40,7 +40,7 @@ namespace API.Controllers
             }
 
             var tickets = await _supportTicketService.GetByUserIdAsync(userId);
-            return Ok(ApiResponse<IEnumerable<SupportTicketDto>>.SuccessResult(tickets, "Support tickets retrieved successfully."));
+            return Ok(ApiResponse<IEnumerable<SupportTicketDto>>.SuccessResult(tickets, "Tiketi podrške su uspješno učitani."));
         }
 
         [HttpGet("status/{status}")]
@@ -48,7 +48,7 @@ namespace API.Controllers
         public async Task<ActionResult<ApiResponse<IEnumerable<SupportTicketDto>>>> GetByStatus([FromRoute] SupportTicketStatus status)
         {
             var tickets = await _supportTicketService.GetByStatusAsync(status);
-            return Ok(ApiResponse<IEnumerable<SupportTicketDto>>.SuccessResult(tickets, "Support tickets retrieved successfully."));
+            return Ok(ApiResponse<IEnumerable<SupportTicketDto>>.SuccessResult(tickets, "Tiketi podrške su uspješno učitani."));
         }
 
         // Lista SVIH tiketa (bez filtera) — samo osoblje/admin, sadrži tuđe podatke.

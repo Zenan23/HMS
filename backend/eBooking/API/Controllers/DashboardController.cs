@@ -65,12 +65,12 @@ namespace API.Controllers
 
                 return Ok(ApiResponse<DashboardStatistics>.SuccessResult(
                     dashboardStats,
-                    "Dashboard statistics retrieved successfully."));
+                    "Statistika za pregled je uspješno učitana."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving dashboard statistics");
-                return StatusCode(500, ApiResponse<DashboardStatistics>.ErrorResult("An error occurred while retrieving dashboard statistics."));
+                return StatusCode(500, ApiResponse<DashboardStatistics>.ErrorResult("Došlo je do greške pri učitavanju statistike za pregled."));
             }
         }
 
@@ -91,12 +91,12 @@ namespace API.Controllers
                 var statistics = await _paymentService.GetPaymentStatisticsAsync(fromDate, toDate);
                 return Ok(ApiResponse<Contracts.DTOs.PaymentStatistics>.SuccessResult(
                     statistics,
-                    "Payment statistics retrieved successfully."));
+                    "Statistika plaćanja je uspješno učitana."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving payment statistics");
-                return StatusCode(500, ApiResponse<Contracts.DTOs.PaymentStatistics>.ErrorResult("An error occurred while retrieving payment statistics."));
+                return StatusCode(500, ApiResponse<Contracts.DTOs.PaymentStatistics>.ErrorResult("Došlo je do greške pri učitavanju statistike plaćanja."));
             }
         }
 
@@ -117,12 +117,12 @@ namespace API.Controllers
                 var statistics = await _bookingService.GetBookingStatisticsAsync(fromDate, toDate);
                 return Ok(ApiResponse<BookingStatistics>.SuccessResult(
                     statistics,
-                    "Booking statistics retrieved successfully."));
+                    "Statistika rezervacija je uspješno učitana."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving booking statistics");
-                return StatusCode(500, ApiResponse<BookingStatistics>.ErrorResult("An error occurred while retrieving booking statistics."));
+                return StatusCode(500, ApiResponse<BookingStatistics>.ErrorResult("Došlo je do greške pri učitavanju statistike rezervacija."));
             }
         }
 
@@ -139,12 +139,12 @@ namespace API.Controllers
                 var statistics = await _hotelService.GetHotelStatisticsAsync();
                 return Ok(ApiResponse<HotelStatistics>.SuccessResult(
                     statistics,
-                    "Hotel statistics retrieved successfully."));
+                    "Statistika hotela je uspješno učitana."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving hotel statistics");
-                return StatusCode(500, ApiResponse<HotelStatistics>.ErrorResult("An error occurred while retrieving hotel statistics."));
+                return StatusCode(500, ApiResponse<HotelStatistics>.ErrorResult("Došlo je do greške pri učitavanju statistike hotela."));
             }
         }
 
@@ -161,12 +161,12 @@ namespace API.Controllers
                 var statistics = await _userService.GetUserStatisticsAsync();
                 return Ok(ApiResponse<UserStatistics>.SuccessResult(
                     statistics,
-                    "User statistics retrieved successfully."));
+                    "Statistika korisnika je uspješno učitana."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving user statistics");
-                return StatusCode(500, ApiResponse<UserStatistics>.ErrorResult("An error occurred while retrieving user statistics."));
+                return StatusCode(500, ApiResponse<UserStatistics>.ErrorResult("Došlo je do greške pri učitavanju statistike korisnika."));
             }
         }
 
@@ -187,12 +187,12 @@ namespace API.Controllers
                 var statistics = await _reviewService.GetReviewStatisticsAsync(fromDate, toDate);
                 return Ok(ApiResponse<ReviewStatistics>.SuccessResult(
                     statistics,
-                    "Review statistics retrieved successfully."));
+                    "Statistika recenzija je uspješno učitana."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving review statistics");
-                return StatusCode(500, ApiResponse<ReviewStatistics>.ErrorResult("An error occurred while retrieving review statistics."));
+                return StatusCode(500, ApiResponse<ReviewStatistics>.ErrorResult("Došlo je do greške pri učitavanju statistike recenzija."));
             }
         }
     }

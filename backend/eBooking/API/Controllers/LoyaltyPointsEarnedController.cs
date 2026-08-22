@@ -50,7 +50,7 @@ namespace API.Controllers
         {
             if (userId <= 0)
             {
-                return BadRequest(ApiResponse<IEnumerable<LoyaltyPointsEarnedDto>>.ErrorResult("Invalid user ID."));
+                return BadRequest(ApiResponse<IEnumerable<LoyaltyPointsEarnedDto>>.ErrorResult("Nevažeći ID korisnika."));
             }
 
             if (!IsSelfOrElevated(userId))
@@ -59,7 +59,7 @@ namespace API.Controllers
             }
 
             var earned = await _loyaltyPointsEarnedService.GetByUserIdAsync(userId);
-            return Ok(ApiResponse<IEnumerable<LoyaltyPointsEarnedDto>>.SuccessResult(earned, "Loyalty points earned retrieved successfully."));
+            return Ok(ApiResponse<IEnumerable<LoyaltyPointsEarnedDto>>.SuccessResult(earned, "Zarađeni loyalty bodovi su uspješno učitani."));
         }
     }
 }

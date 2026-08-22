@@ -17,10 +17,6 @@ Future<void> presentStripePaymentSheet({
     paymentSheetParameters: SetupPaymentSheetParameters(
       paymentIntentClientSecret: clientSecret,
       merchantDisplayName: merchantDisplayName,
-      googlePay: const PaymentSheetGooglePay(
-        merchantCountryCode: 'BA',
-        testEnv: true,
-      ),
     ),
   );
   await Stripe.instance.presentPaymentSheet();

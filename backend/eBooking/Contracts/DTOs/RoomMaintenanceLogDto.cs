@@ -15,39 +15,39 @@ namespace Contracts.DTOs
 
     public class CreateRoomMaintenanceLogDto : CreateBaseEntityDto
     {
-        [Required(ErrorMessage = "Room ID is required")]
+        [Required(ErrorMessage = "ID sobe je obavezan.")]
         public int RoomId { get; set; }
 
-        [Required(ErrorMessage = "Reported date is required")]
+        [Required(ErrorMessage = "Datum prijave kvara je obavezan.")]
         public DateTime ReportedAt { get; set; }
 
-        [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
+        [StringLength(1000, ErrorMessage = "Opis ne smije imati više od 1000 karaktera.")]
         public string Description { get; set; } = string.Empty;
 
-        [Range(0, double.MaxValue, ErrorMessage = "Cost must be non-negative")]
+        [Range(0, double.MaxValue, ErrorMessage = "Trošak ne smije biti negativan.")]
         public decimal Cost { get; set; }
 
-        [StringLength(100, ErrorMessage = "Technician name cannot exceed 100 characters")]
+        [StringLength(100, ErrorMessage = "Ime tehničara ne smije imati više od 100 karaktera.")]
         public string TechnicianName { get; set; } = string.Empty;
     }
 
     public class UpdateRoomMaintenanceLogDto : UpdateBaseEntityDto
     {
-        [Required(ErrorMessage = "Room ID is required")]
+        [Required(ErrorMessage = "ID sobe je obavezan.")]
         public int RoomId { get; set; }
 
-        [Required(ErrorMessage = "Reported date is required")]
+        [Required(ErrorMessage = "Datum prijave kvara je obavezan.")]
         public DateTime ReportedAt { get; set; }
 
         public DateTime? ResolvedAt { get; set; }
 
-        [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
+        [StringLength(1000, ErrorMessage = "Opis ne smije imati više od 1000 karaktera.")]
         public string Description { get; set; } = string.Empty;
 
-        [Range(0, double.MaxValue, ErrorMessage = "Cost must be non-negative")]
+        [Range(0, double.MaxValue, ErrorMessage = "Trošak ne smije biti negativan.")]
         public decimal Cost { get; set; }
 
-        [StringLength(100, ErrorMessage = "Technician name cannot exceed 100 characters")]
+        [StringLength(100, ErrorMessage = "Ime tehničara ne smije imati više od 100 karaktera.")]
         public string TechnicianName { get; set; } = string.Empty;
     }
 }

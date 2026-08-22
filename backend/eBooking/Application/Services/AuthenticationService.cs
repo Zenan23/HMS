@@ -44,12 +44,12 @@ namespace Application.Services
 
             if (user == null || !user.IsActive)
             {
-                throw new UnauthorizedAccessException("Invalid email or password.");
+                throw new UnauthorizedAccessException("Pogrešan email ili lozinka.");
             }
 
             if (!_passwordService.VerifyPassword(loginDto.Password, user.PasswordHash))
             {
-                throw new UnauthorizedAccessException("Invalid email or password.");
+                throw new UnauthorizedAccessException("Pogrešan email ili lozinka.");
             }
 
             var token = _jwtService.GenerateToken(user);

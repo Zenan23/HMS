@@ -75,7 +75,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
 
     setState(() {
       _config = config;
-      // In-app Stripe (Payment Sheet / Payment Element, uključuje i Google Pay na Androidu).
+      // In-app Stripe (Payment Sheet / Payment Element).
       _useNative = canUseInAppStripe;
       _configLoading = false;
     });
@@ -237,7 +237,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
     _stripePaymentIntentId = intent.paymentIntentId;
     _stripeClientSecret = intent.clientSecret;
 
-    // Web: ugrađeni Payment Element. Mobile: Payment Sheet (kartica + Google Pay).
+    // Web: ugrađeni Payment Element. Mobile: Payment Sheet.
     if (stripeCheckoutUi == StripeCheckoutUi.paymentElement) {
       if (!mounted) return;
       setState(() {
@@ -470,7 +470,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
                         selected: true,
                         enabled: _stripeAvailable || !_useNative,
                         icon: Icons.credit_card,
-                        label: 'Kartica / Google Pay',
+                        label: 'Kartica',
                         color: const Color(0xFF635BFF),
                         onTap: () {},
                       ),

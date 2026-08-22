@@ -42,11 +42,11 @@ namespace API.Controllers
         {
             if (inventoryItemId <= 0)
             {
-                return BadRequest(ApiResponse<IEnumerable<InventoryTransactionDto>>.ErrorResult("Invalid inventory item ID."));
+                return BadRequest(ApiResponse<IEnumerable<InventoryTransactionDto>>.ErrorResult("Nevažeći ID artikla skladišta."));
             }
 
             var transactions = await _inventoryTransactionService.GetByInventoryItemIdAsync(inventoryItemId);
-            return Ok(ApiResponse<IEnumerable<InventoryTransactionDto>>.SuccessResult(transactions, "Inventory transactions retrieved successfully."));
+            return Ok(ApiResponse<IEnumerable<InventoryTransactionDto>>.SuccessResult(transactions, "Transakcije skladišta su uspješno učitane."));
         }
 
         [HttpGet("staff/{staffUserId}")]
@@ -54,11 +54,11 @@ namespace API.Controllers
         {
             if (staffUserId <= 0)
             {
-                return BadRequest(ApiResponse<IEnumerable<InventoryTransactionDto>>.ErrorResult("Invalid staff user ID."));
+                return BadRequest(ApiResponse<IEnumerable<InventoryTransactionDto>>.ErrorResult("Nevažeći ID uposlenika."));
             }
 
             var transactions = await _inventoryTransactionService.GetByStaffUserIdAsync(staffUserId);
-            return Ok(ApiResponse<IEnumerable<InventoryTransactionDto>>.SuccessResult(transactions, "Inventory transactions retrieved successfully."));
+            return Ok(ApiResponse<IEnumerable<InventoryTransactionDto>>.SuccessResult(transactions, "Transakcije skladišta su uspješno učitane."));
         }
     }
 }

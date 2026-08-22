@@ -190,7 +190,7 @@ namespace Application.Services
         {
             if (await RoomNumberExistsInHotelAsync(createDto.RoomNumber, createDto.HotelId))
             {
-                throw new InvalidOperationException($"Room number {createDto.RoomNumber} already exists in this hotel.");
+                throw new InvalidOperationException($"Soba sa brojem {createDto.RoomNumber} već postoji u ovom hotelu.");
             }
 
             return await base.CreateAsync(createDto);
@@ -205,7 +205,7 @@ namespace Application.Services
             {
                 if (await RoomNumberExistsInHotelAsync(updateDto.RoomNumber, updateDto.HotelId))
                 {
-                    throw new InvalidOperationException($"Room number {updateDto.RoomNumber} already exists in this hotel.");
+                    throw new InvalidOperationException($"Soba sa brojem {updateDto.RoomNumber} već postoji u ovom hotelu.");
                 }
             }
 

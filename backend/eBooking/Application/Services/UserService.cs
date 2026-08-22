@@ -147,13 +147,13 @@ namespace Application.Services
                 var existingByUsername = await GetByUsernameAsync(createDto.Username);
                 if (existingByUsername != null)
                 {
-                    throw new InvalidOperationException($"Username '{createDto.Username}' already exists");
+                    throw new InvalidOperationException($"Korisničko ime '{createDto.Username}' već postoji.");
                 }
 
                 var existingByEmail = await GetByEmailAsync(createDto.Email);
                 if (existingByEmail != null)
                 {
-                    throw new InvalidOperationException($"Email '{createDto.Email}' already exists");
+                    throw new InvalidOperationException($"Email '{createDto.Email}' već postoji.");
                 }
 
                 var user = _mapper.Map<User>(createDto);

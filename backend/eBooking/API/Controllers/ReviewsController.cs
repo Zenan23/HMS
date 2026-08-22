@@ -53,16 +53,16 @@ namespace API.Controllers
             {
                 if (hotelId <= 0)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("Invalid hotel ID."));
+                    return BadRequest(ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("Nevažeći ID hotela."));
                 }
 
                 var reviews = await _reviewService.GetByHotelIdAsync(hotelId);
-                return Ok(ApiResponse<IEnumerable<ReviewDto>>.SuccessResult(reviews, "Reviews retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<ReviewDto>>.SuccessResult(reviews, "Recenzije su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving reviews for hotel ID: {HotelId}", hotelId);
-                return StatusCode(500, ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("An error occurred while retrieving reviews."));
+                return StatusCode(500, ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("Došlo je do greške pri učitavanju recenzija."));
             }
         }
 
@@ -78,16 +78,16 @@ namespace API.Controllers
             {
                 if (userId <= 0)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("Invalid user ID."));
+                    return BadRequest(ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("Nevažeći ID korisnika."));
                 }
 
                 var reviews = await _reviewService.GetByUserIdAsync(userId);
-                return Ok(ApiResponse<IEnumerable<ReviewDto>>.SuccessResult(reviews, "Reviews retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<ReviewDto>>.SuccessResult(reviews, "Recenzije su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving reviews for user ID: {UserId}", userId);
-                return StatusCode(500, ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("An error occurred while retrieving reviews."));
+                return StatusCode(500, ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("Došlo je do greške pri učitavanju recenzija."));
             }
         }
 
@@ -103,16 +103,16 @@ namespace API.Controllers
             {
                 if (bookingId <= 0)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("Invalid booking ID."));
+                    return BadRequest(ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("Nevažeći ID rezervacije."));
                 }
 
                 var reviews = await _reviewService.GetByBookingIdAsync(bookingId);
-                return Ok(ApiResponse<IEnumerable<ReviewDto>>.SuccessResult(reviews, "Reviews retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<ReviewDto>>.SuccessResult(reviews, "Recenzije su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving reviews for booking ID: {BookingId}", bookingId);
-                return StatusCode(500, ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("An error occurred while retrieving reviews."));
+                return StatusCode(500, ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("Došlo je do greške pri učitavanju recenzija."));
             }
         }
 
@@ -128,16 +128,16 @@ namespace API.Controllers
             {
                 if (rating < 1 || rating > 5)
                 {
-                    return BadRequest(ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("Rating must be between 1 and 5."));
+                    return BadRequest(ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("Ocjena mora biti između 1 i 5."));
                 }
 
                 var reviews = await _reviewService.GetByRatingAsync(rating);
-                return Ok(ApiResponse<IEnumerable<ReviewDto>>.SuccessResult(reviews, "Reviews retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<ReviewDto>>.SuccessResult(reviews, "Recenzije su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving reviews with rating: {Rating}", rating);
-                return StatusCode(500, ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("An error occurred while retrieving reviews."));
+                return StatusCode(500, ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("Došlo je do greške pri učitavanju recenzija."));
             }
         }
 
@@ -151,12 +151,12 @@ namespace API.Controllers
             try
             {
                 var reviews = await _reviewService.GetPendingReviewsAsync();
-                return Ok(ApiResponse<IEnumerable<ReviewDto>>.SuccessResult(reviews, "Pending reviews retrieved successfully."));
+                return Ok(ApiResponse<IEnumerable<ReviewDto>>.SuccessResult(reviews, "Recenzije na čekanju su uspješno učitane."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving pending reviews");
-                return StatusCode(500, ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("An error occurred while retrieving pending reviews."));
+                return StatusCode(500, ApiResponse<IEnumerable<ReviewDto>>.ErrorResult("Došlo je do greške pri učitavanju recenzija na čekanju."));
             }
         }
 
@@ -172,16 +172,16 @@ namespace API.Controllers
             {
                 if (hotelId <= 0)
                 {
-                    return BadRequest(ApiResponse<double>.ErrorResult("Invalid hotel ID."));
+                    return BadRequest(ApiResponse<double>.ErrorResult("Nevažeći ID hotela."));
                 }
 
                 var averageRating = await _reviewService.GetAverageRatingAsync(hotelId);
-                return Ok(ApiResponse<double>.SuccessResult(averageRating, "Average rating retrieved successfully."));
+                return Ok(ApiResponse<double>.SuccessResult(averageRating, "Prosječna ocjena je uspješno učitana."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving average rating for hotel ID: {HotelId}", hotelId);
-                return StatusCode(500, ApiResponse<double>.ErrorResult("An error occurred while retrieving average rating."));
+                return StatusCode(500, ApiResponse<double>.ErrorResult("Došlo je do greške pri učitavanju prosječne ocjene."));
             }
         }
 
@@ -198,22 +198,22 @@ namespace API.Controllers
             {
                 if (id <= 0)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Invalid review ID."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Nevažeći ID recenzije."));
                 }
 
                 var result = await _reviewService.ApproveReviewAsync(id, request.ApprovedByUserId);
 
                 if (!result)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Review not found or cannot be approved."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Recenzija nije pronađena ili se ne može odobriti."));
                 }
 
-                return Ok(ApiResponse<bool>.SuccessResult(result, "Review approved successfully."));
+                return Ok(ApiResponse<bool>.SuccessResult(result, "Recenzija je uspješno odobrena."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error approving review with ID: {ReviewId}", id);
-                return StatusCode(500, ApiResponse<bool>.ErrorResult("An error occurred while approving the review."));
+                return StatusCode(500, ApiResponse<bool>.ErrorResult("Došlo je do greške pri odobravanju recenzije."));
             }
         }
 
@@ -230,22 +230,22 @@ namespace API.Controllers
             {
                 if (id <= 0)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Invalid review ID."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Nevažeći ID recenzije."));
                 }
 
                 var result = await _reviewService.RejectReviewAsync(id, request.RejectedByUserId);
 
                 if (!result)
                 {
-                    return BadRequest(ApiResponse<bool>.ErrorResult("Review not found or cannot be rejected."));
+                    return BadRequest(ApiResponse<bool>.ErrorResult("Recenzija nije pronađena ili se ne može odbiti."));
                 }
 
-                return Ok(ApiResponse<bool>.SuccessResult(result, "Review rejected successfully."));
+                return Ok(ApiResponse<bool>.SuccessResult(result, "Recenzija je uspješno odbijena."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error rejecting review with ID: {ReviewId}", id);
-                return StatusCode(500, ApiResponse<bool>.ErrorResult("An error occurred while rejecting the review."));
+                return StatusCode(500, ApiResponse<bool>.ErrorResult("Došlo je do greške pri odbijanju recenzije."));
             }
         }
     }
