@@ -175,8 +175,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           bookingId: selectedBookingId!,
                           pointsUsed: points,
                         );
-                        if (ctx.mounted) Navigator.pop(ctx);
+                        // Prvo osvježi stanje ekrana ispod dijaloga (dok je dijalog
+                        // još otvoren), pa tek onda zatvori dijalog. Obrnut redoslijed
+                        // (pop pa odmah setState na roditelju) je na pravom
+                        // Android/iOS uređaju znao izazvati
+                        // "'_dependents.isEmpty': is not true" pad, jer se rebuild
+                        // roditelja dešavao dok se element dijaloga još gasio
+                        // (animacija zatvaranja) — na webu/Chrome-u to ne puca jer
+                        // nema iste animacije/tajminga.
                         await _loadLoyaltyHistory();
+                        if (ctx.mounted) Navigator.pop(ctx);
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Bodovi su uspješno iskorišteni.')),

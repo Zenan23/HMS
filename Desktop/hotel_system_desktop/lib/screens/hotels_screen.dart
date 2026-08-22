@@ -182,6 +182,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
                       width: 220,
                       child: DropdownButtonFormField<int?>(
                         value: _selectedCityId,
+                        isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Pretraži po gradu',
                           border: OutlineInputBorder(),
@@ -194,7 +195,10 @@ class _HotelsScreenState extends State<HotelsScreen> {
                           ),
                           ..._cities.map((c) => DropdownMenuItem<int?>(
                                 value: c.id,
-                                child: Text(c.label),
+                                child: Text(
+                                  c.label,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               )),
                         ],
                         onChanged: (v) {
@@ -275,7 +279,9 @@ class _HotelsScreenState extends State<HotelsScreen> {
                     )
                   : SingleChildScrollView(
                       scrollDirection: Axis.vertical,
-                      child: DataTable(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
                   columns: const [
                     DataColumn(label: Text('Slika')),
                     DataColumn(label: Text('Naziv')),
@@ -352,6 +358,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
                           ]))
                       .toList(),
                 ),
+                      ),
               ),
             ),
             Row(

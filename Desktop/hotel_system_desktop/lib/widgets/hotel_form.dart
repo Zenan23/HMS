@@ -222,12 +222,16 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
                             value: _cities.any((c) => c.id == cityId)
                                 ? cityId
                                 : null,
+                            isExpanded: true,
                             decoration:
                                 const InputDecoration(labelText: 'Grad'),
                             items: _cities
                                 .map((c) => DropdownMenuItem<int>(
                                       value: c.id,
-                                      child: Text(c.label),
+                                      child: Text(
+                                        c.label,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ))
                                 .toList(),
                             onChanged: (v) => setState(() => cityId = v),

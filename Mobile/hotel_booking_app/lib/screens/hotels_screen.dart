@@ -121,6 +121,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
                 Expanded(
                   child: DropdownButtonFormField<String?>(
                     value: _selectedCityName,
+                    isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: 'Grad',
                       border: OutlineInputBorder(),
@@ -132,7 +133,10 @@ class _HotelsScreenState extends State<HotelsScreen> {
                       ),
                       ..._cities.map((c) => DropdownMenuItem<String?>(
                             value: c.name,
-                            child: Text(c.label),
+                            child: Text(
+                              c.label,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           )),
                     ],
                     onChanged: _isFiltering ? null : _filterByCity,
