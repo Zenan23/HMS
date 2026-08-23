@@ -8,6 +8,7 @@ import '../services/inventory_item_service.dart';
 import '../services/inventory_transaction_service.dart';
 import 'date_picker_field.dart';
 import 'app_dialog_title.dart';
+import '../utils/error_helper.dart';
 
 class InventoryTransactionFormDialog extends StatefulWidget {
   final InventoryTransaction? transaction;
@@ -95,7 +96,7 @@ class _InventoryTransactionFormDialogState
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      setState(() => error = e.toString());
+      setState(() => error = friendlyErrorMessage(e));
     }
     setState(() => isLoading = false);
   }

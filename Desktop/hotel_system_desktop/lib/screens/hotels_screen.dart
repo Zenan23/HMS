@@ -9,6 +9,7 @@ import '../widgets/hotel_form.dart';
 import '../utils/api_response.dart';
 import '../utils/image_utils.dart';
 import '../widgets/app_dialog_title.dart';
+import '../utils/error_helper.dart';
 
 class HotelsScreen extends StatefulWidget {
   const HotelsScreen({super.key});
@@ -63,7 +64,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Greška: $e')));
+          .showSnackBar(SnackBar(content: Text('Greška: ${friendlyErrorMessage(e)}')));
     }
     setState(() => _isLoading = false);
   }
@@ -97,7 +98,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
         _isSearchMode = true;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(content: Text(friendlyErrorMessage(e))),
       );
     }
     setState(() => _isLoading = false);
@@ -131,7 +132,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Greška: $e')));
+            .showSnackBar(SnackBar(content: Text('Greška: ${friendlyErrorMessage(e)}')));
       }
     }
     if (mounted) setState(() => _isLoading = false);

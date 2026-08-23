@@ -15,6 +15,7 @@ import '../services/pdf_report_service.dart';
 import '../services/price_adjustment_service.dart';
 import '../services/room_maintenance_log_service.dart';
 import '../services/support_ticket_service.dart';
+import '../utils/error_helper.dart';
 
 /// Centralizovani pregled svih PDF izvještaja (12 ukupno), na jednom mjestu
 /// umjesto razbacano po ekranima — RSII uputa traži minimalno 2, aplikacija
@@ -229,7 +230,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Greška pri generisanju izvještaja: $e')),
+          SnackBar(content: Text('Greška pri generisanju izvještaja: ${friendlyErrorMessage(e)}')),
         );
       }
     }

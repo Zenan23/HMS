@@ -6,6 +6,7 @@ import '../services/city_service.dart';
 import '../services/hotels_service.dart';
 import '../services/auth_service.dart';
 import 'hotel_detail_screen.dart';
+import '../utils/error_helper.dart';
 
 class HotelsScreen extends StatefulWidget {
   const HotelsScreen({super.key});
@@ -53,7 +54,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(content: Text(friendlyErrorMessage(e))),
         );
       }
     }
@@ -74,7 +75,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(content: Text(friendlyErrorMessage(e))),
         );
       }
     }
@@ -92,7 +93,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(content: Text(friendlyErrorMessage(e))),
         );
       }
     }

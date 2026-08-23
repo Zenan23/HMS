@@ -19,6 +19,7 @@ import '../models/user.dart';
 import '../utils/date_format_utils.dart';
 import '../utils/display_labels.dart';
 import '../widgets/pdf_report_preview_dialog.dart';
+import '../utils/error_helper.dart';
 
 class PdfReportService {
   static final _currency = NumberFormat('#,##0.00', 'bs');
@@ -61,7 +62,7 @@ class PdfReportService {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Greška pri generisanju PDF-a: $e'),
+            content: Text('Greška pri generisanju PDF-a: ${friendlyErrorMessage(e)}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -484,7 +485,7 @@ class PdfReportService {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Greška pri generisanju PDF-a: $e'),
+            content: Text('Greška pri generisanju PDF-a: ${friendlyErrorMessage(e)}'),
             backgroundColor: Colors.red,
           ),
         );

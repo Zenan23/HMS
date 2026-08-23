@@ -7,6 +7,7 @@ import '../utils/date_format_utils.dart';
 import '../utils/display_labels.dart';
 import 'dart:convert';
 import '../widgets/app_dialog_title.dart';
+import '../utils/error_helper.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -47,7 +48,7 @@ class _UsersScreenState extends State<UsersScreen> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Greška: $e')));
+          .showSnackBar(SnackBar(content: Text('Greška: ${friendlyErrorMessage(e)}')));
     }
     setState(() => _isLoading = false);
   }
@@ -80,7 +81,7 @@ class _UsersScreenState extends State<UsersScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Greška: $e')));
+            .showSnackBar(SnackBar(content: Text('Greška: ${friendlyErrorMessage(e)}')));
       }
     }
     if (mounted) setState(() => _isLoading = false);

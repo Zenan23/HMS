@@ -6,6 +6,7 @@ import '../services/pdf_report_service.dart';
 import '../utils/display_labels.dart';
 import '../widgets/room_form.dart';
 import '../widgets/app_dialog_title.dart';
+import '../utils/error_helper.dart';
 
 class RoomsScreen extends StatefulWidget {
   const RoomsScreen({super.key});
@@ -69,7 +70,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Greška: $e')));
+            .showSnackBar(SnackBar(content: Text('Greška: ${friendlyErrorMessage(e)}')));
       }
     }
     setState(() => _isLoading = false);
@@ -105,7 +106,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Greška: $e')));
+            .showSnackBar(SnackBar(content: Text('Greška: ${friendlyErrorMessage(e)}')));
       }
     }
     if (mounted) setState(() => _isLoading = false);
@@ -346,7 +347,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
                                       if (mounted) {
                                         ScaffoldMessenger.of(context)
                                             .showSnackBar(SnackBar(
-                                                content: Text('Greška: $e')));
+                                                content: Text('Greška: ${friendlyErrorMessage(e)}')));
                                       }
                                     }
                                   }

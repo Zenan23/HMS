@@ -10,6 +10,7 @@ import '../utils/validation_utils.dart';
 import '../utils/image_utils.dart';
 import 'app_dialog_title.dart';
 import 'city_form.dart';
+import '../utils/error_helper.dart';
 
 class HotelFormDialog extends StatefulWidget {
   final Hotel? hotel;
@@ -151,7 +152,7 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       setState(() {
-        error = e.toString();
+        error = friendlyErrorMessage(e);
       });
     }
     setState(() {

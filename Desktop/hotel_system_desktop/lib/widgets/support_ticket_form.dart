@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../services/support_ticket_service.dart';
 import '../utils/display_labels.dart';
 import 'app_dialog_title.dart';
+import '../utils/error_helper.dart';
 
 class SupportTicketFormDialog extends StatefulWidget {
   final SupportTicket? ticket;
@@ -95,7 +96,7 @@ class _SupportTicketFormDialogState extends State<SupportTicketFormDialog> {
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      setState(() => error = e.toString());
+      setState(() => error = friendlyErrorMessage(e));
     }
     setState(() => isLoading = false);
   }

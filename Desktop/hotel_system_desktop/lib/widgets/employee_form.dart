@@ -5,6 +5,7 @@ import '../utils/validation_utils.dart';
 import '../utils/display_labels.dart';
 import 'dart:convert';
 import 'app_dialog_title.dart';
+import '../utils/error_helper.dart';
 
 class EmployeeFormDialog extends StatefulWidget {
   final Employee? employee;
@@ -66,7 +67,7 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      setState(() { error = e.toString(); });
+      setState(() { error = friendlyErrorMessage(e); });
     }
     setState(() { isLoading = false; });
   }
