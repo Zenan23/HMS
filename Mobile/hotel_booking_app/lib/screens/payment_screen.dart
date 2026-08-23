@@ -98,7 +98,13 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
   }
 
   Future<void> _handlePaymentReturnUri(Uri uri) async {
-    if (_useNative) return;
+    if (_useNative) {
+      // Povratak iz vanjske autorizacije unutar Payment Sheet-a (npr. PayPal "Authorize Test
+      // Payment"). Ovo MORA ići Stripe SDK-u — bez ovoga presentStripePaymentSheet() nikad ne
+      // dobije signal da je redirect završen i ostaje "zaglavljen" na Stripe-ovoj stranici.
+      await handleStripeUrlCallback(uri.toString());
+      return;
+    }
     final params = PaymentReturnParams.tryParse(uri);
     if (params == null || !mounted) return;
 
@@ -255,9 +261,23 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
       );
     } catch (e) {
       if (!mounted) return;
+
+      // presentPaymentSheet() može baciti (npr. "Canceled") i kad je plaćanje na Stripe strani
+      // zapravo uspjelo — npr. ako je Android u međuvremenu rekreirao Activity dok je čekao
+      // povratak iz PayPal/SEPA redirect-a (vidi PAYMENT_INTEGRATION.md). Prije nego pozovemo
+      // cancel, provjeri stvarni status kod backenda/Stripe-a — ne pretpostavljaj otkazano.
+      final failedId = _pendingPaymentId;
+      if (failedId != null) {
+        await _paymentsService.confirmPaymentAfterReturn(failedId, PaymentMethod.stripe);
+        if (!mounted) return;
+        if (await _paymentsService.isPaymentCompleted(failedId)) {
+          await _completeSuccess();
+          return;
+        }
+      }
+
       final msg = e.toString();
       final cancelled = msg.contains('Canceled') || msg.contains('cancelled');
-      final failedId = _pendingPaymentId;
       if (failedId != null) {
         unawaited(_paymentsService.cancelPayment(
           failedId,
@@ -470,7 +490,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
                         selected: true,
                         enabled: _stripeAvailable || !_useNative,
                         icon: Icons.credit_card,
-                        label: 'Kartica',
+                        label: 'Kartica / PayPal / Bankovni transfer',
                         color: const Color(0xFF635BFF),
                         onTap: () {},
                       ),

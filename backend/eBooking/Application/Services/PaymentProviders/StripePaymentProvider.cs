@@ -54,8 +54,13 @@ namespace Application.Services.PaymentProviders
                 {
                     Amount = unitAmount,
                     Currency = pendingPayment.Currency.ToLowerInvariant(),
-                    // Eksplicitno kartica — pouzdanije za Payment Sheet nego automatic_payment_methods.
-                    PaymentMethodTypes = new List<string> { "card" },
+                    // Eksplicitna lista (ne automatic_payment_methods) — pouzdanije za Payment Sheet i
+                    // sprječava da se nenamjerno pojave metode koje nisu dio prijave (Google/Apple Pay,
+                    // Klarna i sl.), iako su uključene u Stripe nalogu. Tri metode iz prijave (poglavlje
+                    // 7): kartica, PayPal (procesiran kroz Stripe), bankovni transfer (SEPA Direct Debit).
+                    // Payment Sheet automatski prikazuje sve tri korisniku i vodi ga kroz odgovarajući
+                    // flow (unos kartice / PayPal redirect / IBAN+mandat za SEPA) — nema dodatnog koda.
+                    PaymentMethodTypes = new List<string> { "card", "paypal", "sepa_debit" },
                     Metadata = new Dictionary<string, string>
                     {
                         ["payment_id"] = pendingPayment.Id.ToString(),
@@ -136,6 +141,10 @@ namespace Application.Services.PaymentProviders
                 var options = new SessionCreateOptions
                 {
                     Mode = "payment",
+                    // Ista eksplicitna lista kao native in-app flow (vidi CreatePaymentIntentAsync) —
+                    // fallback hosted checkout ne smije iznenada prikazati druge Dashboard-enabled
+                    // metode (Google/Apple Pay, Klarna i sl.) koje nisu dio prijave.
+                    PaymentMethodTypes = new List<string> { "card", "paypal", "sepa_debit" },
                     SuccessUrl = successUrl,
                     CancelUrl = urls.CancelUrl,
                     ClientReferenceId = pendingPayment.Id.ToString(),

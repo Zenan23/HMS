@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'services/auth_service.dart';
 import 'services/hotels_service.dart';
 import 'services/stripe_platform.dart';
+import 'screens/auth_gate_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/home_screen.dart';
@@ -86,7 +87,11 @@ class MyApp extends StatelessWidget {
           dividerTheme:
               const DividerThemeData(color: Color(0xFFE6EAF0), thickness: 1),
         ),
-        initialRoute: '/login',
+        // AuthGateScreen prvo pokuša vratiti sesiju iz secure storage-a (AuthService.
+        // tryAutoLogin) prije nego odluči login ili home — bez ovoga korisnik je uvijek
+        // izbačen na login pri svakom novom pokretanju Flutter engine-a (npr. kad Android
+        // ubije proces u pozadini dok je Payment Sheet otvorio Custom Tab za PayPal).
+        home: const AuthGateScreen(),
         routes: {
           '/login': (context) => const LoginScreen(),
           '/forgot-password': (context) => const ForgotPasswordScreen(),

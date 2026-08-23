@@ -424,6 +424,41 @@ namespace Application.Services
                     return false;
                 }
 
+                // KRITIČNO: klijent (mobile app) može pozvati cancel iz čisto lokalnog razloga —
+                // npr. korisnik je zatvorio Payment Sheet, ili je Android u međuvremenu
+                // ubio/rekreirao Activity dok je čekao povratak iz PayPal/SEPA redirect-a — što NE
+                // znači da je plaćanje na Stripe strani stvarno propalo (webhook možda kasni ili
+                // uopšte nije konfigurisan u lokalnom razvoju). Prije nego označimo Cancelled,
+                // provjerimo direktno kod Stripe-a da li je plaćanje ipak uspjelo — ako jeste,
+                // odbijamo cancel (i pri tom ćemo ga i sami označiti Completed, idempotentno).
+                if (payment.PaymentMethod == DomainPaymentMethod.Stripe && !string.IsNullOrWhiteSpace(payment.CheckoutId))
+                {
+                    var alreadyCompleted = payment.CheckoutId.StartsWith("pi_", StringComparison.Ordinal)
+                        ? await TryConfirmStripePaymentIntentAsync(payment.CheckoutId)
+                        : payment.CheckoutId.StartsWith("cs_", StringComparison.Ordinal)
+                            ? await TryFinalizeStripeFromSessionIdAsync(payment.CheckoutId)
+                            : false;
+
+                    if (alreadyCompleted)
+                    {
+                        _logger.LogInformation(
+                            "Payment {PaymentId} cancel odbijen — Stripe javlja da je plaćanje već uspješno.", paymentId);
+                        return false;
+                    }
+
+                    // Gornji poziv je mogao (ako NIJE uspio) svejedno promijeniti stanje u bazi kroz
+                    // druge putanje — ponovo učitaj prije nego nastavimo sa cancel logikom ispod.
+                    var refreshed = await _repository.GetByIdAsync(paymentId);
+                    if (refreshed == null)
+                        return false;
+                    payment = refreshed;
+                    if (payment.Status != PaymentStatus.Pending && payment.Status != PaymentStatus.Processing)
+                    {
+                        _logger.LogWarning("Payment {PaymentId} cannot be cancelled - status is {Status}", paymentId, payment.Status);
+                        return false;
+                    }
+                }
+
                 // Update payment status
                 var fromStatus = payment.Status;
                 payment.Status = PaymentStatus.Cancelled;
@@ -699,10 +734,41 @@ namespace Application.Services
             if (payment.Status == PaymentStatus.Completed)
                 return true;
 
-            return await MarkPaymentCompletedCoreAsync(payment, intent.Id, $"stripe_payment_intent:{intent.Id}");
+            // Best-effort: koja je stvarno odabrana metoda unutar Payment Sheet-a (kartica / PayPal /
+            // SEPA Direct Debit) — Payment.PaymentMethod ostaje "Stripe" (koristi se za pronalazak
+            // providera kod refund-a), stvarna pod-metoda se bilježi odvojeno u audit log/response.
+            var paymentMethodType = await TryGetStripePaymentMethodTypeAsync(intent.PaymentMethodId);
+
+            return await MarkPaymentCompletedCoreAsync(
+                payment, intent.Id, $"stripe_payment_intent:{intent.Id}", paymentMethodType);
         }
 
-        private async Task<bool> MarkPaymentCompletedCoreAsync(Payment payment, string transactionId, string? providerResponse)
+        /// <summary>
+        /// Vraća stvarno korištenu Stripe payment method vrstu ("card"/"paypal"/"sepa_debit"...) za
+        /// jednu PaymentIntent. Nikad ne baca — ovo je samo za audit/prikaz, greška ovdje ne smije
+        /// srušiti obradu webhooka.
+        /// </summary>
+        private async Task<string?> TryGetStripePaymentMethodTypeAsync(string? paymentMethodId)
+        {
+            if (string.IsNullOrWhiteSpace(paymentMethodId) || string.IsNullOrWhiteSpace(_paymentOptions.Stripe.SecretKey))
+                return null;
+
+            try
+            {
+                var client = new StripeClient(_paymentOptions.Stripe.SecretKey);
+                var service = new PaymentMethodService(client);
+                var method = await service.GetAsync(paymentMethodId);
+                return method?.Type;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Nije moguće dohvatiti Stripe payment method type za {PaymentMethodId}", paymentMethodId);
+                return null;
+            }
+        }
+
+        private async Task<bool> MarkPaymentCompletedCoreAsync(
+            Payment payment, string transactionId, string? providerResponse, string? paymentMethodType = null)
         {
             if (payment.Status == PaymentStatus.Completed)
                 return true;
@@ -710,12 +776,17 @@ namespace Application.Services
             payment.Status = PaymentStatus.Completed;
             payment.TransactionId = transactionId;
             payment.ProcessedAt = DateTime.UtcNow;
-            payment.PaymentProviderResponse = providerResponse;
+            payment.PaymentProviderResponse = string.IsNullOrWhiteSpace(paymentMethodType)
+                ? providerResponse
+                : $"{providerResponse}|payment_method_type={paymentMethodType}";
             payment.UpdatedAt = DateTime.UtcNow;
             await _repository.UpdateAsync(payment);
 
+            var completeDetails = string.IsNullOrWhiteSpace(paymentMethodType)
+                ? $"Transakcija {transactionId}"
+                : $"Transakcija {transactionId} (metoda: {paymentMethodType})";
             await LogPaymentActionAsync(payment.Id, PaymentStatus.Processing, PaymentStatus.Completed,
-                "PaymentComplete", $"Transakcija {transactionId}", null, null, null, payment.UserId);
+                "PaymentComplete", completeDetails, null, null, null, payment.UserId);
 
             await _publishEndpoint.Publish(new PaymentCompleted(
                 payment.Id,
@@ -732,7 +803,8 @@ namespace Application.Services
         /// <summary>
         /// Best-effort dodjela loyalty bodova kad plaćanje pređe u Completed. Umotano u try/catch —
         /// greška ovdje NIKAD ne smije srušiti uspješno završeno plaćanje (isti princip kao
-        /// webhook dedup PaymentId linkanje).
+        /// webhook dedup PaymentId linkanje). Balans korisnika se ne čuva nigdje kao kolona,
+        /// računa se on-the-fly kao SUM(LoyaltyPointsEarned) - SUM(LoyaltyPointsRedemption).
         /// </summary>
         private async Task AwardLoyaltyPointsAsync(Payment payment)
         {
