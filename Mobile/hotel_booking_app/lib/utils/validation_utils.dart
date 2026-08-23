@@ -41,20 +41,38 @@ class ValidationUtils {
     return null;
   }
 
-  // Password validacija
+  // Password validacija — mora se poklapati sa RegularExpression na backendu
+  // (RegisterDto/CreateUserDto/ResetPasswordDto), inače korisnik prođe klijentsku provjeru
+  // pa dobije grešku tek sa servera.
   static String? validatePassword(String? value) {
     if (value == null || value.isEmpty) {
       return 'Lozinka je obavezna';
     }
-    
-    if (value.length < 6) {
-      return 'Lozinka mora imati najmanje 6 karaktera';
+
+    if (value.length < 8) {
+      return 'Lozinka mora imati najmanje 8 karaktera';
     }
-    
+
     if (value.length > 100) {
       return 'Lozinka ne može biti duža od 100 karaktera';
     }
-    
+
+    if (!value.contains(RegExp(r'[A-Z]'))) {
+      return 'Lozinka mora sadržati bar jedno veliko slovo';
+    }
+
+    if (!value.contains(RegExp(r'[a-z]'))) {
+      return 'Lozinka mora sadržati bar jedno malo slovo';
+    }
+
+    if (!value.contains(RegExp(r'[0-9]'))) {
+      return 'Lozinka mora sadržati bar jedan broj';
+    }
+
+    if (!value.contains(RegExp(r'[^a-zA-Z0-9]'))) {
+      return 'Lozinka mora sadržati bar jedan specijalni karakter';
+    }
+
     return null;
   }
 

@@ -140,12 +140,15 @@ namespace Persistence.Data
                         "SeedData: IPasswordService nije registrovan u DI kontejneru — ne mogu seed-ovati korisnike sa validnim PasswordHash-om.");
                 }
 
+                // Sve seed lozinke moraju zadovoljiti isto pravilo kao registracija (8+ karaktera,
+                // veliko i malo slovo, broj, specijalni karakter — vidi RegisterDto.Password) — Ana i
+                // Leo su prekratke sa samo 7 karaktera, ostale su već zadovoljavale i prije ovog.
                 admin.PasswordHash = passwordService.HashPassword("Admin123!");
                 demo.PasswordHash = passwordService.HashPassword("Demo123!");
-                ana.PasswordHash = passwordService.HashPassword("Ana123!");
+                ana.PasswordHash = passwordService.HashPassword("Ana1234!");
                 marko.PasswordHash = passwordService.HashPassword("Marko123!");
                 ivan.PasswordHash = passwordService.HashPassword("Ivan123!");
-                leo.PasswordHash = passwordService.HashPassword("Leo123!");
+                leo.PasswordHash = passwordService.HashPassword("Leo1234!");
                 context.Users.AddRange(admin, demo, ana, marko, ivan, leo);
                 await context.SaveChangesAsync();
 

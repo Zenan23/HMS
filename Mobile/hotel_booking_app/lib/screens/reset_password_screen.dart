@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../utils/validation_utils.dart';
 
 /// Drugi korak reset lozinke: korisnik unosi kod primljen emailom i novu lozinku.
 class ResetPasswordScreen extends StatefulWidget {
@@ -14,11 +15,22 @@ class ResetPasswordScreen extends StatefulWidget {
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
+  // "Nova lozinka" mora imati controller da bi validator polja "Potvrdite novu lozinku" mogao
+  // čitati NJENU TRENUTNU vrijednost u trenutku poređenja. Prije je poređenje išlo protiv
+  // _newPassword promjenljive koja se puni tek u onSaved — a onSaved se izvršava POSLIJE
+  // validate() (vidi _submit ispod), pa je poređenje uvijek bilo protiv zastarjele/prazne
+  // vrijednosti i "Lozinke se ne poklapaju" se javljalo i kad su unosi identični.
+  final _newPasswordController = TextEditingController();
   String _code = '';
-  String _newPassword = '';
   String _confirmPassword = '';
   bool _loading = false;
   String? _error;
+
+  @override
+  void dispose() {
+    _newPasswordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -32,7 +44,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     final result = await auth.resetPassword(
       email: widget.email,
       code: _code,
-      newPassword: _newPassword,
+      newPassword: _newPasswordController.text,
       confirmNewPassword: _confirmPassword,
     );
 
@@ -84,19 +96,18 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
+                  controller: _newPasswordController,
                   decoration: const InputDecoration(labelText: 'Nova lozinka'),
                   obscureText: true,
-                  validator: (v) => v != null && v.length >= 6
-                      ? null
-                      : 'Lozinka mora imati bar 6 karaktera',
-                  onSaved: (v) => _newPassword = v ?? '',
+                  validator: ValidationUtils.validatePassword,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   decoration: const InputDecoration(labelText: 'Potvrdite novu lozinku'),
                   obscureText: true,
-                  validator: (v) =>
-                      v == _newPassword ? null : 'Lozinke se ne poklapaju',
+                  validator: (v) => v == _newPasswordController.text
+                      ? null
+                      : 'Lozinke se ne poklapaju',
                   onSaved: (v) => _confirmPassword = v ?? '',
                 ),
                 const SizedBox(height: 24),

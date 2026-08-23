@@ -28,7 +28,9 @@ namespace Contracts.DTOs
         public string Email { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Lozinka je obavezna.")]
-        [StringLength(100, MinimumLength = 6, ErrorMessage = "Lozinka mora imati najmanje 6 karaktera.")]
+        [RegularExpression(
+            @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,100}$",
+            ErrorMessage = "Lozinka mora imati najmanje 8 karaktera, veliko i malo slovo, broj i specijalni karakter.")]
         public string Password { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Ime je obavezno.")]
