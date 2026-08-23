@@ -57,7 +57,13 @@ namespace Application.Services.PaymentProviders
                     // Eksplicitna lista (ne automatic_payment_methods) — pouzdanije za Payment Sheet i
                     // sprječava da se nenamjerno pojave metode koje nisu dio prijave (Google/Apple Pay,
                     // Klarna i sl.), iako su uključene u Stripe nalogu. Tri metode iz prijave (poglavlje
-                    // 7): kartica, PayPal (procesiran kroz Stripe), bankovni transfer (SEPA Direct Debit).
+                    // 7): kartica, PayPal (procesiran kroz Stripe), bankovni transfer (SEPA Direct Debit —
+                    // pravi bank-to-bank transfer mehanizam, najbliži doslovnom značenju "bankovni
+                    // transfer" iz prijave; alternativa EPS je probana i radi, ali SEPA je zadržan).
+                    // SEPA je "delayed notification" metoda — potvrda zna stići par minuta kasnije čak i
+                    // u test modu (vidi docs.stripe.com/testing). To NIJE bug — app i UI (Reservations
+                    // ekran) to eksplicitno prikazuju kao "plaćanje u obradi", ne kao grešku. Detalji:
+                    // PAYMENT_INTEGRATION.md.
                     // Payment Sheet automatski prikazuje sve tri korisniku i vodi ga kroz odgovarajući
                     // flow (unos kartice / PayPal redirect / IBAN+mandat za SEPA) — nema dodatnog koda.
                     PaymentMethodTypes = new List<string> { "card", "paypal", "sepa_debit" },

@@ -5,6 +5,7 @@ import '../services/reservations_service.dart';
 import '../services/payments_service.dart';
 import '../services/auth_service.dart';
 import '../models/reservation.dart';
+import '../models/payment.dart';
 import '../utils/api_response.dart';
 import '../widgets/reservation_detail_sheet.dart';
 import 'payment_screen.dart';
@@ -22,6 +23,13 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   Future<List<Reservation>>? _paidFuture;
   Future<List<Reservation>>? _unpaidFuture;
   final Set<int> _processingIds = {};
+  // Rezervacije iz "unpaid" liste čije je NAJNOVIJE plaćanje trenutno Processing/Pending — nije
+  // samo SEPA, i PayPal/druge redirect metode znaju kasnije da se potvrde nego što app stigne
+  // pollati (može potrajati par minuta, i u test modu). Bez ovoga bi "Plati ponovo" dugme bilo
+  // ponuđeno i dok je plaćanje već u toku, što je zbunjujuće (i backend bi ionako odbio novi
+  // checkout dok postoji Processing plaćanje — vidi ValidateAndPrepareCheckoutAsync) — bolje
+  // odmah pokazati da je "u obradi", ne "neplaćeno".
+  final Map<int, PaymentDetails> _pendingPayments = {};
 
   Future<void> _loadData(int userId) async {
     final service = ReservationsService();
@@ -29,10 +37,51 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
     final unpaidFuture = service.fetchUnpaidReservations(userId);
     final paid = await paidFuture;
     final unpaid = await unpaidFuture;
+
+    final paymentsService = PaymentsService();
+    final pending = <int, PaymentDetails>{};
+    await Future.wait(unpaid.map((r) async {
+      final payments = await paymentsService.getPaymentsByBooking(r.id);
+      final active = payments.where((p) => p.isPendingConfirmation);
+      if (active.isNotEmpty) pending[r.id] = active.first;
+    }));
+
+    if (!mounted) return;
     setState(() {
       _paidFuture = Future.value(paid);
       _unpaidFuture = Future.value(unpaid);
+      _pendingPayments
+        ..clear()
+        ..addAll(pending);
     });
+  }
+
+  /// Ručna provjera statusa jednog "u obradi" plaćanja (npr. korisnik se vratio na ovaj ekran
+  /// nakon par minuta) — isti mehanizam kao "Provjeri status" na payment_screen.dart, samo bez
+  /// potrebe da se ponovo otvara cijeli payment ekran.
+  Future<void> _checkPendingStatus(Reservation r) async {
+    final payment = _pendingPayments[r.id];
+    if (payment == null) return;
+    setState(() => _processingIds.add(r.id));
+    try {
+      final paymentsService = PaymentsService();
+      await paymentsService.confirmPaymentAfterReturn(payment.id, PaymentMethod.stripe);
+      if (!mounted) return;
+      final completed = await paymentsService.isPaymentCompleted(payment.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(completed
+              ? 'Plaćanje je potvrđeno!'
+              : 'Plaćanje je i dalje u obradi. Pokušajte ponovo za koji trenutak.'),
+          backgroundColor: completed ? Colors.green : null,
+        ),
+      );
+      final userId = context.read<AuthService>().user?.userId;
+      if (userId != null) await _loadData(userId);
+    } finally {
+      if (mounted) setState(() => _processingIds.remove(r.id));
+    }
   }
 
   @override
@@ -196,6 +245,8 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                     processingIds: _processingIds,
                     emptyMessage: 'Nemate rezervacija na čekanju plaćanja.',
                     paid: false,
+                    pendingPayments: _pendingPayments,
+                    onCheckPending: _checkPendingStatus,
                   ),
                 ],
               ),
@@ -213,6 +264,10 @@ class _ReservationsList extends StatelessWidget {
   final Set<int> processingIds;
   final String emptyMessage;
   final bool paid;
+  /// bookingId -> plaćanje koje je trenutno Processing/Pending (npr. SEPA koji čeka potvrdu).
+  /// Prazno za "paid" listu (nije relevantno).
+  final Map<int, PaymentDetails> pendingPayments;
+  final void Function(Reservation)? onCheckPending;
 
   const _ReservationsList({
     required this.future,
@@ -223,6 +278,8 @@ class _ReservationsList extends StatelessWidget {
     this.onPayAgain,
     this.onCancel,
     this.processingIds = const {},
+    this.pendingPayments = const {},
+    this.onCheckPending,
   });
 
   @override
@@ -275,9 +332,17 @@ class _ReservationsList extends StatelessWidget {
             itemBuilder: (context, i) {
               final r = reservations[i];
               final serviceCount = r.services.length;
-              // Status 5 = Otkazana, 6 = No-show — plaćanje se ne nudi za njih.
-              final canPayAgain =
-                  !paid && onPayAgain != null && r.status != 5 && r.status != 6;
+              final pendingPayment = pendingPayments[r.id];
+              final hasPendingPayment = pendingPayment != null;
+              // Status 5 = Otkazana, 6 = No-show — plaćanje se ne nudi za njih. Dok postoji
+              // plaćanje koje je već Processing/Pending (npr. SEPA čeka potvrdu), ne nudimo
+              // "Plati ponovo" — backend bi ionako odbio novi checkout dok on traje, a korisniku
+              // je jasnije da vidi "u obradi" nego zbunjujuću grešku.
+              final canPayAgain = !paid &&
+                  !hasPendingPayment &&
+                  onPayAgain != null &&
+                  r.status != 5 &&
+                  r.status != 6;
               // Otkazivanje ima smisla samo dok rezervacija čeka (1) ili je potvrđena (2) —
               // nakon check-in/check-out/otkazivanja/no-show akcija više nije relevantna.
               final canCancel =
@@ -285,7 +350,11 @@ class _ReservationsList extends StatelessWidget {
               final isProcessing = processingIds.contains(r.id);
 
               return Card(
-                color: paid ? Colors.green.shade50 : Colors.orange.shade50,
+                color: paid
+                    ? Colors.green.shade50
+                    : hasPendingPayment
+                        ? Colors.blue.shade50
+                        : Colors.orange.shade50,
                 margin:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: InkWell(
@@ -301,12 +370,20 @@ class _ReservationsList extends StatelessWidget {
                             CircleAvatar(
                               backgroundColor: paid
                                   ? Colors.green.shade100
-                                  : Colors.orange.shade100,
+                                  : hasPendingPayment
+                                      ? Colors.blue.shade100
+                                      : Colors.orange.shade100,
                               child: Icon(
                                 paid
                                     ? Icons.check_circle
-                                    : Icons.hourglass_bottom,
-                                color: paid ? Colors.green : Colors.orange.shade800,
+                                    : hasPendingPayment
+                                        ? Icons.sync
+                                        : Icons.hourglass_bottom,
+                                color: paid
+                                    ? Colors.green
+                                    : hasPendingPayment
+                                        ? Colors.blue.shade800
+                                        : Colors.orange.shade800,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -322,14 +399,29 @@ class _ReservationsList extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    paid ? 'Plaćeno' : r.statusLabel,
+                                    paid
+                                        ? 'Plaćeno'
+                                        : hasPendingPayment
+                                            ? 'Plaćanje u obradi'
+                                            : r.statusLabel,
                                     style: TextStyle(
                                       color: paid
                                           ? Colors.green.shade700
-                                          : Colors.orange.shade800,
+                                          : hasPendingPayment
+                                              ? Colors.blue.shade800
+                                              : Colors.orange.shade800,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
+                                  if (hasPendingPayment)
+                                    Text(
+                                      'Kod nekih načina plaćanja (PayPal, bankovni transfer) '
+                                      'potvrda ponekad treba par minuta — potvrdiće se automatski.',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.blue.shade700,
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
@@ -368,6 +460,24 @@ class _ReservationsList extends StatelessWidget {
                               icon: const Icon(Icons.replay),
                               label: const Text('Plati ponovo'),
                               onPressed: isProcessing ? null : () => onPayAgain!(r),
+                            ),
+                          ),
+                        ],
+                        if (hasPendingPayment && onCheckPending != null) ...[
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              icon: isProcessing
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.refresh),
+                              label: const Text('Provjeri status'),
+                              onPressed:
+                                  isProcessing ? null : () => onCheckPending!(r),
                             ),
                           ),
                         ],

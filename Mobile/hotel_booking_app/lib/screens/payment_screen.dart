@@ -298,18 +298,14 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
       _phase = _PaymentPhase.confirming;
     });
 
-    final confirmed = await _paymentsService.confirmStripePaymentIntent(intent.paymentIntentId);
-    if (!mounted) return;
-    if (!confirmed && !await _paymentsService.isPaymentCompleted(intent.paymentId)) {
-      setState(() {
-        _phase = _PaymentPhase.failed;
-        _error =
-            'Stripe nije potvrdio uplatu (kartica nije obrađena). '
-            'Zatvorite sheet tek nakon uspješnog plaćanja, ili pokušajte ponovo s test karticom 4242…';
-      });
-      return;
-    }
-
+    // NE presuđujemo odmah nakon jednog pokušaja potvrde. SEPA Direct Debit (za razliku od
+    // kartice) je "delayed notification" metoda plaćanja — Payment Sheet se zatvori čim je
+    // mandat prihvaćen, ali stvarna potvrda na Stripe strani (i webhook) stigne tek koji
+    // trenutak kasnije, čak i u test modu. Raniji kod je ovdje radio JEDAN confirm poziv i
+    // JEDNU provjeru statusa pa odmah prikazivao grešku ("kartica nije obrađena") — netačno
+    // za SEPA, jer bi plaćanje na Stripe-u ubrzo zatim stvarno prošlo (vidljivo u Dashboard-u).
+    // _waitForCompletion ispod već radi ovo ispravno: prvi pokušaj potvrde, pa onda pravo
+    // pollanje (do ~60s) prije nego korisniku kažemo da nešto nije uspjelo.
     await _waitForCompletion(intent.paymentId, PaymentMethod.stripe, tryProviderConfirm: true);
   }
 
@@ -414,7 +410,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
 
     setState(() {
       _phase = _PaymentPhase.failed;
-      _error = 'Plaćanje još nije potvrđeno. Dodirnite „Provjeri status”.';
+      _error = 'Plaćanje je još u obradi — kod nekih načina plaćanja (PayPal, bankovni transfer) potvrda zna stići par minuta kasnije, čak i u test modu. Rezervacija je sačuvana: možete pričekati i dodirnuti „Provjeri status”, ili zatvoriti ovaj ekran i kasnije provjeriti u „Moje rezervacije” — potvrdiće se automatski čim Stripe javi da je plaćanje uspjelo.';
     });
   }
 
@@ -447,7 +443,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
     setState(() {
       _loading = false;
       _phase = _PaymentPhase.failed;
-      _error = 'Status još nije „završeno”. Pokušajte ponovo za nekoliko sekundi.';
+      _error = 'Plaćanje je i dalje u obradi. Kod nekih načina plaćanja je to normalno — pokušajte ponovo za koji trenutak, ili provjerite kasnije u „Moje rezervacije”.';
     });
   }
 
@@ -549,7 +545,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
                     if (canPay)
                       FilledButton(
                         onPressed: _confirmAndStartPayment,
-                        child: Text('Plati $_providerLabel'),
+                        child: const Text('Plati'),
                       ),
                     if (inBrowser || _phase == _PaymentPhase.failed) ...[
                       OutlinedButton(

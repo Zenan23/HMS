@@ -110,10 +110,6 @@ class PdfReportPreviewDialog extends StatelessWidget {
                       label: const Text('Export'),
                     ),
                     const SizedBox(width: 8),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Zatvori'),
-                    ),
                     IconButton(
                       icon: const Icon(Icons.close),
                       tooltip: 'Zatvori',

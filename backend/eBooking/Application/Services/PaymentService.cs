@@ -426,7 +426,7 @@ namespace Application.Services
 
                 // KRITIČNO: klijent (mobile app) može pozvati cancel iz čisto lokalnog razloga —
                 // npr. korisnik je zatvorio Payment Sheet, ili je Android u međuvremenu
-                // ubio/rekreirao Activity dok je čekao povratak iz PayPal/SEPA redirect-a — što NE
+                // ubio/rekreirao Activity dok je čekao povratak iz PayPal redirect-a — što NE
                 // znači da je plaćanje na Stripe strani stvarno propalo (webhook možda kasni ili
                 // uopšte nije konfigurisan u lokalnom razvoju). Prije nego označimo Cancelled,
                 // provjerimo direktno kod Stripe-a da li je plaćanje ipak uspjelo — ako jeste,
@@ -734,8 +734,8 @@ namespace Application.Services
             if (payment.Status == PaymentStatus.Completed)
                 return true;
 
-            // Best-effort: koja je stvarno odabrana metoda unutar Payment Sheet-a (kartica / PayPal /
-            // SEPA Direct Debit) — Payment.PaymentMethod ostaje "Stripe" (koristi se za pronalazak
+            // Best-effort: koja je stvarno odabrana metoda unutar Payment Sheet-a (kartica / PayPal)
+            // — Payment.PaymentMethod ostaje "Stripe" (koristi se za pronalazak
             // providera kod refund-a), stvarna pod-metoda se bilježi odvojeno u audit log/response.
             var paymentMethodType = await TryGetStripePaymentMethodTypeAsync(intent.PaymentMethodId);
 
@@ -744,7 +744,7 @@ namespace Application.Services
         }
 
         /// <summary>
-        /// Vraća stvarno korištenu Stripe payment method vrstu ("card"/"paypal"/"sepa_debit"...) za
+        /// Vraća stvarno korištenu Stripe payment method vrstu ("card"/"paypal"...) za
         /// jednu PaymentIntent. Nikad ne baca — ovo je samo za audit/prikaz, greška ovdje ne smije
         /// srušiti obradu webhooka.
         /// </summary>
