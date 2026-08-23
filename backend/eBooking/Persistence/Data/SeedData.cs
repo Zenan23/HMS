@@ -153,7 +153,14 @@ namespace Persistence.Data
                 var roomsAll = await context.Rooms.ToListAsync();
                 var servicesAll = await context.Services.Include(s => s.ServiceCategory).ToListAsync();
 
-                Room? RoomForHotel(int hotelId) => roomsAll.FirstOrDefault(r => r.HotelId == hotelId);
+                // NAMJERNO ne vraća prvu sobu hotela (npr. "101", "201"...) — to je soba koju bi
+                // testirao/kliknuo bilo ko prvi (npr. profesor na odbrani), pa ne treba da već ima
+                // seed rezervaciju na sebi (može djelovati zauzeto/čudno kad se testira "od nule").
+                // Umjesto toga vraća DRUGU sobu hotela ("02"), sa fallback-om na prvu ako hotel iz
+                // nekog razloga ima samo jednu sobu.
+                Room? RoomForHotel(int hotelId) =>
+                    roomsAll.Where(r => r.HotelId == hotelId).OrderBy(r => r.Id).Skip(1).FirstOrDefault()
+                    ?? roomsAll.FirstOrDefault(r => r.HotelId == hotelId);
                 Service? ServiceForHotel(int hotelId, string category) => servicesAll.FirstOrDefault(s => s.HotelId == hotelId && s.ServiceCategory != null && s.ServiceCategory.Name == category);
 
                 var today = DateTime.UtcNow.Date;
@@ -427,7 +434,14 @@ namespace Persistence.Data
             var marko = await context.Users.FirstOrDefaultAsync(u => u.Email == "marko@demo.com");
             var ivan = await context.Users.FirstOrDefaultAsync(u => u.Email == "ivan@demo.com");
             var leo = await context.Users.FirstOrDefaultAsync(u => u.Email == "leo@demo.com");
-            var firstRoom = await context.Rooms.FirstOrDefaultAsync();
+            // NAMJERNO ne prva soba u cijeloj bazi (bila bi "101" — Blue Sea Hotel, Split, prvi
+            // hotel, prva soba) — to je soba koju će vjerovatno prvu otvoriti neko ko testira app
+            // (npr. profesor na odbrani), pa ne treba da već ima seed održavanje na sebi (jedan od
+            // dva seed zapisa je namjerno NEriješen, da demonstrira "otvoren" status). Umjesto toga
+            // uzima sobu iz DRUGOG hotela (Alpine Lodge, Bled), sa fallback-om na prvu ako iz nekog
+            // razloga ne postoji.
+            var firstRoom = await context.Rooms.FirstOrDefaultAsync(r => r.RoomNumber == "203")
+                ?? await context.Rooms.FirstOrDefaultAsync();
             var allBookingsForOps = await context.Bookings.OrderBy(b => b.Id).ToListAsync();
             var demoBooking = demo != null
                 ? allBookingsForOps.FirstOrDefault(b => b.UserId == demo.Id)
