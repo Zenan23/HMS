@@ -306,6 +306,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
       final resp = await ApiService.post('/Reviews', payload);
       if (resp.statusCode == 200 || resp.statusCode == 201) {
         _reviewController.clear();
+        _reviewTitleController.clear();
         await _loadHotelReviews();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -416,17 +417,25 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
       child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => RoomBookingScreen(
-                roomId: room.id,
-                maxOccupancy: room.maxOccupancy,
-              ),
-            ),
-          );
-        },
+        onTap: room.isAvailable
+            ? () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => RoomBookingScreen(
+                      roomId: room.id,
+                      maxOccupancy: room.maxOccupancy,
+                    ),
+                  ),
+                );
+              }
+            : () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Ova soba trenutno nije dostupna za rezervaciju.'),
+                  ),
+                );
+              },
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(

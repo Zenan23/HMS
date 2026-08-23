@@ -9,10 +9,10 @@ class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
+  State<NotificationsScreen> createState() => NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
+class NotificationsScreenState extends State<NotificationsScreen> {
   bool _loading = false;
   String? _error;
   List<Map<String, dynamic>> _items = [];
@@ -22,6 +22,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
+
+  /// Ručno okidanje ponovnog učitavanja — poziva ga HomeScreen kad korisnik pređe na ovaj tab.
+  /// Ekran ostaje mountovan u pozadini (IndexedStack), pa se initState ne poziva ponovo pri
+  /// svakom prelasku na tab — bez ovoga korisnik mora ručno povući za refresh da vidi novu
+  /// notifikaciju u listi (i pored toga što se broj na badge-u već ispravno ažurira).
+  Future<void> refresh() => _load();
 
   Future<void> _load() async {
     final userId = context.read<AuthService>().user?.userId;

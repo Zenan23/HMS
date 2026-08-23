@@ -16,10 +16,10 @@ class ReservationsScreen extends StatefulWidget {
   const ReservationsScreen({super.key});
 
   @override
-  State<ReservationsScreen> createState() => _ReservationsScreenState();
+  State<ReservationsScreen> createState() => ReservationsScreenState();
 }
 
-class _ReservationsScreenState extends State<ReservationsScreen> {
+class ReservationsScreenState extends State<ReservationsScreen> {
   Future<List<Reservation>>? _paidFuture;
   Future<List<Reservation>>? _unpaidFuture;
   final Set<int> _processingIds = {};
@@ -94,6 +94,15 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
         _loadData(userId);
       }
     });
+  }
+
+  /// Ručno okidanje ponovnog učitavanja — poziva ga HomeScreen kad korisnik pređe na ovaj tab.
+  /// Ekran ostaje mountovan u pozadini (IndexedStack), pa se initState ne poziva ponovo pri
+  /// svakom prelasku na tab — bez ovoga korisnik mora ručno povući za refresh da vidi promjene
+  /// (npr. otkazivanje rezervacije urađeno na desktop app-u).
+  Future<void> refresh() async {
+    final userId = context.read<AuthService>().user?.userId;
+    if (userId != null) await _loadData(userId);
   }
 
   void _openDetails(Reservation reservation) {
@@ -219,7 +228,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Plaćene'),
-              Tab(text: 'Na čekanju'),
+              Tab(text: 'Ostale'),
             ],
           ),
         ),
@@ -243,7 +252,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                     onPayAgain: _payAgain,
                     onCancel: (r) => _confirmAndCancel(r, paid: false),
                     processingIds: _processingIds,
-                    emptyMessage: 'Nemate rezervacija na čekanju plaćanja.',
+                    emptyMessage: 'Nemate ostalih rezervacija.',
                     paid: false,
                     pendingPayments: _pendingPayments,
                     onCheckPending: _checkPendingStatus,
@@ -348,13 +357,19 @@ class _ReservationsList extends StatelessWidget {
               final canCancel =
                   onCancel != null && (r.status == 1 || r.status == 2);
               final isProcessing = processingIds.contains(r.id);
+              // Status 5/6 (Otkazana/No-show) MORA imati prioritet nad "paid" — inače rezervacija
+              // koja je otkazana (ali čije plaćanje iz nekog razloga nije stiglo refundovati) i
+              // dalje pogrešno pokazuje zeleno "Plaćeno", umjesto stvarnog statusa.
+              final isCancelledOrNoShow = r.status == 5 || r.status == 6;
 
               return Card(
-                color: paid
-                    ? Colors.green.shade50
-                    : hasPendingPayment
-                        ? Colors.blue.shade50
-                        : Colors.orange.shade50,
+                color: isCancelledOrNoShow
+                    ? Colors.red.shade50
+                    : paid
+                        ? Colors.green.shade50
+                        : hasPendingPayment
+                            ? Colors.blue.shade50
+                            : Colors.orange.shade50,
                 margin:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: InkWell(
@@ -368,22 +383,28 @@ class _ReservationsList extends StatelessWidget {
                         Row(
                           children: [
                             CircleAvatar(
-                              backgroundColor: paid
-                                  ? Colors.green.shade100
-                                  : hasPendingPayment
-                                      ? Colors.blue.shade100
-                                      : Colors.orange.shade100,
+                              backgroundColor: isCancelledOrNoShow
+                                  ? Colors.red.shade100
+                                  : paid
+                                      ? Colors.green.shade100
+                                      : hasPendingPayment
+                                          ? Colors.blue.shade100
+                                          : Colors.orange.shade100,
                               child: Icon(
-                                paid
-                                    ? Icons.check_circle
-                                    : hasPendingPayment
-                                        ? Icons.sync
-                                        : Icons.hourglass_bottom,
-                                color: paid
-                                    ? Colors.green
-                                    : hasPendingPayment
-                                        ? Colors.blue.shade800
-                                        : Colors.orange.shade800,
+                                isCancelledOrNoShow
+                                    ? Icons.cancel
+                                    : paid
+                                        ? Icons.check_circle
+                                        : hasPendingPayment
+                                            ? Icons.sync
+                                            : Icons.hourglass_bottom,
+                                color: isCancelledOrNoShow
+                                    ? Colors.red.shade800
+                                    : paid
+                                        ? Colors.green
+                                        : hasPendingPayment
+                                            ? Colors.blue.shade800
+                                            : Colors.orange.shade800,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -399,20 +420,33 @@ class _ReservationsList extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    paid
-                                        ? 'Plaćeno'
-                                        : hasPendingPayment
-                                            ? 'Plaćanje u obradi'
-                                            : r.statusLabel,
+                                    isCancelledOrNoShow
+                                        ? r.statusLabel
+                                        : paid
+                                            ? 'Plaćeno'
+                                            : hasPendingPayment
+                                                ? 'Plaćanje u obradi'
+                                                : r.statusLabel,
                                     style: TextStyle(
-                                      color: paid
-                                          ? Colors.green.shade700
-                                          : hasPendingPayment
-                                              ? Colors.blue.shade800
-                                              : Colors.orange.shade800,
+                                      color: isCancelledOrNoShow
+                                          ? Colors.red.shade700
+                                          : paid
+                                              ? Colors.green.shade700
+                                              : hasPendingPayment
+                                                  ? Colors.blue.shade800
+                                                  : Colors.orange.shade800,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
+                                  if (isCancelledOrNoShow && paid)
+                                    Text(
+                                      'Rezervacija je otkazana. Ako je bila plaćena, povrat '
+                                      'novca je automatski pokrenut.',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.red.shade700,
+                                      ),
+                                    ),
                                   if (hasPendingPayment)
                                     Text(
                                       'Kod nekih načina plaćanja (PayPal, bankovni transfer) '

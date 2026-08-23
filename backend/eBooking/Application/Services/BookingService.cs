@@ -203,6 +203,40 @@ namespace Application.Services
                 var notes = string.IsNullOrWhiteSpace(reason) ? "Booking cancelled" : $"Booking cancelled: {reason}";
                 await LogBookingStatusChangeAsync(id, oldStatus, BookingStatus.Cancelled, notes, cancelledByUserId);
 
+                // Automatski refund plaćanja pri otkazivanju — RefundPaymentAsync je već potpuno
+                // implementiran (zove Stripe provider i ažurira status plaćanja), samo se do sada
+                // nigdje nije pozivao pri otkazivanju rezervacije. Bez ovoga plaćanje ostaje
+                // "Completed" i rezervacija se pogrešno i dalje prikazuje kao plaćena/aktivna
+                // (npr. na mobile app-u) iako je rezervacija otkazana.
+                try
+                {
+                    var payments = await _paymentService.GetByBookingIdAsync(booking.Id);
+                    var refundablePayment = payments.FirstOrDefault(p =>
+                        p.Status == PaymentStatus.Completed || p.Status == PaymentStatus.PartiallyRefunded);
+                    if (refundablePayment != null)
+                    {
+                        var alreadyRefunded = refundablePayment.RefundAmount ?? 0;
+                        var remaining = refundablePayment.Amount - alreadyRefunded;
+                        if (remaining > 0)
+                        {
+                            var refunded = await _paymentService.RefundPaymentAsync(
+                                refundablePayment.Id, remaining, "Booking cancelled", cancelledByUserId);
+                            if (!refunded)
+                            {
+                                _logger.LogWarning(
+                                    "Refund nije uspio za booking {BookingId}, payment {PaymentId}",
+                                    id, refundablePayment.Id);
+                            }
+                        }
+                    }
+                }
+                catch (Exception refundEx)
+                {
+                    // Ne smije srušiti otkazivanje ako refund ne uspije (npr. Stripe nedostupan) —
+                    // rezervacija ostaje otkazana, refund se po potrebi može ručno ponoviti kasnije.
+                    _logger.LogError(refundEx, "Greška pri automatskom refundu za booking {BookingId}", id);
+                }
+
                 // Notifikacija korisniku o otkazivanju — bez ovoga korisnik ne saznaje da je
                 // rezervacija otkazana (npr. kad admin otkaže rezervaciju).
                 await _publishEndpoint.Publish(new BookingUpdated(booking.Id, booking.Status.ToString(), booking.UserId, booking.RoomId));

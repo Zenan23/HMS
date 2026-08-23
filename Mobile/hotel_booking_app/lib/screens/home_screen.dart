@@ -18,11 +18,17 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late int _selectedIndex;
 
-  final List<Widget> _screens = const [
-    HotelsScreen(),
-    ReservationsScreen(),
-    NotificationsScreen(),
-    ProfileScreen(),
+  // GlobalKey-evi omogućavaju pozivanje refresh() na tabu koji je već mountovan u pozadini
+  // (IndexedStack) — initState se poziva samo jednom, pri prvom mountovanju, pa bez ovoga
+  // korisnik mora ručno povući za refresh da vidi promjene nastale dok je bio na drugom tabu.
+  final _reservationsKey = GlobalKey<ReservationsScreenState>();
+  final _notificationsKey = GlobalKey<NotificationsScreenState>();
+
+  late final List<Widget> _screens = [
+    const HotelsScreen(),
+    ReservationsScreen(key: _reservationsKey),
+    NotificationsScreen(key: _notificationsKey),
+    const ProfileScreen(),
   ];
 
   @override
@@ -38,9 +44,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onItemTapped(int index) {
+    final changed = index != _selectedIndex;
     setState(() {
       _selectedIndex = index;
     });
+    if (!changed) return;
+    if (index == 1) {
+      _reservationsKey.currentState?.refresh();
+    } else if (index == 2) {
+      _notificationsKey.currentState?.refresh();
+    }
   }
 
   @override
