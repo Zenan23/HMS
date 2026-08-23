@@ -8,6 +8,9 @@
 
   <ItemGroup>
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
+    <!-- Zamjena za System.Net.Mail.SmtpClient (Microsoft ga zvanično smatra deprecated i poznat je
+         po nepouzdanom TLS/auth ponašanju protiv Gmail-a) — MailKit je standardna preporuka. -->
+    <PackageReference Include="MailKit" Version="4.17.0" />
     <PackageReference Include="MassTransit" Version="8.5.2" />
     <PackageReference Include="MassTransit.RabbitMQ" Version="8.5.2" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.2.0" />
