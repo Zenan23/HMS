@@ -26,7 +26,9 @@ namespace Contracts.DTOs
         public string Username { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Lozinka je obavezna.")]
-        [MinLength(6, ErrorMessage = "Lozinka mora imati najmanje 6 karaktera.")]
+        [RegularExpression(
+            @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,100}$",
+            ErrorMessage = "Lozinka mora imati najmanje 8 karaktera, veliko i malo slovo, broj i specijalni karakter.")]
         public string Password { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Potvrda lozinke je obavezna.")]
@@ -62,7 +64,9 @@ namespace Contracts.DTOs
         public string Code { get; set; } = string.Empty;
 
         [Required]
-        [MinLength(6, ErrorMessage = "Nova lozinka mora imati bar 6 karaktera.")]
+        [RegularExpression(
+            @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,100}$",
+            ErrorMessage = "Nova lozinka mora imati najmanje 8 karaktera, veliko i malo slovo, broj i specijalni karakter.")]
         public string NewPassword { get; set; } = string.Empty;
 
         [Required]

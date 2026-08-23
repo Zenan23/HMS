@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../utils/validation_utils.dart';
 
 /// Drugi korak reset lozinke: korisnik unosi kod primljen emailom i novu lozinku.
 class ResetPasswordScreen extends StatefulWidget {
@@ -98,9 +99,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   controller: _newPasswordController,
                   decoration: const InputDecoration(labelText: 'Nova lozinka'),
                   obscureText: true,
-                  validator: (v) => v != null && v.length >= 6
-                      ? null
-                      : 'Lozinka mora imati bar 6 karaktera',
+                  validator: ValidationUtils.validatePassword,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
