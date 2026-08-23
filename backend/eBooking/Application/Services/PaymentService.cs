@@ -732,8 +732,7 @@ namespace Application.Services
         /// <summary>
         /// Best-effort dodjela loyalty bodova kad plaćanje pređe u Completed. Umotano u try/catch —
         /// greška ovdje NIKAD ne smije srušiti uspješno završeno plaćanje (isti princip kao
-        /// webhook dedup PaymentId linkanje). Balans korisnika se ne čuva nigdje kao kolona,
-        /// računa se on-the-fly kao SUM(LoyaltyPointsEarned) - SUM(LoyaltyPointsRedemption).
+        /// webhook dedup PaymentId linkanje).
         /// </summary>
         private async Task AwardLoyaltyPointsAsync(Payment payment)
         {

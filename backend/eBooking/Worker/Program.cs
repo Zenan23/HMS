@@ -32,7 +32,6 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRepository<RoomMaintenanceLog>, RoomMaintenanceLogRepository>();
 builder.Services.AddScoped<IRepository<SupportTicket>, SupportTicketRepository>();
 builder.Services.AddScoped<IRepository<InventoryTransaction>, InventoryTransactionRepository>();
-builder.Services.AddScoped<IRepository<LoyaltyPointsRedemption>, LoyaltyPointsRedemptionRepository>();
 builder.Services.AddScoped<IRepository<Service>, ServiceRepository>();
 builder.Services.AddScoped<IRepository<Room>, RoomRepository>();
 
@@ -53,7 +52,6 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IRoomMaintenanceLogService, RoomMaintenanceLogService>();
 builder.Services.AddScoped<IPriceAdjustmentService, PriceAdjustmentService>();
 builder.Services.AddScoped<IInventoryTransactionService, InventoryTransactionService>();
-builder.Services.AddScoped<ILoyaltyPointsRedemptionService, LoyaltyPointsRedemptionService>();
 builder.Services.AddScoped<ISupportTicketService, SupportTicketService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
 

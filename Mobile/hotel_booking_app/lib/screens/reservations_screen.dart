@@ -3,8 +3,6 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/reservations_service.dart';
 import '../services/payments_service.dart';
-import '../services/loyalty_points_redemptions_service.dart';
-import '../models/loyalty_points_redemption.dart';
 import '../services/auth_service.dart';
 import '../models/reservation.dart';
 import '../utils/api_response.dart';
@@ -23,21 +21,17 @@ class ReservationsScreen extends StatefulWidget {
 class _ReservationsScreenState extends State<ReservationsScreen> {
   Future<List<Reservation>>? _paidFuture;
   Future<List<Reservation>>? _unpaidFuture;
-  List<LoyaltyPointsRedemption> _loyaltyForBookings = [];
   final Set<int> _processingIds = {};
 
   Future<void> _loadData(int userId) async {
     final service = ReservationsService();
     final paidFuture = service.fetchPaidReservations(userId);
     final unpaidFuture = service.fetchUnpaidReservations(userId);
-    final loyaltyService = LoyaltyPointsRedemptionsService();
-    final allRedemptions = await loyaltyService.getByUserId(userId);
     final paid = await paidFuture;
     final unpaid = await unpaidFuture;
     setState(() {
       _paidFuture = Future.value(paid);
       _unpaidFuture = Future.value(unpaid);
-      _loyaltyForBookings = allRedemptions;
     });
   }
 
@@ -54,12 +48,9 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   }
 
   void _openDetails(Reservation reservation) {
-    final loyaltyMatches =
-        _loyaltyForBookings.where((l) => l.bookingId == reservation.id);
     showReservationDetailSheet(
       context,
       reservation: reservation,
-      loyalty: loyaltyMatches.isNotEmpty ? loyaltyMatches.first : null,
     );
   }
 
@@ -189,7 +180,6 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                 children: [
                   _ReservationsList(
                     future: _paidFuture,
-                    loyaltyForBookings: _loyaltyForBookings,
                     onRefresh: () => _loadData(userId),
                     onOpenDetails: _openDetails,
                     onCancel: (r) => _confirmAndCancel(r, paid: true),
@@ -199,7 +189,6 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                   ),
                   _ReservationsList(
                     future: _unpaidFuture,
-                    loyaltyForBookings: _loyaltyForBookings,
                     onRefresh: () => _loadData(userId),
                     onOpenDetails: _openDetails,
                     onPayAgain: _payAgain,
@@ -217,7 +206,6 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
 
 class _ReservationsList extends StatelessWidget {
   final Future<List<Reservation>>? future;
-  final List<LoyaltyPointsRedemption> loyaltyForBookings;
   final Future<void> Function() onRefresh;
   final void Function(Reservation) onOpenDetails;
   final void Function(Reservation)? onPayAgain;
@@ -228,7 +216,6 @@ class _ReservationsList extends StatelessWidget {
 
   const _ReservationsList({
     required this.future,
-    required this.loyaltyForBookings,
     required this.onRefresh,
     required this.onOpenDetails,
     required this.emptyMessage,
@@ -287,9 +274,6 @@ class _ReservationsList extends StatelessWidget {
             itemCount: reservations.length,
             itemBuilder: (context, i) {
               final r = reservations[i];
-              final loyalty = loyaltyForBookings
-                  .where((l) => l.bookingId == r.id)
-                  .toList();
               final serviceCount = r.services.length;
               // Status 5 = Otkazana, 6 = No-show — plaćanje se ne nudi za njih.
               final canPayAgain =
@@ -374,14 +358,6 @@ class _ReservationsList extends StatelessWidget {
                           _InfoChip(
                             icon: Icons.room_service_outlined,
                             text: '$serviceCount dodatne usluge',
-                          ),
-                        ],
-                        if (loyalty.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          _InfoChip(
-                            icon: Icons.stars,
-                            text: 'Loyalty: ${loyalty.first.pointsUsed} bodova',
-                            iconColor: Colors.amber.shade800,
                           ),
                         ],
                         if (canPayAgain) ...[

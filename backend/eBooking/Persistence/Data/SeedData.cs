@@ -533,24 +533,6 @@ namespace Persistence.Data
                 await context.SaveChangesAsync();
             }
 
-            // Napomena: Demo zarađuje ~25 bodova od svog jedinog Completed plaćanja (255 EUR seed
-            // rezervacija × stopa 1 bod/10 EUR — vidi LoyaltyPointsEarned seed niže). PointsUsed
-            // ovdje je namjerno mali broj (manji od očekivanog balansa) da demo balans ostane
-            // pozitivan i realan, umjesto da bude veći od svega što je korisnik ikad zaradio.
-            if (!await context.LoyaltyPointsRedemptions.AnyAsync() && demo != null && demoBooking != null)
-            {
-                context.LoyaltyPointsRedemptions.Add(
-                    new LoyaltyPointsRedemption
-                    {
-                        UserId = demo.Id,
-                        BookingId = demoBooking.Id,
-                        PointsUsed = 15,
-                        RedeemedAt = today.AddDays(-18),
-                        EquivalentValueAmount = 0.75m
-                    });
-                await context.SaveChangesAsync();
-            }
-
             // Plaćanja + audit log po plaćanju. Zadnja (Ivan/Mostar, Confirmed) namjerno ostaje
             // Pending da postoji stvaran primjer "neplaćene" rezervacije za mobile "Plati ponovo" tok.
             if (!await context.Payments.AnyAsync())

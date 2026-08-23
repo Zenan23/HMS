@@ -30,7 +30,6 @@ namespace Persistence.Data
         public DbSet<PriceAdjustment> PriceAdjustments { get; set; }
         public DbSet<InventoryItem> InventoryItems { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
-        public DbSet<LoyaltyPointsRedemption> LoyaltyPointsRedemptions { get; set; }
         public DbSet<LoyaltyPointsEarned> LoyaltyPointsEarned { get; set; }
         public DbSet<SupportTicket> SupportTickets { get; set; }
         public DbSet<Country> Countries { get; set; }
@@ -405,23 +404,6 @@ namespace Persistence.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // LoyaltyPointsRedemption configuration
-            modelBuilder.Entity<LoyaltyPointsRedemption>(entity =>
-            {
-                entity.HasKey(lpr => lpr.Id);
-                entity.Property(lpr => lpr.EquivalentValueAmount).HasColumnType("decimal(18,2)");
-
-                entity.HasOne(lpr => lpr.User)
-                    .WithMany()
-                    .HasForeignKey(lpr => lpr.UserId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasOne(lpr => lpr.Booking)
-                    .WithMany()
-                    .HasForeignKey(lpr => lpr.BookingId)
-                    .OnDelete(DeleteBehavior.Restrict);
-            });
-
             // LoyaltyPointsEarned configuration
             modelBuilder.Entity<LoyaltyPointsEarned>(entity =>
             {
@@ -482,7 +464,6 @@ namespace Persistence.Data
             modelBuilder.Entity<PriceAdjustment>().HasQueryFilter(pa => !pa.IsDeleted);
             modelBuilder.Entity<InventoryItem>().HasQueryFilter(ii => !ii.IsDeleted);
             modelBuilder.Entity<InventoryTransaction>().HasQueryFilter(it => !it.IsDeleted);
-            modelBuilder.Entity<LoyaltyPointsRedemption>().HasQueryFilter(lpr => !lpr.IsDeleted);
             modelBuilder.Entity<LoyaltyPointsEarned>().HasQueryFilter(lpe => !lpe.IsDeleted);
             modelBuilder.Entity<SupportTicket>().HasQueryFilter(st => !st.IsDeleted);
             modelBuilder.Entity<Country>().HasQueryFilter(c => !c.IsDeleted);

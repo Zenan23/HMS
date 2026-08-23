@@ -9,6 +9,28 @@ rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
+
+// Isključuje lint-vital provjeru za release build u SVIM modulima (uključujući stripe_android
+// plugin). Ovo je potrebno jer stripe_android:releaseLintChecksClasspath tranzitivno zavisi od
+// com.google.android.gms:play-services-tapandpay — privatne Google biblioteke koja nije dostupna
+// ni na jednom javnom Maven repozitoriju. Aplikacija ne koristi Stripe Issuing push-provisioning
+// (dodavanje kartice u Google Wallet iz app-a), pa je gašenje lint-vital-a za release bezbjedno —
+// ne utiče na stvarnu kompilaciju koda, samo preskače ovu dodatnu, ovdje nerelevantnu provjeru.
+// MORA biti PRIJE "evaluationDependsOn(:app)" ispod — taj poziv forsira rano evaluiranje nekih
+// subprojekata, pa afterEvaluate registrovan poslije toga puca sa "already evaluated".
+subprojects {
+    afterEvaluate { proj ->
+        if (proj.plugins.hasPlugin("com.android.library") || proj.plugins.hasPlugin("com.android.application")) {
+            proj.android {
+                lint {
+                    checkReleaseBuilds = false
+                    abortOnError = false
+                }
+            }
+        }
+    }
+}
+
 subprojects {
     project.evaluationDependsOn(":app")
 }

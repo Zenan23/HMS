@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../models/booking.dart';
 import '../models/hotel.dart';
 import '../models/inventory_transaction.dart';
-import '../models/loyalty_points_redemption.dart';
 import '../models/price_adjustment.dart';
 import '../models/room.dart';
 import '../models/room_maintenance_log.dart';
@@ -12,7 +11,6 @@ import '../models/support_ticket.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import '../services/inventory_transaction_service.dart';
-import '../services/loyalty_points_redemption_service.dart';
 import '../services/pdf_report_service.dart';
 import '../services/price_adjustment_service.dart';
 import '../services/room_maintenance_log_service.dart';
@@ -208,27 +206,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
         }
         if (ctx.mounted) {
           await PdfReportService.exportInventoryTransactions(ctx, all);
-        }
-      },
-    ),
-    _ReportEntry(
-      title: 'Bodovi vjernosti',
-      description: 'Sva iskorištenja bodova vjernosti.',
-      icon: Icons.loyalty,
-      generate: (ctx) async {
-        final service = LoyaltyPointsRedemptionService();
-        final all = <LoyaltyPointsRedemption>[];
-        int page = 1;
-        const size = 100;
-        while (true) {
-          final result =
-              await service.getPaged(pageNumber: page, pageSize: size);
-          all.addAll(result.items);
-          if (all.length >= result.totalCount || result.items.isEmpty) break;
-          page++;
-        }
-        if (ctx.mounted) {
-          await PdfReportService.exportLoyaltyRedemptions(ctx, all);
         }
       },
     ),

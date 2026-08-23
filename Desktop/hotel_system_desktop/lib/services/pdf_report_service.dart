@@ -10,7 +10,6 @@ import '../models/booking.dart';
 import '../models/dashboard_statistics.dart';
 import '../models/hotel.dart';
 import '../models/inventory_transaction.dart';
-import '../models/loyalty_points_redemption.dart';
 import '../models/price_adjustment.dart';
 import '../models/room.dart';
 import '../models/room_maintenance_log.dart';
@@ -376,34 +375,6 @@ class PdfReportService {
                     ? t.staffUserName
                     : 'Korisnik #${t.staffUserId}',
                 t.reason,
-              ])
-          .toList(),
-    );
-  }
-
-  static Future<void> exportLoyaltyRedemptions(
-    BuildContext context,
-    List<LoyaltyPointsRedemption> redemptions,
-  ) {
-    return exportVisibleData(
-      context: context,
-      title: 'Izvještaj — Bodovi vjernosti',
-      headers: const [
-        'ID',
-        'Korisnik',
-        'Rezervacija',
-        'Bodovi',
-        'Vrijednost',
-        'Datum',
-      ],
-      rows: redemptions
-          .map((r) => [
-                '${r.id}',
-                r.userName.isNotEmpty ? r.userName : 'Korisnik #${r.userId}',
-                r.bookingDisplayLabel,
-                '${r.pointsUsed}',
-                _currency.format(r.equivalentValueAmount),
-                formatDisplayDate(r.redeemedAt),
               ])
           .toList(),
     );
