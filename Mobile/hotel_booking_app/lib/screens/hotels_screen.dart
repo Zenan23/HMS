@@ -6,6 +6,7 @@ import '../services/city_service.dart';
 import '../services/hotels_service.dart';
 import '../services/auth_service.dart';
 import 'hotel_detail_screen.dart';
+import '../utils/error_helper.dart';
 
 class HotelsScreen extends StatefulWidget {
   const HotelsScreen({super.key});
@@ -53,7 +54,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(content: Text(friendlyErrorMessage(e))),
         );
       }
     }
@@ -74,7 +75,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(content: Text(friendlyErrorMessage(e))),
         );
       }
     }
@@ -92,7 +93,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(content: Text(friendlyErrorMessage(e))),
         );
       }
     }
@@ -121,6 +122,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
                 Expanded(
                   child: DropdownButtonFormField<String?>(
                     value: _selectedCityName,
+                    isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: 'Grad',
                       border: OutlineInputBorder(),
@@ -132,7 +134,10 @@ class _HotelsScreenState extends State<HotelsScreen> {
                       ),
                       ..._cities.map((c) => DropdownMenuItem<String?>(
                             value: c.name,
-                            child: Text(c.label),
+                            child: Text(
+                              c.label,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           )),
                     ],
                     onChanged: _isFiltering ? null : _filterByCity,

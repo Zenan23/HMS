@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../services/room_maintenance_log_service.dart';
 import 'date_picker_field.dart';
 import 'app_dialog_title.dart';
+import '../utils/error_helper.dart';
 
 class RoomMaintenanceLogFormDialog extends StatefulWidget {
   final RoomMaintenanceLog? log;
@@ -82,7 +83,7 @@ class _RoomMaintenanceLogFormDialogState
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      setState(() => error = e.toString());
+      setState(() => error = friendlyErrorMessage(e));
     }
     setState(() => isLoading = false);
   }

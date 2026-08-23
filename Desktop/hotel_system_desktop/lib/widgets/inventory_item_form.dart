@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/inventory_item.dart';
 import '../services/inventory_item_service.dart';
 import 'app_dialog_title.dart';
+import '../utils/error_helper.dart';
 
 class InventoryItemFormDialog extends StatefulWidget {
   final InventoryItem? item;
@@ -87,7 +88,7 @@ class _InventoryItemFormDialogState extends State<InventoryItemFormDialog> {
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      setState(() => error = e.toString());
+      setState(() => error = friendlyErrorMessage(e));
     }
     setState(() => isLoading = false);
   }

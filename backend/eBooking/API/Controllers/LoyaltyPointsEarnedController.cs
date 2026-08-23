@@ -23,7 +23,7 @@ namespace API.Controllers
         }
 
         // Automatsko zarađivanje ide direktno kroz PaymentService (DbContext), ovaj CRUD je
-        // za ručne korekcije osoblja (npr. bonus bodovi) — isto ograničenje kao LoyaltyPointsRedemptions.
+        // za ručne korekcije osoblja (npr. bonus bodovi).
         [HttpPost]
         [AuthorizeRole(UserRole.Employee, UserRole.Admin)]
         public override Task<ActionResult<ApiResponse<LoyaltyPointsEarnedDto>>> Create([FromBody] CreateLoyaltyPointsEarnedDto createDto)

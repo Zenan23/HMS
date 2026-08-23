@@ -10,6 +10,7 @@ import '../utils/validation_utils.dart';
 import '../utils/image_utils.dart';
 import 'app_dialog_title.dart';
 import 'city_form.dart';
+import '../utils/error_helper.dart';
 
 class HotelFormDialog extends StatefulWidget {
   final Hotel? hotel;
@@ -151,7 +152,7 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       setState(() {
-        error = e.toString();
+        error = friendlyErrorMessage(e);
       });
     }
     setState(() {
@@ -222,12 +223,16 @@ class _HotelFormDialogState extends State<HotelFormDialog> {
                             value: _cities.any((c) => c.id == cityId)
                                 ? cityId
                                 : null,
+                            isExpanded: true,
                             decoration:
                                 const InputDecoration(labelText: 'Grad'),
                             items: _cities
                                 .map((c) => DropdownMenuItem<int>(
                                       value: c.id,
-                                      child: Text(c.label),
+                                      child: Text(
+                                        c.label,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ))
                                 .toList(),
                             onChanged: (v) => setState(() => cityId = v),

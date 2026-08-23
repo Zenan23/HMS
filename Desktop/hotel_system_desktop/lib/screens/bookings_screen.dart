@@ -6,6 +6,7 @@ import '../utils/date_format_utils.dart';
 import '../services/api_service.dart';
 import '../services/pdf_report_service.dart';
 import '../widgets/app_dialog_title.dart';
+import '../utils/error_helper.dart';
 
 class BookingsScreen extends StatefulWidget {
   const BookingsScreen({super.key});
@@ -47,7 +48,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Greška: $e')));
+          .showSnackBar(SnackBar(content: Text('Greška: ${friendlyErrorMessage(e)}')));
     }
     setState(() => _isLoading = false);
   }
@@ -82,7 +83,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Greška: $e')));
+            .showSnackBar(SnackBar(content: Text('Greška: ${friendlyErrorMessage(e)}')));
       }
     }
     if (mounted) setState(() => _isLoading = false);
@@ -315,7 +316,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                                     if (mounted) _fetchBookings(_page);
                                   } catch (e) {
                                     if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Greška: $e')));
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Greška: ${friendlyErrorMessage(e)}')));
                                     }
                                   }
                                 }

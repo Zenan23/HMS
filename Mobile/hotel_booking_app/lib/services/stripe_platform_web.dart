@@ -23,6 +23,12 @@ Future<void> confirmStripePaymentElement({required String returnUrl}) async {
   throw UnimplementedError('Koristite confirmWebPaymentElement iz stripe_payment_form.');
 }
 
+const String stripeReturnUrl = '';
+
+/// Web ne koristi Payment Sheet (vidi presentStripePaymentSheet iznad) pa nema deep link povratak
+/// za obraditi — Payment Element radi kroz redirect na stranici, ne kroz app_links.
+Future<bool> handleStripeUrlCallback(String url) async => false;
+
 StripeCheckoutUi get stripeCheckoutUi => StripeCheckoutUi.paymentElement;
 
 bool get isStripeNativeSupported => true;

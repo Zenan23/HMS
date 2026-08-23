@@ -9,6 +9,7 @@ import '../utils/validation_utils.dart';
 import '../utils/date_format_utils.dart';
 import '../utils/display_labels.dart';
 import 'app_dialog_title.dart';
+import '../utils/error_helper.dart';
 
 class BookingFormDialog extends StatefulWidget {
   final Booking? booking;
@@ -158,7 +159,7 @@ class _BookingFormDialogState extends State<BookingFormDialog> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       setState(() {
-        error = e.toString();
+        error = friendlyErrorMessage(e);
       });
     }
     setState(() {

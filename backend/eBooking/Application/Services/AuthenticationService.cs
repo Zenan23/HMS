@@ -63,6 +63,7 @@ namespace Application.Services
                 Username = user.Username,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
+                PhoneNumber = user.PhoneNumber,
                 Role = user.Role,
                 ExpiresAt = expiresAt
             };
@@ -109,6 +110,7 @@ namespace Application.Services
                 Username = user.Username,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
+                PhoneNumber = user.PhoneNumber,
                 Role = user.Role,
                 ExpiresAt = expiresAt
             };

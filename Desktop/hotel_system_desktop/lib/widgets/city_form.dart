@@ -4,6 +4,7 @@ import '../models/country.dart';
 import '../services/city_service.dart';
 import '../services/country_service.dart';
 import 'app_dialog_title.dart';
+import '../utils/error_helper.dart';
 
 class CityFormDialog extends StatefulWidget {
   final City? city;
@@ -71,7 +72,7 @@ class _CityFormDialogState extends State<CityFormDialog> {
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      setState(() => error = e.toString());
+      setState(() => error = friendlyErrorMessage(e));
     }
     setState(() => isLoading = false);
   }

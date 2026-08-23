@@ -9,6 +9,7 @@ import '../services/reservations_service.dart';
 import '../services/price_adjustments_service.dart';
 import '../models/price_adjustment.dart';
 import '../services/api_service.dart';
+import '../utils/error_helper.dart';
 
 class RoomBookingScreen extends StatefulWidget {
   final int roomId;
@@ -261,7 +262,7 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
       } catch (e) {
         Navigator.pop(context); // zatvori loading
         setState(() {
-          _error = e.toString();
+          _error = friendlyErrorMessage(e);
         });
       }
     }

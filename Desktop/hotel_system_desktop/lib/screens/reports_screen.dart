@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../models/booking.dart';
 import '../models/hotel.dart';
 import '../models/inventory_transaction.dart';
-import '../models/loyalty_points_redemption.dart';
 import '../models/price_adjustment.dart';
 import '../models/room.dart';
 import '../models/room_maintenance_log.dart';
@@ -12,11 +13,11 @@ import '../models/support_ticket.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import '../services/inventory_transaction_service.dart';
-import '../services/loyalty_points_redemption_service.dart';
 import '../services/pdf_report_service.dart';
 import '../services/price_adjustment_service.dart';
 import '../services/room_maintenance_log_service.dart';
 import '../services/support_ticket_service.dart';
+import '../utils/error_helper.dart';
 
 /// Centralizovani pregled svih PDF izvještaja (12 ukupno), na jednom mjestu
 /// umjesto razbacano po ekranima — RSII uputa traži minimalno 2, aplikacija
@@ -35,12 +36,18 @@ class _ReportEntry {
   final String description;
   final IconData icon;
   final Future<void> Function(BuildContext context) generate;
+  /// Izvještaji koji povlače podatke dostupne samo Adminu (npr. finansijska
+  /// statistika/prihod preko `/api/Dashboard/statistics`, koji backend već
+  /// štiti sa `[AuthorizeRole(UserRole.Admin)]`) — uposlenik ih ne treba ni
+  /// vidjeti kao opciju, ne samo da mu poziv na kraju vrati 403.
+  final bool adminOnly;
 
   _ReportEntry({
     required this.title,
     required this.description,
     required this.icon,
     required this.generate,
+    this.adminOnly = false,
   });
 }
 
@@ -212,30 +219,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
       },
     ),
     _ReportEntry(
-      title: 'Bodovi vjernosti',
-      description: 'Sva iskorištenja bodova vjernosti.',
-      icon: Icons.loyalty,
-      generate: (ctx) async {
-        final service = LoyaltyPointsRedemptionService();
-        final all = <LoyaltyPointsRedemption>[];
-        int page = 1;
-        const size = 100;
-        while (true) {
-          final result =
-              await service.getPaged(pageNumber: page, pageSize: size);
-          all.addAll(result.items);
-          if (all.length >= result.totalCount || result.items.isEmpty) break;
-          page++;
-        }
-        if (ctx.mounted) {
-          await PdfReportService.exportLoyaltyRedemptions(ctx, all);
-        }
-      },
-    ),
-    _ReportEntry(
       title: 'Statistika (Pregled)',
       description: 'Sažeti pregled poslovanja — prihod, popunjenost, top hoteli.',
       icon: Icons.dashboard,
+      adminOnly: true,
       generate: (ctx) async {
         final stats = await ApiService().getDashboardStatistics();
         if (ctx.mounted) {
@@ -252,7 +239,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Greška pri generisanju izvještaja: $e')),
+          SnackBar(content: Text('Greška pri generisanju izvještaja: ${friendlyErrorMessage(e)}')),
         );
       }
     }
@@ -261,6 +248,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAdmin = Provider.of<AuthProvider>(context, listen: false).isAdmin;
+    final visibleReports =
+        isAdmin ? _reports : _reports.where((r) => !r.adminOnly).toList();
     return Scaffold(
       appBar: AppBar(title: const Text('Izvještaji')),
       body: GridView.builder(
@@ -271,9 +261,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),
-        itemCount: _reports.length,
+        itemCount: visibleReports.length,
         itemBuilder: (context, i) {
-          final entry = _reports[i];
+          final entry = visibleReports[i];
           final isLoading = _loadingTitle == entry.title;
           return Card(
             child: Padding(

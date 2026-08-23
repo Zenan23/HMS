@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../utils/role_utils.dart';
+import '../utils/error_helper.dart';
 
 class AuthProvider with ChangeNotifier {
   bool isAuthenticated = false;
@@ -82,7 +83,7 @@ class AuthProvider with ChangeNotifier {
       lastName = await AuthService().getLastName();
       role = await AuthService().getRoleInt();
     } catch (e) {
-      error = e.toString();
+      error = friendlyErrorMessage(e);
       isAuthenticated = false;
     }
     isLoading = false;

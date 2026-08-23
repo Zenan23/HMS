@@ -14,7 +14,6 @@ import 'screens/room_maintenance_logs_screen.dart';
 import 'screens/price_adjustments_screen.dart';
 import 'screens/inventory_transactions_screen.dart';
 import 'screens/inventory_items_screen.dart';
-import 'screens/loyalty_redemptions_screen.dart';
 import 'screens/cities_screen.dart';
 import 'screens/reports_screen.dart';
 import 'utils/role_utils.dart';
@@ -98,7 +97,6 @@ class _MainTabsState extends State<MainTabs>
         Tab(text: 'Cijene'),
         Tab(text: 'Artikli skladišta'),
         Tab(text: 'Skladište'),
-        Tab(text: 'Vjernost'),
         Tab(text: 'Izvještaji'),
       ];
       _tabViews = const [
@@ -112,7 +110,6 @@ class _MainTabsState extends State<MainTabs>
         PriceAdjustmentsScreen(),
         InventoryItemsScreen(),
         InventoryTransactionsScreen(),
-        LoyaltyRedemptionsScreen(),
         ReportsScreen(),
       ];
     } else {

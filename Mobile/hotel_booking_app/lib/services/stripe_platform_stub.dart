@@ -15,6 +15,10 @@ Future<void> confirmStripePaymentElement({required String returnUrl}) async {
   throw UnsupportedError('Stripe Payment Element nije podržan na ovoj platformi.');
 }
 
+const String stripeReturnUrl = '';
+
+Future<bool> handleStripeUrlCallback(String url) async => false;
+
 StripeCheckoutUi get stripeCheckoutUi => StripeCheckoutUi.unsupported;
 
 bool get isStripeNativeSupported => false;

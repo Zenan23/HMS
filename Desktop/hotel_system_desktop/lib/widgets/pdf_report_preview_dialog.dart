@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
+import '../utils/error_helper.dart';
 
 class PdfReportPreviewDialog extends StatelessWidget {
   final String title;
@@ -66,7 +67,7 @@ class PdfReportPreviewDialog extends StatelessWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Greška pri exportu: $e'),
+          content: Text('Greška pri exportu: ${friendlyErrorMessage(e)}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -109,10 +110,6 @@ class PdfReportPreviewDialog extends StatelessWidget {
                       label: const Text('Export'),
                     ),
                     const SizedBox(width: 8),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Zatvori'),
-                    ),
                     IconButton(
                       icon: const Icon(Icons.close),
                       tooltip: 'Zatvori',

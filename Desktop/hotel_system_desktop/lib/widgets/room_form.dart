@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../utils/validation_utils.dart';
 import '../utils/display_labels.dart';
 import 'app_dialog_title.dart';
+import '../utils/error_helper.dart';
 
 class RoomFormDialog extends StatefulWidget {
   final Room? room;
@@ -88,7 +89,7 @@ class _RoomFormDialogState extends State<RoomFormDialog> {
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      setState(() => error = e.toString());
+      setState(() => error = friendlyErrorMessage(e));
     }
     setState(() => isLoading = false);
   }

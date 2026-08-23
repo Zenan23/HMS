@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/loyalty_points_redemption.dart';
 import '../models/reservation.dart';
 import '../models/room.dart';
 import '../services/reservations_service.dart';
@@ -16,7 +15,6 @@ String _formatDate(DateTime? value) {
 Future<void> showReservationDetailSheet(
   BuildContext context, {
   required Reservation reservation,
-  LoyaltyPointsRedemption? loyalty,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -26,18 +24,15 @@ Future<void> showReservationDetailSheet(
     ),
     builder: (ctx) => _ReservationDetailSheet(
       reservation: reservation,
-      loyalty: loyalty,
     ),
   );
 }
 
 class _ReservationDetailSheet extends StatefulWidget {
   final Reservation reservation;
-  final LoyaltyPointsRedemption? loyalty;
 
   const _ReservationDetailSheet({
     required this.reservation,
-    this.loyalty,
   });
 
   @override
@@ -207,16 +202,6 @@ class _ReservationDetailSheetState extends State<_ReservationDetailSheet> {
                               icon: Icons.notes,
                               label: 'Posebni zahtjevi',
                               value: r.specialRequests,
-                            ),
-                          ],
-                          if (widget.loyalty != null) ...[
-                            const SizedBox(height: 12),
-                            _DetailRow(
-                              icon: Icons.stars,
-                              label: 'Loyalty bodovi',
-                              value:
-                                  '${widget.loyalty!.pointsUsed} bodova (-${widget.loyalty!.equivalentValueAmount} EUR)',
-                              valueColor: Colors.amber.shade800,
                             ),
                           ],
                           const SizedBox(height: 16),

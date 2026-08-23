@@ -3,11 +3,6 @@ import 'package:hotel_booking_app/models/user.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
-import '../services/loyalty_points_redemptions_service.dart';
-import '../services/reservations_service.dart';
-import '../models/loyalty_points_redemption.dart';
-import '../models/reservation.dart';
-import '../utils/api_response.dart';
 import '../utils/validation_utils.dart';
 import 'dart:convert';
 
@@ -28,10 +23,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _saving = false;
   String? _status;
   bool _editing = false;
-  List<LoyaltyPointsRedemption> _loyaltyHistory = [];
-  bool _loadingLoyalty = false;
-  int? _loyaltyBalance;
-  final _loyaltyService = LoyaltyPointsRedemptionsService();
 
   @override
   void initState() {
@@ -42,170 +33,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _firstName = TextEditingController(text: user?.firstName ?? '');
     _lastName = TextEditingController(text: user?.lastName ?? '');
     _phoneNumber = TextEditingController(text: user?.phoneNumber ?? '');
-    _loadLoyaltyHistory();
-  }
-
-  Future<void> _loadLoyaltyHistory() async {
-    final userId = context.read<AuthService>().user?.userId;
-    if (userId == null) return;
-    if (mounted) setState(() => _loadingLoyalty = true);
-    try {
-      final history = await _loyaltyService.getByUserId(userId);
-      final balance = await _loyaltyService.getBalance(userId);
-      if (mounted) {
-        setState(() {
-          _loyaltyHistory = history;
-          _loyaltyBalance = balance;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _loyaltyHistory = [];
-          _loyaltyBalance = null;
-        });
-      }
-    } finally {
-      if (mounted) setState(() => _loadingLoyalty = false);
-    }
-  }
-
-  Future<void> _openRedeemDialog() async {
-    final userId = context.read<AuthService>().user?.userId;
-    if (userId == null || _loyaltyBalance == null) return;
-
-    if (_loyaltyBalance! <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nemate dostupnih bodova za iskorištavanje.')),
-      );
-      return;
-    }
-
-    List<Reservation> paidReservations;
-    try {
-      paidReservations = await ReservationsService().fetchPaidReservations(userId);
-    } catch (_) {
-      paidReservations = [];
-    }
-
-    if (paidReservations.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Nemate plaćenih rezervacija za koje možete iskoristiti bodove.')),
-        );
-      }
-      return;
-    }
-
-    if (!mounted) return;
-
-    int? selectedBookingId = paidReservations.first.id;
-    final pointsController = TextEditingController();
-    String? dialogError;
-    bool submitting = false;
-
-    try {
-      await showDialog<void>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Iskoristi bodove'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Dostupno: $_loyaltyBalance bodova (100 bodova = 5 EUR)'),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<int>(
-                  value: selectedBookingId,
-                  decoration: const InputDecoration(labelText: 'Rezervacija'),
-                  items: paidReservations
-                      .map((r) => DropdownMenuItem(
-                            value: r.id,
-                            child: Text('BK-${r.id.toString().padLeft(6, '0')}'),
-                          ))
-                      .toList(),
-                  onChanged: (v) => setDialogState(() => selectedBookingId = v),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: pointsController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Broj bodova'),
-                ),
-                if (dialogError != null) ...[
-                  const SizedBox(height: 8),
-                  Text(dialogError!, style: const TextStyle(color: Colors.red)),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: submitting ? null : () => Navigator.pop(ctx),
-              child: const Text('Otkaži'),
-            ),
-            ElevatedButton(
-              onPressed: submitting
-                  ? null
-                  : () async {
-                      final points = int.tryParse(pointsController.text.trim());
-                      if (points == null || points <= 0) {
-                        setDialogState(() => dialogError = 'Unesite ispravan broj bodova.');
-                        return;
-                      }
-                      if (points > _loyaltyBalance!) {
-                        setDialogState(() =>
-                            dialogError = 'Nemate dovoljno bodova (dostupno: $_loyaltyBalance).');
-                        return;
-                      }
-                      if (selectedBookingId == null) {
-                        setDialogState(() => dialogError = 'Odaberite rezervaciju.');
-                        return;
-                      }
-                      setDialogState(() {
-                        submitting = true;
-                        dialogError = null;
-                      });
-                      try {
-                        await _loyaltyService.redeem(
-                          userId: userId,
-                          bookingId: selectedBookingId!,
-                          pointsUsed: points,
-                        );
-                        if (ctx.mounted) Navigator.pop(ctx);
-                        await _loadLoyaltyHistory();
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Bodovi su uspješno iskorišteni.')),
-                          );
-                        }
-                      } on ApiException catch (e) {
-                        setDialogState(() {
-                          submitting = false;
-                          dialogError = e.message;
-                        });
-                      } catch (_) {
-                        setDialogState(() {
-                          submitting = false;
-                          dialogError = 'Greška pri iskorištavanju bodova.';
-                        });
-                      }
-                    },
-              child: submitting
-                  ? const SizedBox(
-                      width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Potvrdi'),
-            ),
-          ],
-        ),
-      ),
-    );
-    } finally {
-      pointsController.dispose();
-    }
   }
 
   @override
@@ -420,47 +247,6 @@ Widget build(BuildContext context) {
                   icon: const Icon(Icons.support_agent),
                   label: const Text('Tiketi podrške'),
                 ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    const Text('Loyalty bodovi',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                    const Spacer(),
-                    if (!_loadingLoyalty && _loyaltyBalance != null)
-                      Chip(
-                        avatar: const Icon(Icons.stars,
-                            color: Colors.amber, size: 18),
-                        label: Text('$_loyaltyBalance bodova'),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                if (!_loadingLoyalty)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: OutlinedButton.icon(
-                      onPressed: _openRedeemDialog,
-                      icon: const Icon(Icons.redeem),
-                      label: const Text('Iskoristi bodove'),
-                    ),
-                  ),
-                const SizedBox(height: 16),
-                const Text('Historija iskorištenih bodova',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                if (_loadingLoyalty)
-                  const Center(child: CircularProgressIndicator())
-                else if (_loyaltyHistory.isEmpty)
-                  const Text('Nema iskorištenih loyalty bodova.')
-                else
-                  ..._loyaltyHistory.map((r) => ListTile(
-                        leading: const Icon(Icons.stars, color: Colors.amber),
-                        title: Text('Rezervacija #${r.bookingId}'),
-                        subtitle: Text(
-                            '${r.pointsUsed} bodova • ${r.equivalentValueAmount.toStringAsFixed(2)} EUR'),
-                      )),
               ],
             ),
           ),

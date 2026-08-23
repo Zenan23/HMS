@@ -6,6 +6,7 @@ import '../models/hotel.dart';
 import '../services/api_service.dart';
 import '../utils/validation_utils.dart';
 import 'app_dialog_title.dart';
+import '../utils/error_helper.dart';
 
 class ServiceFormDialog extends StatefulWidget {
   final Service? service;
@@ -113,7 +114,7 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      setState(() => error = e.toString());
+      setState(() => error = friendlyErrorMessage(e));
     }
     setState(() => isLoading = false);
   }

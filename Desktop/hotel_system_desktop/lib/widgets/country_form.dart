@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/country.dart';
 import '../services/country_service.dart';
 import 'app_dialog_title.dart';
+import '../utils/error_helper.dart';
 
 class CountryFormDialog extends StatefulWidget {
   final Country? country;
@@ -39,7 +40,7 @@ class _CountryFormDialogState extends State<CountryFormDialog> {
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      setState(() => error = e.toString());
+      setState(() => error = friendlyErrorMessage(e));
     }
     setState(() => isLoading = false);
   }

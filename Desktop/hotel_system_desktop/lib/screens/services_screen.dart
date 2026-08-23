@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../services/pdf_report_service.dart';
 import '../widgets/service_form.dart';
 import '../widgets/app_dialog_title.dart';
+import '../utils/error_helper.dart';
 
 class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
@@ -67,7 +68,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Greška: $e')));
+            .showSnackBar(SnackBar(content: Text('Greška: ${friendlyErrorMessage(e)}')));
       }
     }
     setState(() => _isLoading = false);
@@ -103,7 +104,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Greška: $e')));
+            .showSnackBar(SnackBar(content: Text('Greška: ${friendlyErrorMessage(e)}')));
       }
     }
     if (mounted) setState(() => _isLoading = false);
@@ -348,7 +349,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                                       if (mounted) {
                                         ScaffoldMessenger.of(context)
                                             .showSnackBar(SnackBar(
-                                                content: Text('Greška: $e')));
+                                                content: Text('Greška: ${friendlyErrorMessage(e)}')));
                                       }
                                     }
                                   }

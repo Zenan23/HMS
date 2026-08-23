@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../services/pdf_report_service.dart';
 import 'dart:convert';
 import '../widgets/app_dialog_title.dart';
+import '../utils/error_helper.dart';
 
 class EmployeesScreen extends StatefulWidget {
   const EmployeesScreen({super.key});
@@ -39,7 +40,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Greška: $e')));
+          .showSnackBar(SnackBar(content: Text('Greška: ${friendlyErrorMessage(e)}')));
     }
     setState(() => _isLoading = false);
   }

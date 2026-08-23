@@ -200,23 +200,6 @@ namespace Application.Mapper
             CreateMap<UpdateInventoryTransactionDto, InventoryTransaction>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
-            // LoyaltyPointsRedemption mappings
-            CreateMap<LoyaltyPointsRedemption, LoyaltyPointsRedemptionDto>()
-                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null
-                    ? (!string.IsNullOrWhiteSpace(src.User.FirstName) || !string.IsNullOrWhiteSpace(src.User.LastName)
-                        ? $"{src.User.FirstName} {src.User.LastName}".Trim()
-                        : src.User.Username)
-                    : string.Empty))
-                .ForMember(dest => dest.BookingLabel, opt => opt.MapFrom(src =>
-                    src.Booking != null && src.Booking.Room != null
-                        ? $"BK-{src.Booking.Id:D6} · Soba {src.Booking.Room.RoomNumber}"
-                        : $"BK-{src.BookingId:D6}"));
-            CreateMap<CreateLoyaltyPointsRedemptionDto, LoyaltyPointsRedemption>()
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
-            CreateMap<UpdateLoyaltyPointsRedemptionDto, LoyaltyPointsRedemption>()
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
-
             // LoyaltyPointsEarned mappings
             CreateMap<LoyaltyPointsEarned, LoyaltyPointsEarnedDto>()
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null

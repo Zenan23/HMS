@@ -10,7 +10,6 @@ import '../models/booking.dart';
 import '../models/dashboard_statistics.dart';
 import '../models/hotel.dart';
 import '../models/inventory_transaction.dart';
-import '../models/loyalty_points_redemption.dart';
 import '../models/price_adjustment.dart';
 import '../models/room.dart';
 import '../models/room_maintenance_log.dart';
@@ -20,6 +19,7 @@ import '../models/user.dart';
 import '../utils/date_format_utils.dart';
 import '../utils/display_labels.dart';
 import '../widgets/pdf_report_preview_dialog.dart';
+import '../utils/error_helper.dart';
 
 class PdfReportService {
   static final _currency = NumberFormat('#,##0.00', 'bs');
@@ -62,7 +62,7 @@ class PdfReportService {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Greška pri generisanju PDF-a: $e'),
+            content: Text('Greška pri generisanju PDF-a: ${friendlyErrorMessage(e)}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -381,34 +381,6 @@ class PdfReportService {
     );
   }
 
-  static Future<void> exportLoyaltyRedemptions(
-    BuildContext context,
-    List<LoyaltyPointsRedemption> redemptions,
-  ) {
-    return exportVisibleData(
-      context: context,
-      title: 'Izvještaj — Bodovi vjernosti',
-      headers: const [
-        'ID',
-        'Korisnik',
-        'Rezervacija',
-        'Bodovi',
-        'Vrijednost',
-        'Datum',
-      ],
-      rows: redemptions
-          .map((r) => [
-                '${r.id}',
-                r.userName.isNotEmpty ? r.userName : 'Korisnik #${r.userId}',
-                r.bookingDisplayLabel,
-                '${r.pointsUsed}',
-                _currency.format(r.equivalentValueAmount),
-                formatDisplayDate(r.redeemedAt),
-              ])
-          .toList(),
-    );
-  }
-
   static Future<void> exportDashboard(
     BuildContext context,
     DashboardStatistics stats, {
@@ -513,7 +485,7 @@ class PdfReportService {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Greška pri generisanju PDF-a: $e'),
+            content: Text('Greška pri generisanju PDF-a: ${friendlyErrorMessage(e)}'),
             backgroundColor: Colors.red,
           ),
         );

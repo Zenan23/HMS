@@ -193,9 +193,20 @@ class AuthService extends ChangeNotifier {
 
   Future<void> tryAutoLogin() async {
     final userJson = await _storage.read(key: _userKey);
-    if (userJson != null) {
-      _user = User.fromJson(jsonDecode(userJson));
+    if (userJson == null) return;
+    try {
+      final loaded = User.fromJson(jsonDecode(userJson));
+      if (loaded.expiresAt.isBefore(DateTime.now())) {
+        // Token je istekao — ne pokušavaj auto-login, obriši lokalno da se ne vraćamo
+        // ovamo uzalud, i pusti korisnika na login ekran (isto kao HTTP 401 flow).
+        await _storage.delete(key: _userKey);
+        await _storage.delete(key: 'jwt_token');
+        return;
+      }
+      _user = loaded;
       notifyListeners();
+    } catch (_) {
+      // Oštećen/nekompatibilan zapis u storage-u — ignoriši, korisnik se prijavljuje ručno.
     }
   }
 }
