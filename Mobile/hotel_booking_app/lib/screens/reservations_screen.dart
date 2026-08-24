@@ -438,10 +438,23 @@ class _ReservationsList extends StatelessWidget {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  if (isCancelledOrNoShow && paid)
+                                  // Refund se pokreće SAMO pri stvarnom otkazivanju (status 5) —
+                                  // no-show (status 6) namjerno ne pokreće refund na backendu
+                                  // (MarkNoShowAsync), pa ova poruka to mora tačno odražavati,
+                                  // ne grupisati oba statusa pod istu napomenu o povratu novca.
+                                  if (r.status == 5 && paid)
                                     Text(
                                       'Rezervacija je otkazana. Ako je bila plaćena, povrat '
                                       'novca je automatski pokrenut.',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.red.shade700,
+                                      ),
+                                    ),
+                                  if (r.status == 6)
+                                    Text(
+                                      'Gost se nije pojavio — povrat novca se ne pokreće '
+                                      'automatski u ovom slučaju.',
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.red.shade700,

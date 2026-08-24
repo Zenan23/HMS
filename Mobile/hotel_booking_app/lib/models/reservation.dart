@@ -65,7 +65,7 @@ class Reservation {
       case 5:
         return 'Otkazana';
       case 6:
-        return 'No-show';
+        return 'Nedolazak';
       default:
         return 'Nepoznato';
     }
