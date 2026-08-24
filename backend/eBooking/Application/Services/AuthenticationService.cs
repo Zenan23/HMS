@@ -42,7 +42,7 @@ namespace Application.Services
         {
             var user = await _userRepository.GetByEmailAsync(loginDto.Email);
 
-            if (user == null || !user.IsActive)
+            if (user == null)
             {
                 throw new UnauthorizedAccessException("Pogrešan email ili lozinka.");
             }
@@ -50,6 +50,15 @@ namespace Application.Services
             if (!_passwordService.VerifyPassword(loginDto.Password, user.PasswordHash))
             {
                 throw new UnauthorizedAccessException("Pogrešan email ili lozinka.");
+            }
+
+            // Namjerno provjereno TEK nakon što je lozinka potvrđena ispravnom — ako bismo
+            // otkrili "nalog je deaktiviran" prije provjere lozinke, napadač bi mogao otkriti
+            // da nalog postoji (i da je deaktiviran) bez pogađanja lozinke. Ovako je poruka
+            // specifična samo onome ko stvarno zna ispravnu lozinku.
+            if (!user.IsActive)
+            {
+                throw new UnauthorizedAccessException("Vaš nalog je deaktiviran. Kontaktirajte administratora.");
             }
 
             var token = _jwtService.GenerateToken(user);

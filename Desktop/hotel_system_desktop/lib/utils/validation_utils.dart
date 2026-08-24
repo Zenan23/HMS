@@ -43,20 +43,39 @@ class ValidationUtils {
     return null;
   }
 
-  // Password validacija
+  // Password validacija — ista politika kao backend (CreateUserDto) i mobile
+  // app: min. 8 karaktera, veliko i malo slovo, broj i specijalni karakter.
+  // Bez ovoga, desktop forma bi puštala lozinku koju backend ionako odbija sa
+  // 400 greškom tek nakon submit-a.
   static String? validatePassword(String? value) {
     if (value == null || value.isEmpty) {
       return 'Lozinka je obavezna';
     }
-    
-    if (value.length < 6) {
-      return 'Lozinka mora imati najmanje 6 karaktera';
+
+    if (value.length < 8) {
+      return 'Lozinka mora imati najmanje 8 karaktera';
     }
-    
+
     if (value.length > 100) {
       return 'Lozinka ne može biti duža od 100 karaktera';
     }
-    
+
+    if (!RegExp(r'[a-z]').hasMatch(value)) {
+      return 'Lozinka mora sadržavati malo slovo';
+    }
+
+    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+      return 'Lozinka mora sadržavati veliko slovo';
+    }
+
+    if (!RegExp(r'\d').hasMatch(value)) {
+      return 'Lozinka mora sadržavati broj';
+    }
+
+    if (!RegExp(r'[^a-zA-Z\d]').hasMatch(value)) {
+      return 'Lozinka mora sadržavati specijalni karakter';
+    }
+
     return null;
   }
 

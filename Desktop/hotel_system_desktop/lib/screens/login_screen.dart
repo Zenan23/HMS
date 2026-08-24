@@ -32,11 +32,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: const InputDecoration(labelText: 'Email'),
                     onChanged: (v) => _email = v,
                     keyboardType: TextInputType.emailAddress,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Email je obavezan.'
+                        : null,
                   ),
                   TextFormField(
                     decoration: const InputDecoration(labelText: 'Lozinka'),
                     obscureText: true,
                     onChanged: (v) => _password = v,
+                    validator: (v) => (v == null || v.isEmpty)
+                        ? 'Lozinka je obavezna.'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   if (auth.error != null) Text(auth.error!, style: const TextStyle(color: Colors.red)),
