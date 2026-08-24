@@ -42,12 +42,19 @@ class _ReportEntry {
   /// vidjeti kao opciju, ne samo da mu poziv na kraju vrati 403.
   final bool adminOnly;
 
+  /// Izvještaji koji povlače podatke dostupne samo Uposleniku (npr.
+  /// `/api/Bookings` koji backend štiti sa `[AuthorizeRole(UserRole.Employee)]`
+  /// — Admin za tu rutu nema potrebnu rolu) — Admin ih ne treba vidjeti kao
+  /// opciju, ne samo da mu poziv na kraju vrati 403.
+  final bool employeeOnly;
+
   _ReportEntry({
     required this.title,
     required this.description,
     required this.icon,
     required this.generate,
     this.adminOnly = false,
+    this.employeeOnly = false,
   });
 }
 
@@ -99,6 +106,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       title: 'Rezervacije',
       description: 'Sve rezervacije sa statusom i cijenom.',
       icon: Icons.calendar_month,
+      employeeOnly: true,
       generate: (ctx) async {
         final all = await _fetchAllRaw('/api/Bookings', Booking.fromJson);
         if (ctx.mounted) await PdfReportService.exportBookings(ctx, all);
@@ -249,8 +257,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final isAdmin = Provider.of<AuthProvider>(context, listen: false).isAdmin;
-    final visibleReports =
-        isAdmin ? _reports : _reports.where((r) => !r.adminOnly).toList();
+    final visibleReports = _reports
+        .where((r) => (!r.adminOnly || isAdmin) && (!r.employeeOnly || !isAdmin))
+        .toList();
     return Scaffold(
       appBar: AppBar(title: const Text('Izvještaji')),
       body: GridView.builder(

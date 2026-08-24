@@ -31,7 +31,19 @@ class AuthService {
       await _storage.write(key: _roleKey, value: data['role']?.toString());
       await _storage.write(key: _expiresAtKey, value: data['expiresAt']);
     } else {
-      throw Exception('Neispravni podaci za prijavu');
+      // Backend šalje konkretnu poruku (npr. "Pogrešan email ili lozinka." ili
+      // "Vaš nalog je deaktiviran. Kontaktirajte administratora.") u
+      // response['message'] — prosljeđujemo je dalje umjesto generičkog teksta.
+      String message = 'Neispravni podaci za prijavu.';
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded['message'] != null) {
+          message = decoded['message'].toString();
+        }
+      } catch (_) {
+        // Odgovor nije JSON (npr. mrežna/serverska greška) — zadrži generičku poruku.
+      }
+      throw Exception(message);
     }
   }
 

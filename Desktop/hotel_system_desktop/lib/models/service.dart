@@ -4,6 +4,7 @@ class Service {
   final String description;
   final double price;
   final String category;
+  final int serviceCategoryId;
   final bool isAvailable;
   final bool isActive;
   final int hotelId;
@@ -17,6 +18,7 @@ class Service {
     required this.description,
     required this.price,
     required this.category,
+    required this.serviceCategoryId,
     required this.isAvailable,
     required this.isActive,
     required this.hotelId,
@@ -31,6 +33,7 @@ class Service {
         description: json['description'] ?? '',
         price: (json['price'] as num).toDouble(),
         category: json['category'] ?? '',
+        serviceCategoryId: json['serviceCategoryId'] ?? 0,
         isAvailable: json['isAvailable'] ?? true,
         isActive: json['isActive'] ?? true,
         hotelId: json['hotelId'],

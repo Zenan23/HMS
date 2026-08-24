@@ -161,6 +161,13 @@ class _InventoryTransactionFormDialogState
                   initialValue: reason,
                   decoration: const InputDecoration(labelText: 'Razlog'),
                   onChanged: (v) => reason = v,
+                  // Backend (CreateInventoryTransactionDto.Reason) ovo polje
+                  // traži kao obavezno — bez validatora ovdje, prazan unos je
+                  // prolazio klijentsku validaciju i tek na submit dobijao
+                  // nejasnu 400 grešku sa servera.
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Razlog je obavezan.'
+                      : null,
                 ),
                 const SizedBox(height: 8),
                 DatePickerField(

@@ -24,6 +24,18 @@ String friendlyErrorMessage(Object error) {
   if (error is FormatException) {
     return 'Neočekivan odgovor sa servera.';
   }
+  // Obični Exception('poruka') (npr. iz AuthService.login) — Dart-ov
+  // Exception.toString() dodaje "Exception: " prefiks koji korisnik ne treba
+  // vidjeti, pa se ovdje skida prije prikaza. Bez ove grane, konkretna poruka
+  // sa backend-a (npr. "Pogrešan email ili lozinka.") nikad ne bi stigla do
+  // korisnika — pao bi na generički fallback ispod.
+  if (error is Exception) {
+    final text = error.toString();
+    // Dart-ov ugrađeni Exception.toString() UVIJEK dodaje baš "Exception: "
+    // prefiks (fiksan engleski tekst iz Dart core biblioteke, ne nešto što
+    // mi biramo) — zato se provjerava tačno taj string, ne "Greška: ".
+    return text.startsWith('Exception: ') ? text.substring(11) : text;
+  }
   return 'Došlo je do neočekivane greške. Pokušajte ponovo.';
 }
 

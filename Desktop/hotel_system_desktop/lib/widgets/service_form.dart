@@ -22,7 +22,7 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
   late String name;
   late String description;
   late double price;
-  late String category;
+  late int? serviceCategoryId;
   late bool isAvailable;
   late bool isActive;
   late int? hotelId;
@@ -31,22 +31,28 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
   String? error;
   List<Hotel> _hotels = [];
 
-  // Category je na backendu i dalje slobodan tekst (nema FK tabele — vidi
-  // TODO-uskladjenost-db.md), ali ovdje ponudimo postojeće vrijednosti kao
-  // prijedloge (combobox) umjesto čistog tekstualnog polja.
-  List<String> _categorySuggestions = [];
+  // Kategorija je na backendu FK (ServiceCategoryId, obavezan) — ne slobodan
+  // tekst. Ranije je ovdje bilo tekstualno polje koje je slalo 'category'
+  // (string) koji CreateServiceDto/UpdateServiceDto uopšte nema, pa je
+  // ServiceCategoryId ostajao 0 i backend je ODBIJAO SVAKI pokušaj dodavanja
+  // servisa sa "Kategorija je obavezna." — otud je dodavanje servisa bilo
+  // potpuno nemoguće, bez obzira na rolu.
+  List<Map<String, dynamic>> _categories = [];
+  bool _checkingCategories = true;
 
   @override
   void initState() {
     super.initState();
     _fetchHotels();
-    _fetchCategorySuggestions();
+    _fetchServiceCategories();
     final s = widget.service;
     id = s?.id ?? 0;
     name = s?.name ?? '';
     description = s?.description ?? '';
     price = s?.price ?? 0;
-    category = s?.category ?? '';
+    serviceCategoryId = (s != null && s.serviceCategoryId > 0)
+        ? s.serviceCategoryId
+        : null;
     isAvailable = s?.isAvailable ?? false;
     isActive = s?.isActive ?? false;
     hotelId = s?.hotelId;
@@ -54,8 +60,9 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
 
   Future<void> _fetchHotels() async {
     try {
-      final response =
-          await ApiService().get('/api/Hotels?pageNumber=1&pageSize=100');
+      final response = await ApiService().get(
+        '/api/Hotels?pageNumber=1&pageSize=100',
+      );
       final Map<String, dynamic> decoded = jsonDecode(response.body);
       final data = decoded['data'] ?? {};
       final List items = data['items'] ?? [];
@@ -67,29 +74,32 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
     }
   }
 
-  Future<void> _fetchCategorySuggestions() async {
+  Future<void> _fetchServiceCategories() async {
     try {
-      final response =
-          await ApiService().get('/api/Services?pageNumber=1&pageSize=200');
+      final response = await ApiService().get(
+        '/api/ServiceCategories?pageNumber=1&pageSize=200',
+      );
       final Map<String, dynamic> decoded = jsonDecode(response.body);
       final data = decoded['data'] ?? {};
       final List items = data['items'] ?? [];
       final categories = items
-          .map((e) => (e['category'] ?? '').toString().trim())
-          .where((c) => c.isNotEmpty)
-          .toSet()
-          .toList()
-        ..sort();
-      if (mounted) setState(() => _categorySuggestions = categories.cast<String>());
+          .map((e) => {'id': e['id'], 'name': (e['name'] ?? '').toString()})
+          .toList();
+      if (mounted) setState(() => _categories = categories);
     } catch (_) {
-      // ignore — polje i dalje radi kao obično tekstualno polje
+      // ignore — dropdown ostaje prazan, validator će tražiti odabir
     }
+    if (mounted) setState(() => _checkingCategories = false);
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (hotelId == null) {
       setState(() => error = 'Odaberite hotel');
+      return;
+    }
+    if (serviceCategoryId == null) {
+      setState(() => error = 'Odaberite kategoriju');
       return;
     }
     setState(() {
@@ -101,7 +111,7 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
       'name': name,
       'description': description,
       'price': price,
-      'category': category,
+      'serviceCategoryId': serviceCategoryId,
       'isAvailable': isAvailable,
       'isActive': isActive,
       'hotelId': hotelId,
@@ -122,7 +132,9 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: AppDialogTitle(widget.service == null ? 'Dodaj servis' : 'Uredi servis'),
+      title: AppDialogTitle(
+        widget.service == null ? 'Dodaj servis' : 'Uredi servis',
+      ),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -145,28 +157,45 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
               TextFormField(
                 initialValue: price.toString(),
                 decoration: const InputDecoration(labelText: 'Cijena'),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 onChanged: (v) => price = double.tryParse(v) ?? 0,
                 validator: ValidationUtils.validatePrice,
               ),
-              Autocomplete<String>(
-                initialValue: TextEditingValue(text: category),
-                optionsBuilder: (v) => v.text.isEmpty
-                    ? _categorySuggestions
-                    : _categorySuggestions.where((c) =>
-                        c.toLowerCase().contains(v.text.toLowerCase())),
-                onSelected: (v) => category = v,
-                fieldViewBuilder:
-                    (context, controller, focusNode, onSubmitted) {
-                  return TextFormField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    decoration: const InputDecoration(labelText: 'Kategorija'),
-                    onChanged: (v) => category = v,
-                  );
-                },
-              ),
+              _checkingCategories
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: LinearProgressIndicator(),
+                    )
+                  : DropdownButtonFormField<int>(
+                      value:
+                          _categories.any((c) => c['id'] == serviceCategoryId)
+                          ? serviceCategoryId
+                          : null,
+                      decoration: const InputDecoration(
+                        labelText: 'Kategorija',
+                      ),
+                      items: _categories
+                          .map(
+                            (c) => DropdownMenuItem<int>(
+                              value: c['id'] as int,
+                              child: Text(c['name'] as String),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => setState(() => serviceCategoryId = v),
+                      validator: (v) => v == null ? 'Obavezno' : null,
+                    ),
+              if (!_checkingCategories && _categories.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(top: 4, bottom: 4),
+                  child: Text(
+                    'Nema nijedne kategorije servisa u bazi kontaktirajte '
+                    'administratora da doda barem jednu (ServiceCategories).',
+                    style: TextStyle(fontSize: 12, color: Colors.orange),
+                  ),
+                ),
               SwitchListTile(
                 title: const Text('Dostupno'),
                 value: isAvailable,
@@ -181,8 +210,12 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
                 value: hotelId,
                 decoration: const InputDecoration(labelText: 'Hotel'),
                 items: _hotels
-                    .map((h) =>
-                        DropdownMenuItem<int>(value: h.id, child: Text(h.name)))
+                    .map(
+                      (h) => DropdownMenuItem<int>(
+                        value: h.id,
+                        child: Text(h.name),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => setState(() => hotelId = v),
                 validator: (v) => v == null ? 'Obavezno' : null,
@@ -190,8 +223,10 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
               if (error != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
-                  child:
-                      Text(error!, style: const TextStyle(color: Colors.red)),
+                  child: Text(
+                    error!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 ),
             ],
           ),
@@ -199,15 +234,17 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Otkaži')),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Otkaži'),
+        ),
         ElevatedButton(
           onPressed: isLoading ? null : _submit,
           child: isLoading
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2))
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
               : Text(widget.service == null ? 'Dodaj' : 'Spasi'),
         ),
       ],
