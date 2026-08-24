@@ -94,7 +94,13 @@ namespace Application.Services
             foreach (var booking in userBookings)
             {
                 var payments = await _paymentService.GetByBookingIdAsync(booking.Id);
-                if (payments.Any(p => p.Status != PaymentStatus.Completed))
+                // "Neplaćena" = NEMA Completed plaćanje — obuhvata i rezervacije bez ijednog
+                // plaćanja (npr. kreirane direktno na recepciji preko desktop app-a, bez online
+                // checkout-a). Prijašnji uslov (payments.Any(p => p.Status != Completed)) je
+                // zahtijevao da POSTOJI barem jedno ne-Completed plaćanje, pa je rezervacija bez
+                // ijednog plaćanja nestajala i iz ove i iz "paid" liste — gost je nikad ne bi vidio
+                // na mobile app-u.
+                if (!payments.Any(p => p.Status == PaymentStatus.Completed))
                 {
                     paidBookings.Add(_mapper.Map<BookingDto>(booking));
                 }
