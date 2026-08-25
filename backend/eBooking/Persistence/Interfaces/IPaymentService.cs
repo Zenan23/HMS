@@ -23,7 +23,6 @@ namespace Persistence.Interfaces
         /// <summary>Stripe webhook (raw JSON + Stripe-Signature header).</summary>
         Task<bool> ProcessStripeWebhookAsync(string json, string stripeSignatureHeader);
 
-        Task<PaymentDto> ProcessPaymentAsync(CreatePaymentDto createPaymentDto, string? userAgent = null, string? ipAddress = null);
         Task<bool> RefundPaymentAsync(int paymentId, decimal amount, string reason, int? initiatedByUserId = null);
         Task<bool> CancelPaymentAsync(int paymentId, string reason, int? initiatedByUserId = null);
         Task<IEnumerable<PaymentDto>> GetByUserIdAsync(int userId);

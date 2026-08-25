@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Contracts.DTOs;
 using Contracts.Enums;
+using Contracts.Exceptions;
 using Contracts.Messages;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -438,7 +439,7 @@ namespace Application.Services
                 if (createDto.NumberOfGuests <= 0)
                     throw new ArgumentException("Broj gostiju mora biti najmanje 1.");
 
-                var room = await _roomService.GetByIdAsync(createDto.RoomId) ?? throw new InvalidOperationException("Soba nije pronađena.");
+                var room = await _roomService.GetByIdAsync(createDto.RoomId) ?? throw new NotFoundException("Soba nije pronađena.");
 
                 if (createDto.CheckInDate >= createDto.CheckOutDate)
                     throw new ArgumentException("Datum prijave mora biti prije datuma odjave.");
@@ -447,7 +448,7 @@ namespace Application.Services
                 // frontend provjeru dostupnosti, jer dva zahtjeva mogu stići istovremeno.
                 var isAvailable = await IsRoomAvailableAsync(createDto.RoomId, createDto.CheckInDate, createDto.CheckOutDate);
                 if (!isAvailable)
-                    throw new InvalidOperationException("Odabrana soba nije dostupna za izabrani period.");
+                    throw new BusinessRuleException("Odabrana soba nije dostupna za izabrani period.");
 
                 var serviceSelections = createDto.Services?
                     .Select(s => (s.ServiceId, s.Quantity))
@@ -480,7 +481,7 @@ namespace Application.Services
                         var svc = await _serviceRepository.GetByIdAsync(item.ServiceId);
                         if (svc == null || !svc.IsAvailable) continue;
                         if (svc.HotelId != room.HotelId)
-                            throw new InvalidOperationException("Odabrana usluga ne pripada hotelu ove sobe.");
+                            throw new BusinessRuleException("Odabrana usluga ne pripada hotelu ove sobe.");
                         var qty = item.Quantity <= 0 ? 1 : item.Quantity;
                         serviceItems.Add(new Persistence.Models.BookingService
                         {

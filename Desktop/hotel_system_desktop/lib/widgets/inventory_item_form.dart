@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/inventory_item.dart';
+import '../services/api_service.dart';
 import '../services/inventory_item_service.dart';
 import 'app_dialog_title.dart';
 import '../utils/error_helper.dart';
+import 'inventory_item_category_form.dart';
 
 class InventoryItemFormDialog extends StatefulWidget {
   final InventoryItem? item;
@@ -18,17 +21,19 @@ class _InventoryItemFormDialogState extends State<InventoryItemFormDialog> {
   final _service = InventoryItemService();
   late String name;
   late String unit;
-  late String category;
+  late int? inventoryItemCategoryId;
   late int minimumStockLevel;
   bool isLoading = false;
   String? error;
 
-  // Category/Unit su na backendu i dalje slobodan tekst (nema FK tabele —
-  // vidi TODO-uskladjenost-db.md), ali ovdje ponudimo postojeće vrijednosti
-  // kao prijedloge (combobox) da se izbjegnu duplikati/tipfeleri, umjesto
-  // čistog tekstualnog polja.
-  List<String> _categorySuggestions = [];
+  // Unit i dalje nema svoju referentnu tabelu, pa ostaje slobodan tekst sa
+  // prijedlozima (combobox) da se izbjegnu duplikati/tipfeleri.
   List<String> _unitSuggestions = [];
+
+  // Kategorija je na backendu FK (InventoryItemCategoryId, obavezan) — isti
+  // obrazac kao Service.ServiceCategoryId (vidi widgets/service_form.dart).
+  List<Map<String, dynamic>> _categories = [];
+  bool _checkingCategories = true;
 
   @override
   void initState() {
@@ -36,20 +41,18 @@ class _InventoryItemFormDialogState extends State<InventoryItemFormDialog> {
     final i = widget.item;
     name = i?.name ?? '';
     unit = i?.unit ?? '';
-    category = i?.category ?? '';
+    inventoryItemCategoryId =
+        (i != null && i.inventoryItemCategoryId > 0)
+            ? i.inventoryItemCategoryId
+            : null;
     minimumStockLevel = i?.minimumStockLevel ?? 0;
-    _fetchSuggestions();
+    _fetchUnitSuggestions();
+    _fetchInventoryItemCategories();
   }
 
-  Future<void> _fetchSuggestions() async {
+  Future<void> _fetchUnitSuggestions() async {
     try {
       final all = await _service.getAllForDropdown();
-      final categories = all
-          .map((e) => e.category.trim())
-          .where((c) => c.isNotEmpty)
-          .toSet()
-          .toList()
-        ..sort();
       final units = all
           .map((e) => e.unit.trim())
           .where((u) => u.isNotEmpty)
@@ -58,17 +61,59 @@ class _InventoryItemFormDialogState extends State<InventoryItemFormDialog> {
         ..sort();
       if (mounted) {
         setState(() {
-          _categorySuggestions = categories;
           _unitSuggestions = units;
         });
       }
     } catch (_) {
-      // ignore — polja i dalje rade kao obično tekstualno polje
+      // ignore — polje i dalje radi kao obično tekstualno polje
+    }
+  }
+
+  Future<void> _fetchInventoryItemCategories() async {
+    try {
+      final response = await ApiService().get(
+        '/api/InventoryItemCategories?pageNumber=1&pageSize=200',
+      );
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      final data = decoded['data'] ?? {};
+      final List items = data['items'] ?? [];
+      final categories = items
+          .map((e) => {'id': e['id'], 'name': (e['name'] ?? '').toString()})
+          .toList();
+      if (mounted) setState(() => _categories = categories);
+    } catch (_) {
+      // ignore — dropdown ostaje prazan, validator će tražiti odabir
+    }
+    if (mounted) setState(() => _checkingCategories = false);
+  }
+
+  // Inline dodavanje kategorije bez napuštanja forme za artikal (isti obrazac
+  // kao Hotel -> Grad / Service -> ServiceCategory).
+  Future<void> _addCategoryInline() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => const InventoryItemCategoryFormDialog(),
+    );
+    if (result == true) {
+      await _fetchInventoryItemCategories();
+      if (!mounted) return;
+      if (_categories.isNotEmpty) {
+        setState(() {
+          // Novododana kategorija je obično posljednja u listi po Id-u — odaberi je.
+          inventoryItemCategoryId = _categories
+              .map((c) => c['id'] as int)
+              .reduce((a, b) => a > b ? a : b);
+        });
+      }
     }
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (inventoryItemCategoryId == null) {
+      setState(() => error = 'Odaberite kategoriju');
+      return;
+    }
     setState(() {
       isLoading = true;
       error = null;
@@ -77,7 +122,7 @@ class _InventoryItemFormDialogState extends State<InventoryItemFormDialog> {
       'id': widget.item?.id ?? 0,
       'name': name,
       'unit': unit,
-      'category': category,
+      'inventoryItemCategoryId': inventoryItemCategoryId,
       'minimumStockLevel': minimumStockLevel,
     };
     try {
@@ -134,24 +179,52 @@ class _InventoryItemFormDialogState extends State<InventoryItemFormDialog> {
                     );
                   },
                 ),
-                Autocomplete<String>(
-                  initialValue: TextEditingValue(text: category),
-                  optionsBuilder: (v) => v.text.isEmpty
-                      ? _categorySuggestions
-                      : _categorySuggestions.where((c) =>
-                          c.toLowerCase().contains(v.text.toLowerCase())),
-                  onSelected: (v) => category = v,
-                  fieldViewBuilder:
-                      (context, controller, focusNode, onSubmitted) {
-                    return TextFormField(
-                      controller: controller,
-                      focusNode: focusNode,
-                      decoration:
-                          const InputDecoration(labelText: 'Kategorija'),
-                      onChanged: (v) => category = v,
-                    );
-                  },
-                ),
+                _checkingCategories
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: LinearProgressIndicator(),
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              value: _categories.any((c) =>
+                                      c['id'] == inventoryItemCategoryId)
+                                  ? inventoryItemCategoryId
+                                  : null,
+                              decoration: const InputDecoration(
+                                  labelText: 'Kategorija'),
+                              items: _categories
+                                  .map(
+                                    (c) => DropdownMenuItem<int>(
+                                      value: c['id'] as int,
+                                      child: Text(c['name'] as String),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) => setState(
+                                  () => inventoryItemCategoryId = v),
+                              validator: (v) =>
+                                  v == null ? 'Obavezno' : null,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline),
+                            tooltip: 'Dodaj novu kategoriju',
+                            onPressed: _addCategoryInline,
+                          ),
+                        ],
+                      ),
+                if (!_checkingCategories && _categories.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4, bottom: 4),
+                    child: Text(
+                      'Nema nijedne kategorije artikla u bazi kontaktirajte '
+                      'administratora da doda barem jednu (InventoryItemCategories).',
+                      style: TextStyle(fontSize: 12, color: Colors.orange),
+                    ),
+                  ),
                 TextFormField(
                   initialValue: minimumStockLevel.toString(),
                   decoration:

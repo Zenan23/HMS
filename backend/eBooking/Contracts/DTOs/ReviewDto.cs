@@ -16,6 +16,12 @@ namespace Contracts.DTOs
         public string? UserName { get; set; }
         public int? BookingId { get; set; }
         public bool IsDeleted { get; set; }
+
+        // Audit trag moderacije — server-set, nikad se ne postavlja kroz Create/UpdateReviewDto.
+        public int? ApprovedByUserId { get; set; }
+        public DateTime? ApprovedAt { get; set; }
+        public int? RejectedByUserId { get; set; }
+        public DateTime? RejectedAt { get; set; }
     }
 
     public class CreateReviewDto : CreateBaseEntityDto

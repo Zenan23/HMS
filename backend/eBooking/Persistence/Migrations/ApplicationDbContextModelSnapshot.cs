@@ -323,13 +323,11 @@ namespace Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("InventoryItemCategoryId")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -352,7 +350,39 @@ namespace Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("InventoryItemCategoryId");
+
                     b.ToTable("InventoryItems");
+                });
+
+            modelBuilder.Entity("Persistence.Models.InventoryItemCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("InventoryItemCategories");
                 });
 
             modelBuilder.Entity("Persistence.Models.InventoryTransaction", b =>
@@ -396,54 +426,6 @@ namespace Persistence.Migrations
                     b.HasIndex("StaffUserId");
 
                     b.ToTable("InventoryTransactions");
-                });
-
-            modelBuilder.Entity("Persistence.Models.LoyaltyPointsEarned", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("BookingId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("EarnedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("PaymentId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PointsEarned")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BookingId");
-
-                    b.HasIndex("PaymentId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("LoyaltyPointsEarned");
                 });
 
             modelBuilder.Entity("Persistence.Models.Notification", b =>
@@ -769,6 +751,12 @@ namespace Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ApprovedByUserId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("BookingId")
                         .HasColumnType("int");
 
@@ -795,6 +783,12 @@ namespace Persistence.Migrations
                     b.Property<int>("Rating")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("RejectedByUserId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("ReviewDate")
                         .HasColumnType("datetime2");
 
@@ -811,9 +805,13 @@ namespace Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ApprovedByUserId");
+
                     b.HasIndex("BookingId");
 
                     b.HasIndex("HotelId");
+
+                    b.HasIndex("RejectedByUserId");
 
                     b.HasIndex("UserId");
 
@@ -1269,6 +1267,17 @@ namespace Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Persistence.Models.InventoryItem", b =>
+                {
+                    b.HasOne("Persistence.Models.InventoryItemCategory", "InventoryItemCategory")
+                        .WithMany("InventoryItems")
+                        .HasForeignKey("InventoryItemCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("InventoryItemCategory");
+                });
+
             modelBuilder.Entity("Persistence.Models.InventoryTransaction", b =>
                 {
                     b.HasOne("Persistence.Models.InventoryItem", "InventoryItem")
@@ -1286,31 +1295,6 @@ namespace Persistence.Migrations
                     b.Navigation("InventoryItem");
 
                     b.Navigation("StaffUser");
-                });
-
-            modelBuilder.Entity("Persistence.Models.LoyaltyPointsEarned", b =>
-                {
-                    b.HasOne("Persistence.Models.Booking", "Booking")
-                        .WithMany()
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Persistence.Models.Payment", "Payment")
-                        .WithMany()
-                        .HasForeignKey("PaymentId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Persistence.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Booking");
-
-                    b.Navigation("Payment");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Persistence.Models.Notification", b =>
@@ -1408,6 +1392,11 @@ namespace Persistence.Migrations
 
             modelBuilder.Entity("Persistence.Models.Review", b =>
                 {
+                    b.HasOne("Persistence.Models.User", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Persistence.Models.Booking", "Booking")
                         .WithMany()
                         .HasForeignKey("BookingId")
@@ -1419,14 +1408,23 @@ namespace Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Persistence.Models.User", "RejectedByUser")
+                        .WithMany()
+                        .HasForeignKey("RejectedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Persistence.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.Navigation("ApprovedByUser");
+
                     b.Navigation("Booking");
 
                     b.Navigation("Hotel");
+
+                    b.Navigation("RejectedByUser");
 
                     b.Navigation("User");
                 });
@@ -1524,6 +1522,11 @@ namespace Persistence.Migrations
             modelBuilder.Entity("Persistence.Models.InventoryItem", b =>
                 {
                     b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("Persistence.Models.InventoryItemCategory", b =>
+                {
+                    b.Navigation("InventoryItems");
                 });
 
             modelBuilder.Entity("Persistence.Models.Payment", b =>

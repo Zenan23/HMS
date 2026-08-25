@@ -177,12 +177,21 @@ namespace Application.Mapper
             CreateMap<UpdatePriceAdjustmentDto, PriceAdjustment>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
-            // InventoryItem mappings (referentna tabela)
-            CreateMap<InventoryItem, InventoryItemDto>();
+            // InventoryItem mappings
+            CreateMap<InventoryItem, InventoryItemDto>()
+                .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.InventoryItemCategory != null ? src.InventoryItemCategory.Name : string.Empty));
             CreateMap<CreateInventoryItemDto, InventoryItem>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
             CreateMap<UpdateInventoryItemDto, InventoryItem>()
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
+            // InventoryItemCategory mappings (referentna tabela — zamjena za slobodan tekst na InventoryItem.Category)
+            CreateMap<InventoryItemCategory, InventoryItemCategoryDto>();
+            CreateMap<CreateInventoryItemCategoryDto, InventoryItemCategory>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+            CreateMap<UpdateInventoryItemCategoryDto, InventoryItemCategory>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
             // InventoryTransaction mappings
@@ -198,23 +207,6 @@ namespace Application.Mapper
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
             CreateMap<UpdateInventoryTransactionDto, InventoryTransaction>()
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
-
-            // LoyaltyPointsEarned mappings
-            CreateMap<LoyaltyPointsEarned, LoyaltyPointsEarnedDto>()
-                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null
-                    ? (!string.IsNullOrWhiteSpace(src.User.FirstName) || !string.IsNullOrWhiteSpace(src.User.LastName)
-                        ? $"{src.User.FirstName} {src.User.LastName}".Trim()
-                        : src.User.Username)
-                    : string.Empty))
-                .ForMember(dest => dest.BookingLabel, opt => opt.MapFrom(src =>
-                    src.Booking != null && src.Booking.Room != null
-                        ? $"BK-{src.Booking.Id:D6} · Soba {src.Booking.Room.RoomNumber}"
-                        : (src.BookingId != null ? $"BK-{src.BookingId:D6}" : null)));
-            CreateMap<CreateLoyaltyPointsEarnedDto, LoyaltyPointsEarned>()
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
-            CreateMap<UpdateLoyaltyPointsEarnedDto, LoyaltyPointsEarned>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
             // SupportTicket mappings

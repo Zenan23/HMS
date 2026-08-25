@@ -9,7 +9,8 @@ namespace Persistence.Models
     {
         public string Name { get; set; } = string.Empty;
         public string Unit { get; set; } = string.Empty;
-        public string Category { get; set; } = string.Empty;
+        public int InventoryItemCategoryId { get; set; }
+        public InventoryItemCategory? InventoryItemCategory { get; set; }
         public int MinimumStockLevel { get; set; }
         public ICollection<InventoryTransaction> Transactions { get; set; } = new List<InventoryTransaction>();
     }

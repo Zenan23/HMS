@@ -15,6 +15,7 @@ import 'screens/price_adjustments_screen.dart';
 import 'screens/inventory_transactions_screen.dart';
 import 'screens/inventory_items_screen.dart';
 import 'screens/cities_screen.dart';
+import 'screens/categories_screen.dart';
 import 'screens/reports_screen.dart';
 import 'utils/role_utils.dart';
 
@@ -89,6 +90,7 @@ class _MainTabsState extends State<MainTabs>
       _tabs = const [
         Tab(text: 'Hoteli'),
         Tab(text: 'Gradovi'),
+        Tab(text: 'Kategorije'),
         Tab(text: 'Rezervacije'),
         Tab(text: 'Sobe'),
         Tab(text: 'Servisi'),
@@ -102,6 +104,7 @@ class _MainTabsState extends State<MainTabs>
       _tabViews = const [
         HotelsScreen(),
         CitiesScreen(),
+        CategoriesScreen(),
         BookingsScreen(),
         RoomsScreen(),
         ServicesScreen(),

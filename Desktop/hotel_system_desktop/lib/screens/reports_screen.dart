@@ -36,6 +36,7 @@ class _ReportEntry {
   final String description;
   final IconData icon;
   final Future<void> Function(BuildContext context) generate;
+
   /// Izvještaji koji povlače podatke dostupne samo Adminu (npr. finansijska
   /// statistika/prihod preko `/api/Dashboard/statistics`, koji backend već
   /// štiti sa `[AuthorizeRole(UserRole.Admin)]`) — uposlenik ih ne treba ni
@@ -70,8 +71,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
     const int size = 100;
     while (true) {
       final sep = path.contains('?') ? '&' : '?';
-      final response = await ApiService()
-          .get('$path${sep}pageNumber=$page&pageSize=$size');
+      final response = await ApiService().get(
+        '$path${sep}pageNumber=$page&pageSize=$size',
+      );
       final Map<String, dynamic> decoded = jsonDecode(response.body);
       final data = decoded['data'] ?? {};
       final List items = data['items'] ?? [];
@@ -123,7 +125,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     ),
     _ReportEntry(
       title: 'Uposlenici',
-      description: 'Svi uposlenici (uloga Employee).',
+      description: 'Svi uposlenici.',
       icon: Icons.badge,
       generate: (ctx) async {
         final response = await ApiService().get('/api/Users/role/1');
@@ -152,8 +154,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
         int page = 1;
         const size = 100;
         while (true) {
-          final result =
-              await service.getPaged(pageNumber: page, pageSize: size);
+          final result = await service.getPaged(
+            pageNumber: page,
+            pageSize: size,
+          );
           all.addAll(result.items);
           if (all.length >= result.totalCount || result.items.isEmpty) break;
           page++;
@@ -173,8 +177,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
         int page = 1;
         const size = 100;
         while (true) {
-          final result =
-              await service.getPaged(pageNumber: page, pageSize: size);
+          final result = await service.getPaged(
+            pageNumber: page,
+            pageSize: size,
+          );
           all.addAll(result.items);
           if (all.length >= result.totalCount || result.items.isEmpty) break;
           page++;
@@ -194,8 +200,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
         int page = 1;
         const size = 100;
         while (true) {
-          final result =
-              await service.getPaged(pageNumber: page, pageSize: size);
+          final result = await service.getPaged(
+            pageNumber: page,
+            pageSize: size,
+          );
           all.addAll(result.items);
           if (all.length >= result.totalCount || result.items.isEmpty) break;
           page++;
@@ -215,8 +223,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
         int page = 1;
         const size = 100;
         while (true) {
-          final result =
-              await service.getPaged(pageNumber: page, pageSize: size);
+          final result = await service.getPaged(
+            pageNumber: page,
+            pageSize: size,
+          );
           all.addAll(result.items);
           if (all.length >= result.totalCount || result.items.isEmpty) break;
           page++;
@@ -228,7 +238,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
     ),
     _ReportEntry(
       title: 'Statistika (Pregled)',
-      description: 'Sažeti pregled poslovanja — prihod, popunjenost, top hoteli.',
+      description:
+          'Sažeti pregled poslovanja — prihod, popunjenost, top hoteli.',
       icon: Icons.dashboard,
       adminOnly: true,
       generate: (ctx) async {
@@ -247,7 +258,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Greška pri generisanju izvještaja: ${friendlyErrorMessage(e)}')),
+          SnackBar(
+            content: Text(
+              'Greška pri generisanju izvještaja: ${friendlyErrorMessage(e)}',
+            ),
+          ),
         );
       }
     }
@@ -258,7 +273,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget build(BuildContext context) {
     final isAdmin = Provider.of<AuthProvider>(context, listen: false).isAdmin;
     final visibleReports = _reports
-        .where((r) => (!r.adminOnly || isAdmin) && (!r.employeeOnly || !isAdmin))
+        .where(
+          (r) => (!r.adminOnly || isAdmin) && (!r.employeeOnly || !isAdmin),
+        )
         .toList();
     return Scaffold(
       appBar: AppBar(title: const Text('Izvještaji')),
@@ -285,16 +302,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       Icon(entry.icon),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(entry.title,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16)),
+                        child: Text(
+                          entry.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Expanded(
-                    child: Text(entry.description,
-                        style: const TextStyle(fontSize: 12)),
+                    child: Text(
+                      entry.description,
+                      style: const TextStyle(fontSize: 12),
+                    ),
                   ),
                   Align(
                     alignment: Alignment.centerRight,
@@ -303,12 +326,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           ? const SizedBox(
                               width: 14,
                               height: 14,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2))
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
                           : const Icon(Icons.picture_as_pdf, size: 16),
                       label: const Text('PDF'),
-                      onPressed:
-                          _loadingTitle == null ? () => _generate(entry) : null,
+                      onPressed: _loadingTitle == null
+                          ? () => _generate(entry)
+                          : null,
                     ),
                   ),
                 ],

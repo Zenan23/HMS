@@ -29,6 +29,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
+// In-memory keš (Dodatak/8.2 performanse) — koristi se za rijetko-mijenjane referentne
+// podatke koji se čitaju vrlo često (gradovi, države, kategorije usluga/inventara), da
+// se izbjegne nepotreban DB round-trip na svaki dropdown/listu poziv sa desktopa/mobitela.
+builder.Services.AddMemoryCache();
 // MassTransit + RabbitMQ — API samo publish-uje evente (BookingService/PaymentService/NotificationService)
 // i konzumira JEDINO NotificationCreated (za realtime SignalR push već povezanim klijentima).
 // Poslovna async obrada (booking confirmed/updated, payment completed, check-in podsjetnici) je
@@ -129,11 +134,11 @@ builder.Services.AddScoped<IRoomMaintenanceLogService, RoomMaintenanceLogService
 builder.Services.AddScoped<IPriceAdjustmentService, PriceAdjustmentService>();
 builder.Services.AddScoped<IInventoryTransactionService, InventoryTransactionService>();
 builder.Services.AddScoped<IInventoryItemService, InventoryItemService>();
-builder.Services.AddScoped<ILoyaltyPointsEarnedService, LoyaltyPointsEarnedService>();
 builder.Services.AddScoped<ISupportTicketService, SupportTicketService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<ICityService, CityService>();
 builder.Services.AddScoped<IServiceCategoryService, ServiceCategoryService>();
+builder.Services.AddScoped<IInventoryItemCategoryService, InventoryItemCategoryService>();
 
 // Queries (read-only)
 builder.Services.AddScoped<Application.Queries.IBookingQueries, Application.Queries.BookingQueries>();

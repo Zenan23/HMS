@@ -30,11 +30,11 @@ namespace Persistence.Data
         public DbSet<PriceAdjustment> PriceAdjustments { get; set; }
         public DbSet<InventoryItem> InventoryItems { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
-        public DbSet<LoyaltyPointsEarned> LoyaltyPointsEarned { get; set; }
         public DbSet<SupportTicket> SupportTickets { get; set; }
         public DbSet<Country> Countries { get; set; }
         public DbSet<City> Cities { get; set; }
         public DbSet<ServiceCategory> ServiceCategories { get; set; }
+        public DbSet<InventoryItemCategory> InventoryItemCategories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -200,6 +200,22 @@ namespace Persistence.Data
                     .WithMany()
                     .HasForeignKey(r => r.BookingId)
                     .OnDelete(DeleteBehavior.SetNull);
+
+                // Audit trag moderacije (isti obrazac kao SupportTicket.RespondedByUser). Restrict
+                // (NE SetNull) ovdje je NAMJERNO — Review.UserId već ima SetNull prema Users, a
+                // SQL Server dozvoljava samo JEDNU kaskadnu putanju (SetNull/Cascade) između istog
+                // para tabela; treći SetNull na istu Users tabelu baca "may cause cycles or
+                // multiple cascade paths" pri kreiranju FK-a. Isti razlog zašto je
+                // SupportTicket.UserId Restrict dok je RespondedByUserId SetNull (samo jedan smije).
+                entity.HasOne(r => r.ApprovedByUser)
+                    .WithMany()
+                    .HasForeignKey(r => r.ApprovedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(r => r.RejectedByUser)
+                    .WithMany()
+                    .HasForeignKey(r => r.RejectedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Notification configuration
@@ -378,13 +394,28 @@ namespace Persistence.Data
                     .OnDelete(DeleteBehavior.SetNull);
             });
 
+            // InventoryItemCategory configuration (referentna/šifarnik tabela — isti obrazac kao ServiceCategory)
+            modelBuilder.Entity<InventoryItemCategory>(entity =>
+            {
+                entity.HasKey(iic => iic.Id);
+                entity.Property(iic => iic.Name).IsRequired().HasMaxLength(50);
+                entity.HasIndex(iic => iic.Name).IsUnique();
+            });
+
             // InventoryItem configuration (referentna tabela artikala skladišta)
             modelBuilder.Entity<InventoryItem>(entity =>
             {
                 entity.HasKey(ii => ii.Id);
                 entity.Property(ii => ii.Name).IsRequired().HasMaxLength(150);
                 entity.Property(ii => ii.Unit).IsRequired().HasMaxLength(20);
-                entity.Property(ii => ii.Category).HasMaxLength(100);
+
+                // FK umjesto slobodnog string polja za kategoriju — Restrict jer brisanje
+                // kategorije koja se koristi ne smije tiho obrisati/osiročiti postojeće artikle
+                // (isti obrazac kao Service -> ServiceCategory).
+                entity.HasOne(ii => ii.InventoryItemCategory)
+                    .WithMany(iic => iic.InventoryItems)
+                    .HasForeignKey(ii => ii.InventoryItemCategoryId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // InventoryTransaction configuration
@@ -402,30 +433,6 @@ namespace Persistence.Data
                     .WithMany(ii => ii.Transactions)
                     .HasForeignKey(it => it.InventoryItemId)
                     .OnDelete(DeleteBehavior.Restrict);
-            });
-
-            // LoyaltyPointsEarned configuration
-            modelBuilder.Entity<LoyaltyPointsEarned>(entity =>
-            {
-                entity.HasKey(lpe => lpe.Id);
-                entity.Property(lpe => lpe.PointsEarned).IsRequired();
-                entity.Property(lpe => lpe.EarnedAt).IsRequired();
-                entity.Property(lpe => lpe.Reason).IsRequired().HasMaxLength(200);
-
-                entity.HasOne(lpe => lpe.User)
-                    .WithMany()
-                    .HasForeignKey(lpe => lpe.UserId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasOne(lpe => lpe.Booking)
-                    .WithMany()
-                    .HasForeignKey(lpe => lpe.BookingId)
-                    .OnDelete(DeleteBehavior.SetNull);
-
-                entity.HasOne(lpe => lpe.Payment)
-                    .WithMany()
-                    .HasForeignKey(lpe => lpe.PaymentId)
-                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // SupportTicket configuration
@@ -464,11 +471,20 @@ namespace Persistence.Data
             modelBuilder.Entity<PriceAdjustment>().HasQueryFilter(pa => !pa.IsDeleted);
             modelBuilder.Entity<InventoryItem>().HasQueryFilter(ii => !ii.IsDeleted);
             modelBuilder.Entity<InventoryTransaction>().HasQueryFilter(it => !it.IsDeleted);
-            modelBuilder.Entity<LoyaltyPointsEarned>().HasQueryFilter(lpe => !lpe.IsDeleted);
             modelBuilder.Entity<SupportTicket>().HasQueryFilter(st => !st.IsDeleted);
             modelBuilder.Entity<Country>().HasQueryFilter(c => !c.IsDeleted);
             modelBuilder.Entity<City>().HasQueryFilter(c => !c.IsDeleted);
             modelBuilder.Entity<ServiceCategory>().HasQueryFilter(sc => !sc.IsDeleted);
+            modelBuilder.Entity<InventoryItemCategory>().HasQueryFilter(iic => !iic.IsDeleted);
+
+            // AutoInclude za referentne kategorije — bez ovoga generički Repository<T>.GetAllAsync()/
+            // GetByIdAsync() (koji ne rade .Include()) vraćaju ServiceCategory/InventoryItemCategory
+            // navigaciju kao null, pa je ServiceDto.Category/InventoryItemDto.Category (resolved ime,
+            // vidi MappingProfile) u praksi uvijek prazan string, a Service.GetByCategoryAsync (filtrira
+            // na s.ServiceCategory.Name) uvijek vraća 0 rezultata. Otkriveno pri radu na
+            // InventoryItemCategory referentnoj tabeli — isti bug je postojao i za Service.
+            modelBuilder.Entity<Service>().Navigation(s => s.ServiceCategory).AutoInclude();
+            modelBuilder.Entity<InventoryItem>().Navigation(ii => ii.InventoryItemCategory).AutoInclude();
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

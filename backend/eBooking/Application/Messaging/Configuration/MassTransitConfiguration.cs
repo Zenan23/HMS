@@ -30,6 +30,16 @@ namespace Application.Messaging.Configuration
                     var pass = configuration["Rabbit:Pass"] ?? "guest";
                     cfg.Host(host, h => { h.Username(user); h.Password(pass); });
 
+                    // Bus-wide retry politika (uputa Dodatak A.1: "implementirati retry logiku sa
+                    // eksponencijalnim backoff-om, npr. 1s -> 2s -> 4s -> 8s"). Primjenjuje se na
+                    // SVE receive endpointe registrovane niže (API i Worker konzumeri) — bez ovoga
+                    // je greška u konzumeru išla direktno u error queue nakon prvog pokušaja.
+                    cfg.UseMessageRetry(r => r.Intervals(
+                        TimeSpan.FromSeconds(1),
+                        TimeSpan.FromSeconds(2),
+                        TimeSpan.FromSeconds(4),
+                        TimeSpan.FromSeconds(8)));
+
                     configureEndpoints(ctx, cfg);
                 });
             });

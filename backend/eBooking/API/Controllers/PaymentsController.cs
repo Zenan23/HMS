@@ -187,38 +187,6 @@ namespace API.Controllers
         }
 
         /// <summary>
-        /// Legacy endpoint – koristite hosted-checkout.
-        /// </summary>
-        [HttpPost("process")]
-        public async Task<ActionResult<ApiResponse<PaymentDto>>> ProcessPayment([FromBody] CreatePaymentDto createPaymentDto)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                                  .Select(e => e.ErrorMessage);
-                    return BadRequest(ApiResponse<PaymentDto>.ErrorResult("Validacija nije uspjela.", errors));
-                }
-
-                var userAgent = Request.Headers["User-Agent"].ToString();
-                var ipAddress = GetClientIpAddress();
-
-                var payment = await _paymentService.ProcessPaymentAsync(createPaymentDto, userAgent, ipAddress);
-                return Ok(ApiResponse<PaymentDto>.SuccessResult(payment, "Plaćanje je uspješno obrađeno."));
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ApiResponse<PaymentDto>.ErrorResult(ex.Message));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing payment");
-                return StatusCode(500, ApiResponse<PaymentDto>.ErrorResult("Došlo je do greške pri obradi plaćanja."));
-            }
-        }
-
-        /// <summary>
         /// Refund a payment
         /// </summary>
         /// <param name="id">Payment ID</param>
@@ -533,6 +501,5 @@ namespace API.Controllers
 
         public int? InitiatedByUserId { get; set; }
     }
-
 
 }
