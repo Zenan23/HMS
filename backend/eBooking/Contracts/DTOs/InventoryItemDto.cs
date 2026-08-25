@@ -6,6 +6,7 @@ namespace Contracts.DTOs
     {
         public string Name { get; set; } = string.Empty;
         public string Unit { get; set; } = string.Empty;
+        public int InventoryItemCategoryId { get; set; }
         public string Category { get; set; } = string.Empty;
         public int MinimumStockLevel { get; set; }
     }
@@ -20,8 +21,8 @@ namespace Contracts.DTOs
         [StringLength(20, ErrorMessage = "Jedinica mjere ne smije biti duža od 20 karaktera.")]
         public string Unit { get; set; } = string.Empty;
 
-        [StringLength(100, ErrorMessage = "Kategorija ne smije biti duža od 100 karaktera.")]
-        public string Category { get; set; } = string.Empty;
+        [Range(1, int.MaxValue, ErrorMessage = "Kategorija je obavezna.")]
+        public int InventoryItemCategoryId { get; set; }
 
         [Range(0, int.MaxValue, ErrorMessage = "Minimalna zaliha mora biti 0 ili veća.")]
         public int MinimumStockLevel { get; set; }
@@ -37,8 +38,8 @@ namespace Contracts.DTOs
         [StringLength(20, ErrorMessage = "Jedinica mjere ne smije biti duža od 20 karaktera.")]
         public string Unit { get; set; } = string.Empty;
 
-        [StringLength(100, ErrorMessage = "Kategorija ne smije biti duža od 100 karaktera.")]
-        public string Category { get; set; } = string.Empty;
+        [Range(1, int.MaxValue, ErrorMessage = "Kategorija je obavezna.")]
+        public int InventoryItemCategoryId { get; set; }
 
         [Range(0, int.MaxValue, ErrorMessage = "Minimalna zaliha mora biti 0 ili veća.")]
         public int MinimumStockLevel { get; set; }

@@ -3,6 +3,7 @@ class InventoryItem {
   final String name;
   final String unit;
   final String category;
+  final int inventoryItemCategoryId;
   final int minimumStockLevel;
 
   InventoryItem({
@@ -10,6 +11,7 @@ class InventoryItem {
     required this.name,
     required this.unit,
     required this.category,
+    required this.inventoryItemCategoryId,
     required this.minimumStockLevel,
   });
 
@@ -18,6 +20,7 @@ class InventoryItem {
         name: json['name'] ?? '',
         unit: json['unit'] ?? '',
         category: json['category'] ?? '',
+        inventoryItemCategoryId: json['inventoryItemCategoryId'] ?? 0,
         minimumStockLevel: json['minimumStockLevel'] ?? 0,
       );
 }

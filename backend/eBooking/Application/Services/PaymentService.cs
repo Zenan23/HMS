@@ -12,6 +12,7 @@ using Contracts.Enums;
 using Contracts.Messages;
 using Stripe;
 using Stripe.Checkout;
+using Contracts.Exceptions;
 using DomainPaymentMethod = Contracts.Enums.PaymentMethod;
 
 namespace Application.Services
@@ -25,12 +26,7 @@ namespace Application.Services
         private readonly IPublishEndpoint _publishEndpoint;
         private readonly PaymentOptions _paymentOptions;
         private readonly IWebhookEventDedupService _webhookDedup;
-        private readonly IRepository<LoyaltyPointsEarned> _loyaltyPointsEarnedRepository;
         private readonly IRepository<Booking> _bookingRepository;
-
-        // 1 loyalty bod na svakih 10 (EUR/USD, ovisno o Payment.Currency) uplaćenih — ista logika
-        // za sve provajdere jer svi prolaze kroz MarkPaymentCompletedCoreAsync.
-        private const decimal LoyaltyPointsPerCurrencyUnit = 0.1m;
 
         public PaymentService(
             IRepository<Payment> repository,
@@ -43,7 +39,6 @@ namespace Application.Services
             IPublishEndpoint publishEndpoint,
             IOptions<PaymentOptions> paymentOptions,
             IWebhookEventDedupService webhookDedup,
-            IRepository<LoyaltyPointsEarned> loyaltyPointsEarnedRepository,
             IRepository<Booking> bookingRepository)
             : base(repository, mapper, logger)
         {
@@ -54,7 +49,6 @@ namespace Application.Services
             _publishEndpoint = publishEndpoint;
             _paymentOptions = paymentOptions.Value;
             _webhookDedup = webhookDedup;
-            _loyaltyPointsEarnedRepository = loyaltyPointsEarnedRepository;
             _bookingRepository = bookingRepository;
         }
 
@@ -68,7 +62,7 @@ namespace Application.Services
         {
             var booking = await _bookingRepository.GetByIdAsync(dto.BookingId);
             if (booking == null || booking.IsDeleted)
-                throw new InvalidOperationException("Rezervacija nije pronađena.");
+                throw new NotFoundException("Rezervacija nije pronađena.");
 
             // Kupovina ne smije vjerovati klijentu za cijenu — server sam određuje iznos.
             dto.Amount = booking.TotalPrice;
@@ -79,7 +73,7 @@ namespace Application.Services
                 (p.Status == PaymentStatus.Processing || p.Status == PaymentStatus.Completed));
 
             if (existingPayments.Any())
-                throw new InvalidOperationException("Za ovu rezervaciju već postoji aktivno ili završeno plaćanje.");
+                throw new BusinessRuleException("Za ovu rezervaciju već postoji aktivno ili završeno plaćanje.");
 
             return booking;
         }
@@ -790,41 +784,7 @@ namespace Application.Services
                 payment.Amount,
                 transactionId));
 
-            await AwardLoyaltyPointsAsync(payment);
-
             return true;
-        }
-
-        /// <summary>
-        /// Best-effort dodjela loyalty bodova kad plaćanje pređe u Completed. Umotano u try/catch —
-        /// greška ovdje NIKAD ne smije srušiti uspješno završeno plaćanje (isti princip kao
-        /// webhook dedup PaymentId linkanje). Balans korisnika se ne čuva nigdje kao kolona,
-        /// računa se on-the-fly kao SUM(LoyaltyPointsEarned) - SUM(LoyaltyPointsRedemption).
-        /// </summary>
-        private async Task AwardLoyaltyPointsAsync(Payment payment)
-        {
-            try
-            {
-                var points = (int)Math.Floor(payment.Amount * LoyaltyPointsPerCurrencyUnit);
-                if (points <= 0)
-                {
-                    return;
-                }
-
-                await _loyaltyPointsEarnedRepository.AddAsync(new LoyaltyPointsEarned
-                {
-                    UserId = payment.UserId,
-                    BookingId = payment.BookingId,
-                    PaymentId = payment.Id,
-                    PointsEarned = points,
-                    EarnedAt = DateTime.UtcNow,
-                    Reason = $"Uplata #{payment.Id} ({payment.Amount:0.##} {payment.Currency})"
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to award loyalty points for payment {PaymentId}", payment.Id);
-            }
         }
 
         private async Task UpdatePaymentStatus(int paymentId, PaymentStatus status, string? failureReason, string? userAgent, string? ipAddress, int? userId)

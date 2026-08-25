@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Text.Json;
+using Contracts.Exceptions;
 
 namespace API.Middleware
 {
@@ -35,6 +36,18 @@ namespace API.Middleware
 
             switch (exception)
             {
+                // Domenski (custom) tipovi provjeravaju se PRIJE generičkih BCL izuzetaka —
+                // uputa (8.1) eksplicitno traži custom exception tipove umjesto generičkog
+                // Exception-a. ArgumentException/KeyNotFoundException/InvalidOperationException
+                // ostaju kao fallback za mjesta u kodu koja još nisu prebačena na ova dva tipa.
+                case NotFoundException:
+                    response.StatusCode = (int)HttpStatusCode.NotFound;
+                    response.Message = exception.Message;
+                    break;
+                case BusinessRuleException:
+                    response.StatusCode = (int)HttpStatusCode.Conflict;
+                    response.Message = exception.Message;
+                    break;
                 case ArgumentNullException:
                     response.StatusCode = (int)HttpStatusCode.BadRequest;
                     response.Message = "Neispravni podaci u zahtjevu.";

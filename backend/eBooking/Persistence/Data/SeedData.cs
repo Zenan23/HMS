@@ -508,12 +508,29 @@ namespace Persistence.Data
                 await context.SaveChangesAsync();
             }
 
+            // Referentna/šifarnik tabela kategorija artikala skladišta. Mora postojati PRIJE
+            // artikala jer je InventoryItem.InventoryItemCategoryId obavezan FK (isti obrazac
+            // kao ServiceCategory/Service).
+            if (!await context.InventoryItemCategories.AnyAsync())
+            {
+                context.InventoryItemCategories.AddRange(
+                    new InventoryItemCategory { Name = "Higijena" },
+                    new InventoryItemCategory { Name = "Mini bar" },
+                    new InventoryItemCategory { Name = "Tekstil" }
+                );
+                await context.SaveChangesAsync();
+            }
+
             if (!await context.InventoryItems.AnyAsync())
             {
+                var higijenaCategory = await context.InventoryItemCategories.FirstAsync(c => c.Name == "Higijena");
+                var miniBarCategory = await context.InventoryItemCategories.FirstAsync(c => c.Name == "Mini bar");
+                var tekstilCategory = await context.InventoryItemCategories.FirstAsync(c => c.Name == "Tekstil");
+
                 context.InventoryItems.AddRange(
-                    new InventoryItem { Name = "Sapun", Unit = "kom", Category = "Higijena", MinimumStockLevel = 50 },
-                    new InventoryItem { Name = "Mini bar - napici", Unit = "kom", Category = "Mini bar", MinimumStockLevel = 20 },
-                    new InventoryItem { Name = "Peškiri", Unit = "kom", Category = "Tekstil", MinimumStockLevel = 30 });
+                    new InventoryItem { Name = "Sapun", Unit = "kom", InventoryItemCategoryId = higijenaCategory.Id, MinimumStockLevel = 50 },
+                    new InventoryItem { Name = "Mini bar - napici", Unit = "kom", InventoryItemCategoryId = miniBarCategory.Id, MinimumStockLevel = 20 },
+                    new InventoryItem { Name = "Peškiri", Unit = "kom", InventoryItemCategoryId = tekstilCategory.Id, MinimumStockLevel = 30 });
                 await context.SaveChangesAsync();
             }
 
@@ -609,30 +626,6 @@ namespace Persistence.Data
                     }
                     context.PaymentAuditLogs.AddRange(auditLogs);
                     await context.SaveChangesAsync();
-
-                    // Loyalty bodovi za završena plaćanja — ista stopa (1 bod / 10 valute) kao
-                    // PaymentService.AwardLoyaltyPointsAsync koji ovo radi automatski za PRAVE
-                    // uplate. Seed direktno upisuje Payment redove (ne prolazi kroz PaymentService),
-                    // pa se ovdje ručno replicira ista logika da seed podaci ostanu dosljedni.
-                    var loyaltyEarned = payments
-                        .Where(p => p.Status == PaymentStatus.Completed)
-                        .Select(p => new LoyaltyPointsEarned
-                        {
-                            UserId = p.UserId,
-                            BookingId = p.BookingId,
-                            PaymentId = p.Id,
-                            PointsEarned = (int)Math.Floor(p.Amount * 0.1m),
-                            EarnedAt = p.ProcessedAt ?? today,
-                            Reason = $"Uplata #{p.Id} ({p.Amount:0.##} {p.Currency})"
-                        })
-                        .Where(lpe => lpe.PointsEarned > 0)
-                        .ToList();
-
-                    if (loyaltyEarned.Count > 0)
-                    {
-                        context.LoyaltyPointsEarned.AddRange(loyaltyEarned);
-                        await context.SaveChangesAsync();
-                    }
                 }
             }
 

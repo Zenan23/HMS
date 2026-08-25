@@ -98,6 +98,8 @@ namespace Application.Services
                 }
 
                 review.IsApproved = true;
+                review.ApprovedByUserId = approvedByUserId;
+                review.ApprovedAt = DateTime.UtcNow;
                 review.UpdatedAt = DateTime.UtcNow;
 
                 await _repository.UpdateAsync(review);
@@ -126,6 +128,8 @@ namespace Application.Services
                 }
 
                 review.IsApproved = false;
+                review.RejectedByUserId = rejectedByUserId;
+                review.RejectedAt = DateTime.UtcNow;
                 review.UpdatedAt = DateTime.UtcNow;
 
                 await _repository.UpdateAsync(review);

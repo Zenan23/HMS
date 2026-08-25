@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../utils/validation_utils.dart';
 import 'app_dialog_title.dart';
 import '../utils/error_helper.dart';
+import 'service_category_form.dart';
 
 class ServiceFormDialog extends StatefulWidget {
   final Service? service;
@@ -92,6 +93,27 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
     if (mounted) setState(() => _checkingCategories = false);
   }
 
+  // Inline dodavanje kategorije bez napuštanja forme za servis (isti obrazac
+  // kao Hotel -> Grad, vidi widgets/hotel_form.dart._addCityInline).
+  Future<void> _addCategoryInline() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => const ServiceCategoryFormDialog(),
+    );
+    if (result == true) {
+      await _fetchServiceCategories();
+      if (!mounted) return;
+      if (_categories.isNotEmpty) {
+        setState(() {
+          // Novododana kategorija je obično posljednja u listi po Id-u — odaberi je.
+          serviceCategoryId = _categories
+              .map((c) => c['id'] as int)
+              .reduce((a, b) => a > b ? a : b);
+        });
+      }
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (hotelId == null) {
@@ -168,24 +190,37 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
                       padding: EdgeInsets.symmetric(vertical: 8),
                       child: LinearProgressIndicator(),
                     )
-                  : DropdownButtonFormField<int>(
-                      value:
-                          _categories.any((c) => c['id'] == serviceCategoryId)
-                          ? serviceCategoryId
-                          : null,
-                      decoration: const InputDecoration(
-                        labelText: 'Kategorija',
-                      ),
-                      items: _categories
-                          .map(
-                            (c) => DropdownMenuItem<int>(
-                              value: c['id'] as int,
-                              child: Text(c['name'] as String),
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            value: _categories
+                                    .any((c) => c['id'] == serviceCategoryId)
+                                ? serviceCategoryId
+                                : null,
+                            decoration: const InputDecoration(
+                              labelText: 'Kategorija',
                             ),
-                          )
-                          .toList(),
-                      onChanged: (v) => setState(() => serviceCategoryId = v),
-                      validator: (v) => v == null ? 'Obavezno' : null,
+                            items: _categories
+                                .map(
+                                  (c) => DropdownMenuItem<int>(
+                                    value: c['id'] as int,
+                                    child: Text(c['name'] as String),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (v) =>
+                                setState(() => serviceCategoryId = v),
+                            validator: (v) => v == null ? 'Obavezno' : null,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline),
+                          tooltip: 'Dodaj novu kategoriju',
+                          onPressed: _addCategoryInline,
+                        ),
+                      ],
                     ),
               if (!_checkingCategories && _categories.isEmpty)
                 const Padding(
