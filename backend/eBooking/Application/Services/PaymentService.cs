@@ -301,11 +301,6 @@ namespace Application.Services
             }
         }
 
-        public Task<PaymentDto> ProcessPaymentAsync(CreatePaymentDto createPaymentDto, string? userAgent = null, string? ipAddress = null)
-        {
-            return Task.FromException<PaymentDto>(new InvalidOperationException("Koristite POST api/Payments/hosted-checkout (hosted Stripe checkout)."));
-        }
-
         public async Task<bool> RefundPaymentAsync(int paymentId, decimal amount, string reason, int? initiatedByUserId = null)
         {
             try
