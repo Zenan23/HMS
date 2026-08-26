@@ -1,7 +1,23 @@
 git clone <repository>
 cd ebooking
-docker-compose up --build -d
-docker-compose up -d
+
+
+KONFIGURACIJA / .ENV
+
+Repo iz sigurnosnih razloga ne sadrži prave tajne (connection string, JWT ključ,
+RabbitMQ kredencijale, Stripe/SMTP podatke) — .env i env.secret su gitignore-ovani.
+Umjesto njih, u rootu repoa (pored ovog README-a i docker-compose.yml) nalazi se
+lozinkom zaštićen tajne-env.zip.
+
+1. Otpakovati tajne-env.zip (šifra je dostavljena zasebno) — dobijaju se fajlovi .env
+   i env.secret.
+2. Oba fajla staviti u root folder repozitorija, pored docker-compose.yml (tj. tu gdje
+   je i tajne-env.zip).
+3. docker-compose up --build -d
+
+Prvo pokretanje traje malo duže (SQL Server kontejner mora proći healthcheck prije nego
+što API krene) — migracije i seed podaci se primjenjuju automatski pri pokretanju API-ja,
+nije potreban nikakav dodatni ručni korak.
 
 
 LOGIN PODACI
@@ -17,6 +33,9 @@ email: leo@demo.com
 pw: Leo1234!
 
 USER (gost)
+email: demo@demo.com
+pw: Demo123!
+
 email: marko@demo.com
 pw: Marko123!
 
