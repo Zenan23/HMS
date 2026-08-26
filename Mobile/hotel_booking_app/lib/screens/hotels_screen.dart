@@ -221,7 +221,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
         final list = hotelsService.recommended;
         if (list.isEmpty) return const SizedBox.shrink();
         return SizedBox(
-          height: 170,
+          height: 200,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -288,17 +288,36 @@ class _HotelsScreenState extends State<HotelsScreen> {
                 ),
                 const SizedBox(height: 8),
               ],
-              Expanded(
-                child: Center (
-                  child: Text(
+              Text(
                 hotel.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
               ),
-                )
-              )
-             // const SizedBox(height: 4),
+              // Objašnjiva preporuka: zašto je baš ovaj hotel preporučen (RS2 uputa —
+              // recommender mora korisniku objašnjavati zbog čega se sadržaj preporučuje).
+              // Fiksna visina (umjesto Expanded) da tekst nikad ne bude stisnut na 0px i
+              // nestane kad kartici ponestane prostora.
+              if (hotel.recommendationReason != null &&
+                  hotel.recommendationReason!.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                SizedBox(
+                  height: 34,
+                  child: Tooltip(
+                    message: hotel.recommendationReason!,
+                    child: Text(
+                      hotel.recommendationReason!,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 8,
+                        height: 1.15,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

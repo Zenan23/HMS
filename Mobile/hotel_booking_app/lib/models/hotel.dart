@@ -15,6 +15,9 @@ class Hotel {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String imageUrl;
+  /// Popunjeno SAMO kad je hotel vraćen kroz recommender endpoint — objašnjava
+  /// korisniku zbog čega je baš ovaj hotel preporučen (objašnjive preporuke).
+  final String? recommendationReason;
 
   Hotel({
     required this.id,
@@ -31,6 +34,7 @@ class Hotel {
     required this.createdAt,
     required this.updatedAt,
     required this.imageUrl,
+    this.recommendationReason,
   });
 
   /// Puni URL slike (npr. /uploads/hotels/... → http://host:8080/uploads/...).
@@ -52,6 +56,7 @@ class Hotel {
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
       imageUrl: json['imageUrl']?.toString() ?? '',
+      recommendationReason: json['recommendationReason'] as String?,
     );
   }
 
@@ -71,6 +76,7 @@ class Hotel {
       'averageRating': averageRating,
       'reviewsCount': reviewsCount,
       'imageUrl': imageUrl,
+      'recommendationReason': recommendationReason,
     };
   }
 }
