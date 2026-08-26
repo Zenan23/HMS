@@ -148,6 +148,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 12),
+              _buildRecommendationBanner(),
               _buildHotelInfo(),
               _buildRoomsSection(),
               _buildReviewsSection(),
@@ -325,6 +326,49 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
     } finally {
       if (mounted) setState(() => _submittingReview = false);
     }
+  }
+
+  // Puno (netruncirano) objašnjenje preporuke — vidljivo je skraćeno na
+  // kartici u karuselu "Preporučeno za vas", ali ovdje na detaljima hotela
+  // korisnik vidi kompletan razlog. Prikazuje se SAMO ako je hotel otvoren
+  // kroz recommender (widget.hotel.recommendationReason je tada popunjen).
+  Widget _buildRecommendationBanner() {
+    final reason = widget.hotel.recommendationReason;
+    if (reason == null || reason.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.teal.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.teal.withOpacity(0.3)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.recommend, color: Colors.teal, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Zašto vam preporučujemo ovaj hotel',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(reason, style: const TextStyle(fontSize: 13)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildHotelInfo() {
